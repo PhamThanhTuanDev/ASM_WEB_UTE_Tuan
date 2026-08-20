@@ -29,4 +29,8 @@ public class TopicService {
     public Topic findById(Long id) {
         return topicRepository.findById(id).orElse(null);
     }
+
+    public void delete(Long id) {
+        topicRepository.deleteById(id);
+    }
 }

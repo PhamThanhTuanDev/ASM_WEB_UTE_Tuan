@@ -14,7 +14,7 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
-                    <h5>Đề tài đăng ký</h5>
+                    <h5><a href="/lecturer/topics" class="text-decoration-none">Đề tài đăng ký</a></h5>
                     <p>Quản lý đề tài do giảng viên đề xuất hoặc hướng dẫn.</p>
                 </div>
             </div>
@@ -30,7 +30,7 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
-                    <h5>Chấm điểm</h5>
+                    <h5><a href="/lecturer/reviews" class="text-decoration-none">Chấm điểm</a></h5>
                     <p>Nhập điểm, nhận xét và đánh giá kết quả phản biện.</p>
                 </div>
             </div>

@@ -14,7 +14,7 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
-                    <h5>Nhóm của tôi</h5>
+                    <h5><a href="/student/group" class="text-decoration-none">Nhóm của tôi</a></h5>
                     <p>Quản lý thông tin nhóm, trưởng nhóm và thành viên.</p>
                 </div>
             </div>
@@ -22,7 +22,7 @@
         <div class="col-md-4">
             <div class="card h-100 border-0 shadow-sm">
                 <div class="card-body">
-                    <h5>Đăng ký đề tài</h5>
+                    <h5><a href="/student/topics" class="text-decoration-none">Đăng ký đề tài</a></h5>
                     <p>Chọn đề tài phù hợp từ danh sách đã công bố.</p>
                 </div>
             </div>
