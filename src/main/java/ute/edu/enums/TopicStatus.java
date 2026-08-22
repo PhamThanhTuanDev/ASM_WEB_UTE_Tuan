@@ -2,9 +2,10 @@ package ute.edu.enums;
 
 public enum TopicStatus {
     DRAFT,
-    PUBLISHED,
+    PENDING,
     APPROVED,
     REJECTED,
+    PUBLISHED,
     ASSIGNED,
     COMPLETED,
     CANCELLED
