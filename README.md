@@ -33,8 +33,21 @@ mvnw.cmd spring-boot:run
 
 ## Cấu hình database
 
-- SQL Server
-- Cập nhật thông tin trong `src/main/resources/application.properties`
+Ứng dụng dùng MySQL. Tạo database trước khi chạy:
+
+```sql
+CREATE DATABASE asm_web_ute CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Cập nhật `spring.datasource.username` và `spring.datasource.password` trong
+`src/main/resources/application.properties`. Hibernate sẽ tự tạo/cập nhật các
+bảng từ toàn bộ entity khi `spring.jpa.hibernate.ddl-auto=update`.
+
+Lần chạy đầu tiên tự tạo dữ liệu mẫu nếu chưa tồn tại:
+
+- `admin` / `admin123`
+- `lecturer01` / `lecturer123`
+- `student01` / `student123`
 
 ## Lưu ý
 

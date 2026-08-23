@@ -2,7 +2,7 @@ package ute.edu.service;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
-import ute.edu.model.UserAccount;
+import ute.edu.entity.UserAccount;
 import ute.edu.repository.UserAccountRepository;
 
 @Service
@@ -20,16 +20,54 @@ public class AuthService {
         return userAccountRepository.save(user);
     }
 
-    public UserAccount loginUser(String username, String rawPassword) {
-        UserAccount user = userAccountRepository.findByUsername(username);
-        if (user != null && passwordEncoder.matches(rawPassword, user.getPassword())) {
+    public UserAccount loginUser(String identifier, String rawPassword) {
+        if (identifier == null || rawPassword == null) return null;
+        String cleanIdentifier = identifier.trim();
+        String cleanPassword = rawPassword.trim();
+        if (cleanIdentifier.isEmpty() || cleanPassword.isEmpty()) return null;
+
+        // 1. Check by email or username (case-insensitive email)
+        UserAccount user = userAccountRepository.findByEmail(cleanIdentifier);
+        if (user == null) {
+            user = userAccountRepository.findByUsername(cleanIdentifier);
+        }
+        if (user == null && cleanIdentifier.contains("@")) {
+            user = userAccountRepository.findByEmailIgnoreCase(cleanIdentifier);
+        }
+
+        if (user == null || !user.isEnabled()) {
+            return null;
+        }
+
+        String dbPass = user.getPassword();
+        if (dbPass == null) return null;
+
+        // Demo / seed: plain-text password
+        if (cleanPassword.equals(dbPass)) {
             return user;
+        }
+        // Registered accounts: BCrypt hash
+        try {
+            if (passwordEncoder.matches(cleanPassword, dbPass)) {
+                return user;
+            }
+        } catch (Exception ignored) {
         }
         return null;
     }
 
-    public boolean login(String username, String rawPassword) {
-        return loginUser(username, rawPassword) != null;
+    public boolean login(String identifier, String rawPassword) {
+        return loginUser(identifier, rawPassword) != null;
+    }
+
+    public UserAccount findByUsernameOrEmail(String identifier) {
+        if (identifier == null) return null;
+        String clean = identifier.trim();
+        UserAccount u = userAccountRepository.findByEmail(clean);
+        if (u == null) {
+            u = userAccountRepository.findByUsername(clean);
+        }
+        return u;
     }
 
     public UserAccount findByUsername(String username) {
