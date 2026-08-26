@@ -6,7 +6,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HCMUTE FIT — Cổng Quản lý Đề tài Sinh viên</title>
+    <title>Quản lý đề tài sinh viên</title>
+    <link rel="icon" type="image/png" href="${pageContext.request.contextPath}/assets/img/logo/logo_hcmute.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -80,27 +81,69 @@
         }
         .stat-card { transition: transform .2s ease, box-shadow .2s ease; }
         .stat-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15,23,42,.08); }
+        .page-loader {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b1b3a;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity .35s ease, visibility .35s ease;
+        }
+        .page-loader.is-hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+        .page-loader-content { display: flex; flex-direction: column; align-items: center; gap: 18px; }
+        .page-loader-logo-wrap { position: relative; display: flex; align-items: center; justify-content: center; width: 150px; height: 150px; }
+        .page-loader-logo-wrap::before {
+            position: absolute;
+            inset: 0;
+            border: 3px solid rgba(147, 197, 253, .22);
+            border-top-color: #60a5fa;
+            border-right-color: #fbbf24;
+            border-radius: 50%;
+            animation: loaderSpin 1.1s linear infinite;
+            content: '';
+        }
+        .page-loader-logo-wrap::after { position: absolute; inset: 13px; border: 1px solid rgba(255,255,255,.18); border-radius: 50%; content: ''; }
+        .page-loader-logo { width: 88px; height: 88px; object-fit: contain; animation: loaderPulse 1.5s ease-in-out infinite; }
+        .page-loader-text { color: #dbeafe; font-size: 14px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
+        @keyframes loaderSpin { to { transform: rotate(360deg); } }
+        @keyframes loaderPulse { 0%, 100% { transform: scale(.94); } 50% { transform: scale(1); } }
+        @media (prefers-reduced-motion: reduce) { .page-loader-logo-wrap::before, .page-loader-logo { animation: none; } }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-800 antialiased">
+<div id="pageLoader" class="page-loader" aria-label="Đang tải trang" role="status">
+    <div class="page-loader-content">
+        <div class="page-loader-logo-wrap">
+            <img class="page-loader-logo" src="${pageContext.request.contextPath}/assets/img/logo/logo_nav_hcmute.png" alt="HCMUTE">
+        </div>
+        <div class="page-loader-text">Đang tải hệ thống</div>
+    </div>
+</div>
 
 <!-- Sticky Top Nav -->
-<header class="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200/80">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        <a href="${pageContext.request.contextPath}/" class="flex items-center gap-3 min-w-0">
-            <div class="brand-mark w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-800 text-white flex items-center justify-center shadow-md shadow-blue-600/25 shrink-0">
-                <i data-lucide="graduation-cap" class="w-5 h-5"></i>
-            </div>
-            <div class="min-w-0">
-                <div class="font-extrabold text-slate-900 tracking-tight leading-none">HCMUTE · FIT</div>
-                <div class="text-[10px] font-bold tracking-[0.14em] text-blue-600 mt-0.5">Thesis portal</div>
-            </div>
+<header class="sticky top-0 z-50 bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-4">
+        <a href="${pageContext.request.contextPath}/" class="flex items-center gap-3 min-w-0 group">
+            <img width="60" height="60" src="${pageContext.request.contextPath}/assets/img/logo/logo_nav_hcmute.png" alt="HCMUTE Logo" class="w-18 h-18 object-contain shrink-0 group-hover:scale-105 transition-transform">           
         </a>
 
-        <nav class="hidden md:flex items-center gap-1 text-xs font-semibold text-slate-600">
-            <a href="#topicsSection" class="px-3 py-2 rounded-lg hover:bg-slate-100 hover:text-blue-700 transition-colors">Đề tài</a>
-            <a href="#processSection" class="px-3 py-2 rounded-lg hover:bg-slate-100 hover:text-blue-700 transition-colors">Quy trình</a>
-            <a href="#guideSection" class="px-3 py-2 rounded-lg hover:bg-slate-100 hover:text-blue-700 transition-colors">Hướng dẫn</a>
+        <nav class="hidden md:flex items-center gap-6 h-full text-base font-bold text-slate-600">
+            <a href="${pageContext.request.contextPath}/" class="h-full inline-flex items-center gap-2 border-b-4 border-blue-600 text-blue-700 transition-colors">
+                <i data-lucide="house" class="w-5 h-5"></i> Trang chủ
+            </a>
+            <a href="#topicsSection" class="h-full inline-flex items-center gap-2 border-b-4 border-transparent hover:border-blue-300 hover:text-blue-700 transition-colors">
+                <i data-lucide="book-open" class="w-5 h-5"></i> Đề tài
+            </a>
+            <a href="#processSection" class="h-full inline-flex items-center gap-2 border-b-4 border-transparent hover:border-blue-300 hover:text-blue-700 transition-colors">
+                <i data-lucide="route" class="w-5 h-5"></i> Quy trình
+            </a>
+            <a href="#guideSection" class="h-full inline-flex items-center gap-2 border-b-4 border-transparent hover:border-blue-300 hover:text-blue-700 transition-colors">
+                <i data-lucide="circle-help" class="w-5 h-5"></i> Hướng dẫn
+            </a>
         </nav>
 
         <div class="flex items-center gap-2">
@@ -414,6 +457,27 @@
     document.addEventListener('DOMContentLoaded', function () {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     });
+
+    (function () {
+        const loader = document.getElementById('pageLoader');
+        if (!loader) return;
+        const showLoader = function () {
+            loader.classList.remove('is-hidden');
+        };
+        const hideLoader = function () {
+            window.setTimeout(function () { loader.classList.add('is-hidden'); }, 250);
+        };
+        window.addEventListener('load', hideLoader, { once: true });
+        window.addEventListener('pageshow', hideLoader);
+        document.addEventListener('click', function (event) {
+            const link = event.target.closest('a');
+            if (!link || link.target === '_blank' || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+            const href = link.getAttribute('href') || '';
+            if (href && !href.startsWith('#') && !href.startsWith('javascript:')) showLoader();
+        }, true);
+        document.addEventListener('submit', function () { showLoader(); }, true);
+        window.addEventListener('beforeunload', showLoader);
+    })();
 </script>
 </body>
 </html>
