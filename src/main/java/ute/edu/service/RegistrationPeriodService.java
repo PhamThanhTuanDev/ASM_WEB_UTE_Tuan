@@ -9,6 +9,7 @@ import ute.edu.enums.PeriodStatus;
 import ute.edu.repository.RegistrationPeriodRepository;
 
 @Service
+/** Service quản lý các đợt đăng ký đề tài và thời hạn nghiệp vụ. */
 public class RegistrationPeriodService {
     private final RegistrationPeriodRepository registrationPeriodRepository;
 
@@ -16,14 +17,17 @@ public class RegistrationPeriodService {
         this.registrationPeriodRepository = registrationPeriodRepository;
     }
 
+    /** Lấy toàn bộ đợt đăng ký. */
     public List<RegistrationPeriod> getAll() {
         return registrationPeriodRepository.findAll();
     }
 
+    /** Tìm đợt đăng ký theo mã. */
     public RegistrationPeriod findById(Long id) {
         return registrationPeriodRepository.findById(id).orElse(null);
     }
 
+    /** Lấy đợt đang mở hoặc được đánh dấu hoạt động. */
     public RegistrationPeriod getActivePeriod() {
         return registrationPeriodRepository.findAll().stream()
                 .filter(p -> p.getStatus() == PeriodStatus.OPEN || p.isActive())
@@ -32,6 +36,7 @@ public class RegistrationPeriodService {
     }
 
     @Transactional
+    /** Kiểm tra thời hạn bắt buộc và lưu đợt đăng ký. */
     public RegistrationPeriod save(RegistrationPeriod period) {
         // Business Validation Rule:
         // Hạn chót GVPB nộp điểm (reviewer_score_deadline): Bắt buộc với TLCN hoặc KLTN
@@ -52,6 +57,7 @@ public class RegistrationPeriodService {
     }
 
     @Transactional
+    /** Xóa đợt đăng ký theo mã. */
     public void delete(Long id) {
         registrationPeriodRepository.deleteById(id);
     }

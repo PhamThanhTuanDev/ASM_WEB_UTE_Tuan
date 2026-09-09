@@ -5,35 +5,45 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "users")
+/** Bảng users: lưu tài khoản đăng nhập và thông tin cơ bản của người dùng. */
 public class UserAccount {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // Khóa chính của tài khoản.
     private Long id;
 
     @Column(nullable = false, unique = true)
+    // Tên đăng nhập duy nhất.
     private String username;
 
     @Column(nullable = false)
+    // Mật khẩu đã được mã hóa.
     private String password;
 
     @ManyToOne
     @JoinColumn(name = "role_id")
+    // Vai trò dùng để phân quyền truy cập.
     private Role permissionRole;
 
     @Column(nullable = false)
+    // Họ và tên người dùng.
     private String fullName;
 
     @Column(nullable = false, unique = true)
+    // Địa chỉ email liên hệ.
     private String email;
 
     @Column(nullable = false)
+    // Số điện thoại liên hệ.
     private String phone;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    // Loại người dùng trong nghiệp vụ: quản trị, khoa, giảng viên hoặc sinh viên.
     private ute.edu.enums.UserRole role;
 
     @Column(nullable = false)
+    // Tài khoản có được phép đăng nhập hay không.
     private boolean enabled = true;
 
     @Column(nullable = false)

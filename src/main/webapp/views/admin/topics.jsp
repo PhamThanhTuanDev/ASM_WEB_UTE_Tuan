@@ -22,7 +22,7 @@
                 </div>
                 <div>
                     <select name="departmentId" onchange="this.form.submit()" class="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option value="">-- Tất cả Bộ môn --</option>
+                        <option value="">-- Tất cả Khoa --</option>
                         <c:forEach var="d" items="${departments}">
                             <option value="${d.id}" ${selectedDept == d.id ? 'selected' : ''}>${d.name}</option>
                         </c:forEach>
@@ -165,7 +165,7 @@
                         </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1">Bộ môn <span class="text-rose-500">*</span></label>
+                                <label class="block text-xs font-bold text-slate-700 mb-1">Khoa <span class="text-rose-500">*</span></label>
                                 <select name="departmentId" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none" required>
                                     <c:forEach var="d" items="${departments}">
                                         <option value="${d.id}">${d.name}</option>

@@ -115,7 +115,8 @@
                             </div>
                         </div>
                     </c:if>
-                    <c:forEach var="p" items="${periods}">
+                    <div>
+                    <c:forEach var="p" items="${dashboardPeriods}">
                         <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-3">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center gap-2">
@@ -149,6 +150,7 @@
                             </div>
                         </div>
                     </c:forEach>
+                    </div>
                 </div>
             </div>
 

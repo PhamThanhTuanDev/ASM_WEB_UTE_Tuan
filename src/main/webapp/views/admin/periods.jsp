@@ -28,9 +28,9 @@
         </div>
 
         <!-- Grid Cards of Registration Periods -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-pagination-list>
             <c:forEach var="p" items="${periods}">
-                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
+                <div data-pagination-item data-pagination-priority="${p.status == 'OPEN' ? 0 : 1}" class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs hover:shadow-md transition-all duration-200 flex flex-col justify-between group">
                     <div>
                         <!-- Header Status Badge -->
                         <div class="flex justify-between items-start mb-3">

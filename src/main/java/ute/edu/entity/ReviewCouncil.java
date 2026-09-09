@@ -9,41 +9,53 @@ import ute.edu.enums.CouncilStatus;
 
 @Entity
 @Table(name = "councils")
+/** Bảng councils: lưu thông tin các hội đồng phản biện. */
 public class ReviewCouncil {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // Khóa chính của hội đồng.
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "reg_period_id")
+    // Đợt đăng ký gắn với hội đồng.
     private RegistrationPeriod registrationPeriod;
 
     @ManyToOne
     @JoinColumn(name = "department_id")
+    // Khoa quản lý và tổ chức hội đồng.
     private Department department;
 
     @Column(unique = true, length = 30)
+    // Mã hội đồng, ví dụ HD01.
     private String code;
 
     @Column(nullable = false)
+    // Tên đầy đủ của hội đồng phản biện.
     private String name;
 
     @ManyToOne
     @JoinColumn(name = "chairman_id")
+    // Giảng viên giữ vai trò chủ tịch hội đồng.
     private Lecture chairman;
 
     @ManyToOne
     @JoinColumn(name = "secretary_id")
+    // Giảng viên giữ vai trò thư ký hội đồng.
     private Lecture secretary;
 
+    // Ngày tổ chức buổi bảo vệ.
     private LocalDate councilDate;
+    // Phòng hoặc địa điểm tổ chức.
     private String location;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    // Trạng thái hội đồng: đã lên kế hoạch, đang diễn ra hoặc hoàn tất.
     private CouncilStatus status = CouncilStatus.PLANNED;
 
     @OneToMany(mappedBy = "council")
+    // Danh sách thành viên tham gia hội đồng.
     private List<ReviewCouncilMember> members = new ArrayList<>();
 
     @Column(nullable = false)

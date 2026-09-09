@@ -7,45 +7,58 @@ import ute.edu.enums.PeriodStatus;
 
 @Entity
 @Table(name = "registration_periods")
+/** Bảng registration_periods: lưu các đợt đăng ký và mốc thời gian thực hiện. */
 public class RegistrationPeriod {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // Khóa chính của đợt đăng ký.
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "created_by")
+    // Người tạo đợt đăng ký.
     private UserAccount createdBy;
 
     @Column(nullable = false)
+    // Tên đợt đăng ký.
     private String name;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    // Loại đợt: khóa luận, tiểu luận hoặc nghiên cứu khoa học.
     private RegistrationType type;
 
     @Column(nullable = false)
+    // Ngày bắt đầu giảng viên đề xuất đề tài.
     private LocalDate lecturerStartDate;
 
     @Column(nullable = false)
+    // Hạn cuối giảng viên đề xuất đề tài.
     private LocalDate lecturerEndDate;
 
     @Column(nullable = false)
+    // Ngày bắt đầu sinh viên đăng ký đề tài.
     private LocalDate studentStartDate;
 
     @Column(nullable = false)
+    // Hạn cuối sinh viên đăng ký đề tài.
     private LocalDate studentEndDate;
 
     @Column
+    // Hạn giảng viên phản biện hoàn tất chấm điểm.
     private LocalDate reviewerDeadline;
 
     @Column
+    // Ngày dự kiến báo cáo trước hội đồng.
     private LocalDate councilReportDate;
 
     @Column(nullable = false)
+    // Đợt có đang được sử dụng hay không.
     private boolean active = true;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
+    // Trạng thái đợt: nháp, mở hoặc đóng.
     private PeriodStatus status = PeriodStatus.DRAFT;
 
     public RegistrationPeriod() {}

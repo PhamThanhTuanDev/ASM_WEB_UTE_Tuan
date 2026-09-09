@@ -6,21 +6,27 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "departments")
+/** Bảng departments: lưu danh mục các khoa trong trường. */
 public class Department {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // Khóa chính của khoa.
     private Long id;
 
     @Column(nullable = false, unique = true)
+    // Tên đầy đủ của khoa.
     private String name;
 
     @Column(nullable = false, unique = true, length = 30)
+    // Mã viết tắt của khoa.
     private String code = "CNTT";
 
     @Column(length = 500)
+    // Mô tả chức năng hoặc chuyên ngành của khoa.
     private String description;
 
     @Column(nullable = false)
+    // Khoa còn hoạt động trong hệ thống hay không.
     private boolean active = true;
 
     @Column

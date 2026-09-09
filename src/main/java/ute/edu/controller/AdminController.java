@@ -14,6 +14,7 @@ import java.util.*;
 
 @Controller
 @RequestMapping("/admin")
+/** Controller quản trị: quản lý đợt, đề tài, nhóm, hội đồng, điểm và thông báo. */
 public class AdminController {
     private final TopicService topicService;
     private final RegistrationPeriodService periodService;
@@ -28,6 +29,7 @@ public class AdminController {
     private final LectureRepository lectureRepository;
     private final StudentRepository studentRepository;
     private final UserAccountRepository userRepository;
+    private final TopicAssignmentRepository assignmentRepository;
 
     public AdminController(TopicService topicService,
                            RegistrationPeriodService periodService,
@@ -41,7 +43,8 @@ public class AdminController {
                            NotificationService notificationService,
                            LectureRepository lectureRepository,
                            StudentRepository studentRepository,
-                           UserAccountRepository userRepository) {
+                           UserAccountRepository userRepository,
+                           TopicAssignmentRepository assignmentRepository) {
         this.topicService = topicService;
         this.periodService = periodService;
         this.departmentRepository = departmentRepository;
@@ -55,14 +58,21 @@ public class AdminController {
         this.lectureRepository = lectureRepository;
         this.studentRepository = studentRepository;
         this.userRepository = userRepository;
+        this.assignmentRepository = assignmentRepository;
     }
 
     // 1. Dashboard
     @GetMapping({"", "/", "/dashboard"})
+    /** Tổng hợp số liệu và các hoạt động gần đây cho trang quản trị. */
     public String dashboard(Model model) {
         List<Topic> topics = topicService.getAllTopics();
         model.addAttribute("topics", topics);
-        model.addAttribute("periods", periodService.getAll());
+        List<RegistrationPeriod> periods = periodService.getAll();
+        model.addAttribute("periods", periods);
+        model.addAttribute("dashboardPeriods", periods.stream()
+            .sorted(Comparator.comparing(RegistrationPeriod::getId).reversed())
+            .limit(3)
+            .toList());
         model.addAttribute("groupCount", groupRepository.count());
         model.addAttribute("councilCount", councilService.getAll().size());
         model.addAttribute("totalLecturers", lectureRepository.count());
@@ -77,8 +87,14 @@ public class AdminController {
         model.addAttribute("pendingTopicCount", pendingCount);
         model.addAttribute("rejectedTopicCount", rejectedCount);
 
-        model.addAttribute("recentRegistrations", registrationService.getAll());
-        model.addAttribute("recentCouncils", councilService.getAll());
+        model.addAttribute("recentRegistrations", registrationService.getAll().stream()
+            .sorted(Comparator.comparing(TopicRegistration::getId).reversed())
+            .limit(5)
+            .toList());
+        model.addAttribute("recentCouncils", councilService.getAll().stream()
+            .sorted(Comparator.comparing(ReviewCouncil::getId).reversed())
+            .limit(5)
+            .toList());
         model.addAttribute("notifications", notificationService.getAll());
 
         return "admin/dashboard";
@@ -86,6 +102,7 @@ public class AdminController {
 
     // 2. Registration Periods Management
     @GetMapping("/periods")
+    /** Hiển thị danh sách và form quản lý đợt đăng ký. */
     public String registrationPeriods(Model model) {
         model.addAttribute("periods", periodService.getAll());
         model.addAttribute("period", new RegistrationPeriod());
@@ -95,6 +112,7 @@ public class AdminController {
     }
 
     @PostMapping("/periods/save")
+    /** Lưu một đợt đăng ký mới hoặc cập nhật đợt hiện có. */
     public String savePeriod(@ModelAttribute RegistrationPeriod period,
                              HttpSession session,
                              RedirectAttributes redirectAttributes) {
@@ -112,6 +130,7 @@ public class AdminController {
     }
 
     @PostMapping("/periods/{id}/delete")
+    /** Xóa đợt đăng ký theo mã. */
     public String deletePeriod(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             periodService.delete(id);
@@ -124,6 +143,7 @@ public class AdminController {
 
     // 3. Duyệt đề xuất đề tài (GVHD nộp → Trưởng khoa chấp nhận/từ chối → công bố)
     @GetMapping("/topics")
+    /** Lọc và hiển thị danh sách đề tài cho quản trị. */
     public String topics(@RequestParam(required = false) Long departmentId,
                          @RequestParam(required = false) Long periodId,
                          Model model) {
@@ -147,6 +167,7 @@ public class AdminController {
     }
 
     @PostMapping("/topics/save")
+    /** Lưu thông tin đề tài. */
     public String saveTopic(@ModelAttribute Topic topic,
                             @RequestParam(name = "departmentId") Long departmentId,
                             @RequestParam(name = "periodId") Long periodId,
@@ -171,6 +192,7 @@ public class AdminController {
     }
 
     @PostMapping("/topics/{id}/status")
+    /** Duyệt, từ chối hoặc đổi trạng thái đề tài. */
     public String updateTopicStatus(@PathVariable Long id,
                                     @RequestParam TopicStatus status,
                                     RedirectAttributes redirectAttributes) {
@@ -185,6 +207,7 @@ public class AdminController {
 
     @PostMapping(value = "/topics/{id}/status-ajax", produces = "application/json")
     @ResponseBody
+    /** Đổi trạng thái đề tài và trả kết quả JSON. */
     public Map<String, Object> updateTopicStatusAjax(@PathVariable Long id,
                                                      @RequestParam TopicStatus status,
                                                      @RequestParam(required = false) String rejectionReason) {
@@ -204,6 +227,7 @@ public class AdminController {
     }
 
     @PostMapping("/topics/{id}/delete")
+    /** Xóa đề tài. */
     public String deleteTopic(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             topicService.delete(id);
@@ -216,6 +240,7 @@ public class AdminController {
 
     // 4. Student Groups Management
     @GetMapping("/groups")
+    /** Hiển thị danh sách nhóm sinh viên. */
     public String groups(Model model) {
         List<StudentGroup> groups = groupService.getAll();
         model.addAttribute("groups", groups);
@@ -224,11 +249,13 @@ public class AdminController {
 
     // 5. Duyệt đăng ký nhóm SV thuộc quyền GVHD (/lecturer/groups)
     @GetMapping("/registrations")
+    /** Hiển thị các yêu cầu đăng ký đề tài. */
     public String registrations() {
         return "redirect:/admin/topics";
     }
 
     @PostMapping("/registrations/{id}/status")
+    /** Cập nhật trạng thái duyệt đăng ký đề tài. */
     public String updateRegistrationStatus(@PathVariable Long id,
                                            @RequestParam RegistrationStatus status,
                                            @RequestParam(required = false) String rejectionReason,
@@ -246,6 +273,7 @@ public class AdminController {
 
     @PostMapping(value = "/registrations/{id}/status-ajax", produces = "application/json")
     @ResponseBody
+    /** Cập nhật trạng thái đăng ký và trả kết quả JSON. */
     public Map<String, Object> updateRegistrationStatusAjax(@PathVariable Long id,
                                                             @RequestParam RegistrationStatus status,
                                                             @RequestParam(required = false) String rejectionReason,
@@ -268,16 +296,29 @@ public class AdminController {
 
     // 6. Review Councils & Assignment
     @GetMapping("/councils")
+    /** Hiển thị hội đồng và danh sách đề tài đủ điều kiện phân công. */
     public String councils(Model model) {
-        model.addAttribute("councils", councilService.getAll());
+        List<ReviewCouncil> councils = councilService.getAll();
+        List<TopicRegistration> approvedRegistrations = registrationService.getApprovedRegistrations();
+        Map<Long, List<TopicRegistration>> eligibleRegistrationsByCouncil = new HashMap<>();
+        for (ReviewCouncil council : councils) {
+            List<TopicRegistration> eligibleRegistrations = approvedRegistrations.stream()
+                .filter(registration -> !assignmentRepository.existsByTopicRegistrationId(registration.getId()))
+                .filter(registration -> councilService.canAssignToCouncil(council, registration))
+                .toList();
+            eligibleRegistrationsByCouncil.put(council.getId(), eligibleRegistrations);
+        }
+
+        model.addAttribute("councils", councils);
         model.addAttribute("periods", periodService.getAll());
         model.addAttribute("departments", departmentRepository.findAll());
         model.addAttribute("lecturers", lectureRepository.findAll());
-        model.addAttribute("approvedRegistrations", registrationService.getApprovedRegistrations());
+        model.addAttribute("eligibleRegistrationsByCouncil", eligibleRegistrationsByCouncil);
         return "admin/councils";
     }
 
     @PostMapping("/councils/save")
+    /** Tạo hội đồng và thiết lập thành viên. */
     public String saveCouncil(@ModelAttribute ReviewCouncil council,
                               @RequestParam Long periodId,
                               @RequestParam Long departmentId,
@@ -297,6 +338,7 @@ public class AdminController {
     }
 
     @PostMapping("/councils/{id}/assign-topic")
+    /** Phân công đề tài vào hội đồng. */
     public String assignTopicToCouncil(@PathVariable Long id,
                                        @RequestParam Long registrationId,
                                        RedirectAttributes redirectAttributes) {
@@ -310,6 +352,7 @@ public class AdminController {
     }
 
     @PostMapping("/councils/{id}/delete")
+    /** Xóa hội đồng và các phân công liên quan. */
     public String deleteCouncil(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
             councilService.deleteCouncil(id);
@@ -322,6 +365,7 @@ public class AdminController {
 
     // 7. Scoring, Results & Publication
     @GetMapping("/results")
+    /** Hiển thị kết quả chấm điểm của các hội đồng. */
     public String results(Model model) {
         List<ReviewCouncil> councils = councilService.getAll();
         model.addAttribute("councils", councils);
@@ -331,8 +375,8 @@ public class AdminController {
     }
 
     @PostMapping("/results/{councilId}/finalize")
-    public String finalizeCouncil(@PathVariable Long id,
-                                  @PathVariable Long councilId,
+    /** Chốt hội đồng sau khi đã đủ điểm. */
+    public String finalizeCouncil(@PathVariable Long councilId,
                                   RedirectAttributes redirectAttributes) {
         try {
             scoringService.finalizeCouncil(councilId);
@@ -345,13 +389,17 @@ public class AdminController {
 
     // 8. Reports Management
     @GetMapping("/reports")
+    /** Hiển thị báo cáo thuộc các đề tài đủ điều kiện. */
     public String reports(Model model) {
-        model.addAttribute("reports", reportService.getAll());
+        model.addAttribute("reports", reportService.getAll().stream()
+            .filter(report -> councilService.isEligibleForCouncil(report.getTopicRegistration()))
+            .toList());
         return "admin/reports";
     }
 
     // 9. Notifications Management
     @GetMapping("/notifications")
+    /** Hiển thị danh sách thông báo. */
     public String notifications(Model model) {
         model.addAttribute("notifications", notificationService.getAll());
         model.addAttribute("types", NotificationType.values());
@@ -359,6 +407,7 @@ public class AdminController {
     }
 
     @PostMapping("/notifications/save")
+    /** Tạo thông báo mới. */
     public String saveNotification(@RequestParam String title,
                                    @RequestParam String content,
                                    @RequestParam NotificationType type,
@@ -376,6 +425,7 @@ public class AdminController {
     }
 
     @PostMapping("/notifications/{id}/toggle")
+    /** Bật hoặc tắt công bố thông báo. */
     public String toggleNotification(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         notificationService.togglePublish(id);
         redirectAttributes.addFlashAttribute("successMessage", "Đã cập nhật trạng thái thông báo.");
@@ -383,6 +433,7 @@ public class AdminController {
     }
 
     @PostMapping("/notifications/{id}/delete")
+    /** Xóa thông báo. */
     public String deleteNotification(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         notificationService.delete(id);
         redirectAttributes.addFlashAttribute("successMessage", "Đã xóa thông báo.");
