@@ -16,12 +16,14 @@ import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
 @Service
+/** Cài đặt gửi email qua SMTP và xử lý hàng đợi định kỳ. */
 public class MailerServiceImp implements MailerService {
 	List<MailInfo> listEmails = new ArrayList<>();
 	@Autowired
 	JavaMailSender sender;
 
 	@Override
+	/** Tạo MIME email, thêm người nhận/tệp đính kèm và gửi qua SMTP. */
 	public void send(MailInfo mail) throws MessagingException {
 		MimeMessage message = sender.createMimeMessage();
 		// Sử dụng Helper để thiết lập các thông tin cần thiết cho message
@@ -56,21 +58,25 @@ public class MailerServiceImp implements MailerService {
 	}
 
 	@Override
+	/** Tạo và gửi email đơn giản. */
 	public void send(String []to, String subject, String body) throws MessagingException {
 		this.send(new MailInfo(to, subject, body));
 	}
 
 	@Override
+	/** Thêm email vào danh sách chờ gửi. */
 	public void queue(MailInfo mail) {
 		listEmails.add(mail);
 	}
 
 	@Override
+	/** Tạo email đơn giản rồi thêm vào hàng đợi. */
 	public void queue(String []to, String subject, String body) {
 		queue(new MailInfo(to, subject, body));
 	}
 
 	@Scheduled(fixedDelay = 5000)
+	/** Cứ 5 giây lấy email trong hàng đợi để gửi. */
 	public void run() {
 		while (!listEmails.isEmpty()) {
 			MailInfo mail = listEmails.remove(0);

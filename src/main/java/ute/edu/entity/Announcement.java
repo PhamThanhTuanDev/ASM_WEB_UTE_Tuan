@@ -5,22 +5,28 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "announcements")
+/** Bảng announcements: lưu các thông báo chung của hệ thống. */
 public class Announcement {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // Khóa chính của thông báo chung.
     private Long id;
 
     @Column(nullable = false)
+    // Tiêu đề thông báo.
     private String title;
 
     @Column(columnDefinition = "TEXT")
+    // Nội dung thông báo.
     private String content;
 
     @Column(nullable = false)
+    // Thời điểm tạo thông báo.
     private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToOne
     @JoinColumn(name = "created_by")
+    // Người tạo thông báo.
     private UserAccount createdBy;
 
     public Announcement() {}

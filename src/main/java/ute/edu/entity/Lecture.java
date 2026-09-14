@@ -4,29 +4,38 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "lecturers")
+/** Bảng lecturers: lưu hồ sơ giảng viên và khoa công tác. */
 public class Lecture {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    // Khóa chính hồ sơ giảng viên.
     private Long id;
 
     @OneToOne
     @JoinColumn(name = "user_id", nullable = false, unique = true)
+    // Tài khoản đăng nhập của giảng viên.
     private UserAccount user;
 
     @ManyToOne
     @JoinColumn(name = "department_id")
+    // Khoa giảng viên công tác.
     private Department department;
 
     @Column(unique = true, length = 30)
+    // Mã số giảng viên.
     private String lecturerCode;
 
     @Column(length = 255)
+    // Văn bằng chuyên môn.
     private String degree;
 
+    // Chức danh nghề nghiệp.
     private String academicTitle;
+    // Học hàm hoặc học vị.
     private String academicDegree;
 
     @Column(length = 255)
+    // Lĩnh vực nghiên cứu và chuyên môn.
     private String researchField;
 
     public Lecture() {}

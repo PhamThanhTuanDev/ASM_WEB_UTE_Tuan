@@ -6,10 +6,12 @@ import org.springframework.stereotype.Service;
 import jakarta.servlet.http.HttpSession;
 
 @Service
+/** Service đọc, ghi và xóa dữ liệu trong phiên HTTP. */
 public class SessionService {
 	@Autowired
 	HttpSession session;
 	
+	/** Lấy thuộc tính trong session hoặc trả về giá trị mặc định. */
 	public String get(String name, String defaultValue) {
 		String param = (String) session.getAttribute(name);
 		if(param != null) {

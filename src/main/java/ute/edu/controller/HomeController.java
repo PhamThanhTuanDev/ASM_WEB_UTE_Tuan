@@ -16,6 +16,7 @@ import ute.edu.repository.StudentRepository;
 import java.util.List;
 
 @Controller
+/** Controller hiển thị trang chủ và danh sách đề tài công khai. */
 public class HomeController {
     private final TopicService topicService;
     private final RegistrationPeriodService periodService;
@@ -42,6 +43,7 @@ public class HomeController {
     }
 
     @GetMapping({"/", "/home", "/index"})
+    /** Lọc và hiển thị đề tài theo khoa hoặc từ khóa. */
     public String home(@RequestParam(required = false) Long departmentId,
                        @RequestParam(required = false) String keyword,
                        Model model) {

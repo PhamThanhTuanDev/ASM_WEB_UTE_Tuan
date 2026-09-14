@@ -14,6 +14,7 @@ import ute.edu.repository.StudentGroupRepository;
 import ute.edu.repository.StudentRepository;
 
 @Service
+/** Service tạo nhóm, quản lý thành viên và nhóm trưởng. */
 public class StudentGroupService {
     private final StudentGroupRepository studentGroupRepository;
     private final StudentGroupMemberRepository memberRepository;
@@ -27,18 +28,22 @@ public class StudentGroupService {
         this.studentRepository = studentRepository;
     }
 
+    /** Lấy tất cả nhóm sinh viên. */
     public List<StudentGroup> getAll() {
         return studentGroupRepository.findAll();
     }
 
+    /** Tìm nhóm theo mã. */
     public StudentGroup findById(Long id) {
         return studentGroupRepository.findById(id).orElse(null);
     }
 
+    /** Lấy thành viên của nhóm. */
     public List<StudentGroupMember> getMembers(Long groupId) {
         return memberRepository.findByGroupId(groupId);
     }
 
+    /** Tìm nhóm mà sinh viên đang tham gia. */
     public StudentGroup findGroupByStudent(Long studentId) {
         List<StudentGroupMember> members = memberRepository.findByStudentId(studentId);
         if (!members.isEmpty()) {
@@ -47,11 +52,13 @@ public class StudentGroupService {
         return null;
     }
 
+    /** Lưu nhóm mới hoặc nhóm đã cập nhật. */
     public StudentGroup save(StudentGroup group) {
         return studentGroupRepository.save(group);
     }
 
     @Transactional
+    /** Tạo nhóm và tự thêm nhóm trưởng làm thành viên đầu tiên. */
     public StudentGroup create(String name, RegistrationPeriod period, Student leader) {
         if (name == null || name.isBlank() || period == null || leader == null) {
             throw new IllegalArgumentException("Tên nhóm, đợt đăng ký và nhóm trưởng là bắt buộc");
@@ -79,7 +86,8 @@ public class StudentGroupService {
     }
 
     @Transactional
-    public void addMemberByCode(Long groupId, String studentCode) {
+    /** Thêm sinh viên vào nhóm bằng mã số sinh viên. */
+    public Student addMemberByCode(Long groupId, String studentCode) {
         StudentGroup group = studentGroupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm"));
         Student student = studentRepository.findByStudentCode(studentCode.trim())
@@ -88,6 +96,12 @@ public class StudentGroupService {
         long memberCount = memberRepository.findByGroupId(groupId).size();
         if (memberCount >= 3) {
             throw new IllegalStateException("QUY ĐỊNH: Mỗi nhóm chỉ được tối đa 03 sinh viên!");
+        }
+
+        boolean alreadyInThisGroup = memberRepository.findByGroupId(groupId).stream()
+                .anyMatch(member -> member.getStudent().getId().equals(student.getId()));
+        if (alreadyInThisGroup) {
+            throw new IllegalStateException("Sinh viên " + studentCode + " đã là thành viên của nhóm này!");
         }
 
         boolean alreadyJoined = memberRepository.findAll().stream()
@@ -105,9 +119,11 @@ public class StudentGroupService {
         member.setStudent(student);
         member.setLeader(false);
         memberRepository.save(member);
+        return student;
     }
 
     @Transactional
+    /** Xóa thành viên, không cho phép xóa nhóm trưởng. */
     public void removeMember(Long groupId, Long studentId) {
         StudentGroup group = studentGroupRepository.findById(groupId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhóm"));

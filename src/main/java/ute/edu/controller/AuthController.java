@@ -1,5 +1,8 @@
 package ute.edu.controller;
 
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,28 +14,34 @@ import ute.edu.dto.RegisterRequest;
 import ute.edu.enums.UserRole;
 import ute.edu.entity.UserAccount;
 import ute.edu.service.AuthService;
+import ute.edu.service.AuthTokenService;
 import ute.edu.repository.UserAccountRepository;
 import ute.edu.repository.StudentRepository;
 import ute.edu.repository.LectureRepository;
 
 @Controller
+/** Controller xử lý đăng nhập, đăng ký và đăng xuất tài khoản. */
 public class AuthController {
     private final AuthService authService;
     private final UserAccountRepository userRepository;
     private final StudentRepository studentRepository;
     private final LectureRepository lectureRepository;
+    private final AuthTokenService authTokenService;
 
     public AuthController(AuthService authService,
                           UserAccountRepository userRepository,
                           StudentRepository studentRepository,
-                          LectureRepository lectureRepository) {
+                          LectureRepository lectureRepository,
+                          AuthTokenService authTokenService) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.studentRepository = studentRepository;
         this.lectureRepository = lectureRepository;
+        this.authTokenService = authTokenService;
     }
 
     @GetMapping("/login")
+    /** Hiển thị trang đăng nhập. */
     public String loginPage(Model model, HttpSession session) {
         if (session.getAttribute("user") != null) {
             UserAccount user = (UserAccount) session.getAttribute("user");
@@ -42,8 +51,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
+    /** Kiểm tra thông tin đăng nhập và tạo phiên người dùng. */
     public String login(@RequestParam String email,
                         @RequestParam String password,
+                        HttpServletRequest request,
+                        HttpServletResponse response,
                         HttpSession session,
                         Model model,
                         RedirectAttributes redirectAttributes) {
@@ -53,25 +65,32 @@ public class AuthController {
             return "login";
         }
 
+        request.changeSessionId();
         setupSession(session, user);
+        writeTokenCookie(response, request, authTokenService.issue(user));
         redirectAttributes.addFlashAttribute("successMessage", "Đăng nhập thành công! Chào mừng " + user.getFullName());
         return redirectToDashboard(user);
     }
 
     @GetMapping("/quick-login")
+    /** Đăng nhập nhanh bằng tên tài khoản mẫu. */
     public String quickLogin(@RequestParam String username,
+                             HttpServletRequest request,
+                             HttpServletResponse response,
                              HttpSession session,
                              RedirectAttributes redirectAttributes) {
         UserAccount user = authService.findByUsernameOrEmail(username);
         if (user != null) {
+            request.changeSessionId();
             setupSession(session, user);
-            redirectAttributes.addFlashAttribute("successMessage", "Đã chuyển đổi sang tài khoản: " + user.getFullName() + " (" + user.getRole() + ")");
+            writeTokenCookie(response, request, authTokenService.issue(user));
             return redirectToDashboard(user);
         }
         return "redirect:/login";
     }
 
     @GetMapping("/register")
+    /** Hiển thị trang đăng ký tài khoản. */
     public String registerPage(Model model) {
         model.addAttribute("roles", new UserRole[]{UserRole.STUDENT, UserRole.LECTURER});
         model.addAttribute("registerRequest", new RegisterRequest());
@@ -79,6 +98,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
+    /** Kiểm tra và lưu tài khoản mới. */
     public String register(RegisterRequest request, Model model, RedirectAttributes redirectAttributes) {
         try {
             UserAccount user = new UserAccount();
@@ -100,10 +120,36 @@ public class AuthController {
     }
 
     @GetMapping("/logout")
-    public String logout(HttpSession session, RedirectAttributes redirectAttributes) {
+    /** Hủy phiên hiện tại và chuyển về trang đăng nhập. */
+    public String logout(HttpServletRequest request,
+                         HttpServletResponse response,
+                         HttpSession session,
+                         RedirectAttributes redirectAttributes) {
+        authTokenService.revoke(getToken(request));
+        deleteTokenCookie(response, request);
         session.invalidate();
         redirectAttributes.addFlashAttribute("infoMessage", "Bạn đã đăng xuất khỏi hệ thống.");
         return "redirect:/login";
+    }
+
+    private String getToken(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+        for (Cookie cookie : request.getCookies()) {
+            if (AuthTokenService.COOKIE_NAME.equals(cookie.getName())) return cookie.getValue();
+        }
+        return null;
+    }
+
+    private void writeTokenCookie(HttpServletResponse response, HttpServletRequest request, String token) {
+        String secure = request.isSecure() ? "; Secure" : "";
+        response.addHeader("Set-Cookie", AuthTokenService.COOKIE_NAME + "=" + token
+                + "; Max-Age=" + authTokenService.getTokenTtlSeconds()
+                + "; Path=" + request.getContextPath() + "; HttpOnly; SameSite=Lax" + secure);
+    }
+
+    private void deleteTokenCookie(HttpServletResponse response, HttpServletRequest request) {
+        response.addHeader("Set-Cookie", AuthTokenService.COOKIE_NAME
+                + "=; Max-Age=0; Path=" + request.getContextPath() + "; HttpOnly; SameSite=Lax");
     }
 
     private void setupSession(HttpSession session, UserAccount user) {

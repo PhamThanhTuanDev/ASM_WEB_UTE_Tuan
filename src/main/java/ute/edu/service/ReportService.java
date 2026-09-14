@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
+import java.time.LocalDateTime;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,8 +14,10 @@ import ute.edu.entity.*;
 import ute.edu.repository.ReportRepository;
 import ute.edu.repository.TopicRegistrationRepository;
 import ute.edu.repository.StudentRepository;
+import ute.edu.enums.ReportReviewStatus;
 
 @Service
+/** Service nộp, lưu trữ và xét duyệt báo cáo của nhóm sinh viên. */
 public class ReportService {
     private static final Path REPORT_STORAGE = Paths.get("uploads", "reports");
     private final ReportRepository reportRepository;
@@ -29,19 +32,43 @@ public class ReportService {
         this.studentRepository = studentRepository;
     }
 
+    /** Lấy toàn bộ báo cáo. */
     public List<Report> getAll() {
         return reportRepository.findAll();
     }
 
+    /** Lấy báo cáo của một đăng ký theo thứ tự mới nhất. */
     public List<Report> getReportsForRegistration(Long registrationId) {
         return reportRepository.findByTopicRegistrationIdOrderBySubmittedAtDesc(registrationId);
     }
 
+    /** Tìm báo cáo theo mã, báo lỗi nếu không tồn tại. */
     public Report getById(Long reportId) {
         return reportRepository.findById(reportId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy báo cáo"));
     }
 
+    @Transactional
+    /** Duyệt một báo cáo. */
+    public Report approve(Long reportId) {
+        Report report = getById(reportId);
+        report.setApproved(true);
+        report.setApprovedAt(LocalDateTime.now());
+        report.setReviewStatus(ReportReviewStatus.APPROVED);
+        return reportRepository.save(report);
+    }
+
+    @Transactional
+    /** Từ chối một báo cáo. */
+    public Report reject(Long reportId) {
+        Report report = getById(reportId);
+        report.setApproved(false);
+        report.setApprovedAt(null);
+        report.setReviewStatus(ReportReviewStatus.REJECTED);
+        return reportRepository.save(report);
+    }
+
+    /** Lưu file báo cáo an toàn và trả về đường dẫn tải file. */
     public String storeFile(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
             return null;
@@ -55,6 +82,7 @@ public class ReportService {
     }
 
     @Transactional
+    /** Kiểm tra quyền nhóm trưởng và lưu báo cáo mới. */
     public Report submitReport(Long registrationId, Long studentId, String fileName, String filePath, String note) {
         TopicRegistration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin đăng ký đề tài"));

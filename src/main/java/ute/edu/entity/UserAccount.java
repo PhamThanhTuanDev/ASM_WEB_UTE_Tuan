@@ -57,6 +57,11 @@ public class UserAccount {
     public void setId(Long id) { this.id = id; }
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
+
+    /** Mã số SV/GV dùng trên header (EL: ${sessionScope.user.code}). */
+    public String getCode() {
+        return username;
+    }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
     public Role getPermissionRole() { return permissionRole; }

@@ -6,6 +6,7 @@ import ute.edu.entity.UserAccount;
 import ute.edu.repository.UserAccountRepository;
 
 @Service
+/** Service đăng ký tài khoản và xác thực người dùng. */
 public class AuthService {
     private final UserAccountRepository userAccountRepository;
     private final BCryptPasswordEncoder passwordEncoder;
@@ -15,11 +16,13 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    /** Mã hóa mật khẩu và lưu tài khoản mới. */
     public UserAccount register(UserAccount user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         return userAccountRepository.save(user);
     }
 
+    /** Kiểm tra tên đăng nhập/email và mật khẩu, trả về người dùng hợp lệ. */
     public UserAccount loginUser(String identifier, String rawPassword) {
         if (identifier == null || rawPassword == null) return null;
         String cleanIdentifier = identifier.trim();
@@ -42,11 +45,6 @@ public class AuthService {
         String dbPass = user.getPassword();
         if (dbPass == null) return null;
 
-        // Demo / seed: plain-text password
-        if (cleanPassword.equals(dbPass)) {
-            return user;
-        }
-        // Registered accounts: BCrypt hash
         try {
             if (passwordEncoder.matches(cleanPassword, dbPass)) {
                 return user;
@@ -56,10 +54,12 @@ public class AuthService {
         return null;
     }
 
+    /** Trả về true nếu thông tin đăng nhập hợp lệ. */
     public boolean login(String identifier, String rawPassword) {
         return loginUser(identifier, rawPassword) != null;
     }
 
+    /** Tìm tài khoản bằng email hoặc tên đăng nhập. */
     public UserAccount findByUsernameOrEmail(String identifier) {
         if (identifier == null) return null;
         String clean = identifier.trim();
@@ -70,6 +70,7 @@ public class AuthService {
         return u;
     }
 
+    /** Tìm tài khoản bằng tên đăng nhập. */
     public UserAccount findByUsername(String username) {
         return userAccountRepository.findByUsername(username);
     }

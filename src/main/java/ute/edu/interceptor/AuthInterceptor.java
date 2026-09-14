@@ -1,5 +1,6 @@
 package ute.edu.interceptor;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
@@ -7,9 +8,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 import ute.edu.entity.UserAccount;
 import ute.edu.enums.UserRole;
+import ute.edu.service.AuthTokenService;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
+    private final AuthTokenService authTokenService;
+
+    public AuthInterceptor(AuthTokenService authTokenService) {
+        this.authTokenService = authTokenService;
+    }
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
@@ -31,8 +38,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             return true;
         }
 
-        HttpSession session = request.getSession();
-        UserAccount user = (UserAccount) session.getAttribute("user");
+        HttpSession session = request.getSession(false);
+        UserAccount user = authTokenService.authenticate(getToken(request));
 
         if (user == null) {
             if (uri.startsWith("/admin") || uri.startsWith("/lecturer") || uri.startsWith("/student")) {
@@ -41,6 +48,10 @@ public class AuthInterceptor implements HandlerInterceptor {
             }
             return true;
         }
+
+        if (session == null) session = request.getSession(true);
+        session.setAttribute("user", user);
+        session.setAttribute("userRole", user.getRole());
 
         if (uri.startsWith("/admin")) {
             if (user.getRole() != UserRole.ADMIN
@@ -64,6 +75,14 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         return true;
+    }
+
+    private String getToken(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+        for (Cookie cookie : request.getCookies()) {
+            if (AuthTokenService.COOKIE_NAME.equals(cookie.getName())) return cookie.getValue();
+        }
+        return null;
     }
 
     private String getHomeForRole(UserRole role) {

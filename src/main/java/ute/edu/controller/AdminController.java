@@ -400,7 +400,11 @@ public class AdminController {
     // 9. Notifications Management
     @GetMapping("/notifications")
     /** Hiển thị danh sách thông báo. */
-    public String notifications(Model model) {
+    public String notifications(@RequestParam(required = false) Long notificationId,
+                                HttpSession session, Model model) {
+        if (notificationId != null) {
+            notificationService.markAsRead(notificationId, (UserAccount) session.getAttribute("user"));
+        }
         model.addAttribute("notifications", notificationService.getAll());
         model.addAttribute("types", NotificationType.values());
         return "admin/notifications";

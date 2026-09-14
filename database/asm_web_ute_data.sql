@@ -517,10 +517,6 @@ CREATE TABLE `announcement_reads` (
     CONSTRAINT `fk_reads_users` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO `announcement_reads` (`id`, `notification_id`, `user_id`, `read_at`) VALUES
-(1, 1, 7, '2026-08-15 11:20:00'),
-(2, 2, 7, '2026-08-16 14:05:00');
-
 -- ----------------------------------------------------------------------------
 -- 19. BỔ SUNG DỮ LIỆU NGHIỆP VỤ ĐỦ 20 ĐỀ TÀI
 -- Roles và departments là bảng danh mục nên giữ nguyên 4 vai trò và 6 khoa.
@@ -660,15 +656,6 @@ SELECT `number`, CONCAT('Thông báo học vụ số ', `number`),
        CONCAT('Nội dung thông báo dành cho người dùng của hệ thống UTE, số ', `number`),
        CASE `number` % 3 WHEN 0 THEN 'ALL' WHEN 1 THEN 'STUDENT' ELSE 'LECTURER' END,
        b'1', DATE_ADD('2026-08-01 08:00:00', INTERVAL `number` DAY), 1
-FROM `seq`;
-
-INSERT IGNORE INTO `announcement_reads` (`id`, `notification_id`, `user_id`, `read_at`)
-WITH RECURSIVE `seq` AS (
-    SELECT 3 AS `number`
-    UNION ALL SELECT `number` + 1 FROM `seq` WHERE `number` < 100
-)
-SELECT `number`, `number`, 8 + ((`number` - 3) % 100),
-       DATE_ADD('2026-08-10 08:00:00', INTERVAL `number` DAY)
 FROM `seq`;
 
 -- Hoàn tất khởi tạo dữ liệu mẫu!

@@ -10,6 +10,7 @@ import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
@@ -29,6 +30,7 @@ public class DataInitializer implements ApplicationRunner {
 
     private final DataSource dataSource;
     private final JdbcTemplate jdbcTemplate;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     @Value("${app.seed.enabled:true}")
     private boolean seedEnabled;
@@ -37,9 +39,12 @@ public class DataInitializer implements ApplicationRunner {
     @Value("${app.seed.every-run:true}")
     private boolean seedEveryRun;
 
-    public DataInitializer(DataSource dataSource, JdbcTemplate jdbcTemplate) {
+    public DataInitializer(DataSource dataSource,
+                           JdbcTemplate jdbcTemplate,
+                           BCryptPasswordEncoder passwordEncoder) {
         this.dataSource = dataSource;
         this.jdbcTemplate = jdbcTemplate;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -53,6 +58,7 @@ public class DataInitializer implements ApplicationRunner {
         if (!seedEveryRun && countSafe("users") > 0) {
             log.info("DB already has data — skip seed (set app.seed.every-run=true to always re-import).");
             ensureSchema();
+            migratePlaintextPasswords();
             return;
         }
 
@@ -109,6 +115,39 @@ public class DataInitializer implements ApplicationRunner {
                     "ALTER TABLE topics MODIFY updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
         } catch (Exception e) {
             log.warn("ensureSchema topics: {}", e.getMessage());
+        }
+        try {
+            jdbcTemplate.execute(
+                    "ALTER TABLE reports ADD COLUMN approved BOOLEAN NOT NULL DEFAULT FALSE");
+        } catch (Exception e) {
+            log.debug("ensureSchema reports approved: {}", e.getMessage());
+        }
+        try {
+            jdbcTemplate.execute(
+                    "ALTER TABLE reports ADD COLUMN approved_at DATETIME NULL");
+        } catch (Exception e) {
+            log.debug("ensureSchema reports approved_at: {}", e.getMessage());
+        }
+        try {
+            jdbcTemplate.execute(
+                    "ALTER TABLE reports ADD COLUMN review_status VARCHAR(20) NOT NULL DEFAULT 'PENDING'");
+        } catch (Exception e) {
+            log.debug("ensureSchema reports review_status: {}", e.getMessage());
+        }
+    }
+
+    private void migratePlaintextPasswords() {
+        try {
+            jdbcTemplate.query("SELECT id, password FROM users", resultSet -> {
+                String password = resultSet.getString("password");
+                if (password != null && !password.startsWith("$2a$")
+                        && !password.startsWith("$2b$") && !password.startsWith("$2y$")) {
+                    jdbcTemplate.update("UPDATE users SET password = ? WHERE id = ?",
+                            passwordEncoder.encode(password), resultSet.getLong("id"));
+                }
+            });
+        } catch (Exception e) {
+            log.warn("password migration skipped: {}", e.getMessage());
         }
     }
 }

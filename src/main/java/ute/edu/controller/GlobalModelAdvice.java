@@ -35,13 +35,20 @@ public class GlobalModelAdvice {
         return unread;
     }
 
+    @ModelAttribute("unreadNotifyCount")
+    public int getUnreadNotifyCountAlias(HttpSession session) {
+        return getUnreadNotificationsCount(session);
+    }
+
     @ModelAttribute("topNotifications")
     /** Lấy một số thông báo mới nhất để hiển thị trên thanh điều hướng. */
     public List<Notification> getTopNotifications(HttpSession session) {
         UserAccount user = (UserAccount) session.getAttribute("user");
         if (user == null) return Collections.emptyList();
         String roleStr = user.getRole() != null ? user.getRole().name() : "STUDENT";
-        List<Notification> notifs = notificationService.getPublishedForRole(roleStr);
+        List<Notification> notifs = notificationService.getPublishedForRole(roleStr).stream()
+            .filter(notification -> !notificationService.isRead(notification.getId(), user.getId()))
+            .toList();
         if (notifs.size() > 5) {
             return notifs.subList(0, 5);
         }
