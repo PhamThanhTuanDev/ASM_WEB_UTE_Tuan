@@ -53,6 +53,7 @@ public class HomeController {
      * @return Tên view hiển thị (index)
      */
     @GetMapping({"/", "/home", "/index"})
+    /** Lọc và hiển thị đề tài theo khoa hoặc từ khóa. */
     public String home(@RequestParam(required = false) Long departmentId,
                        @RequestParam(required = false) String keyword,
                        Model model) {
