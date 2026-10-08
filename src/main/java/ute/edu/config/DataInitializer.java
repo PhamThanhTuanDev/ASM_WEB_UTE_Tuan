@@ -74,7 +74,7 @@ public class DataInitializer implements ApplicationRunner {
             populator.setSqlScriptEncoding("UTF-8");
             populator.addScript(seed);
             populator.setContinueOnError(false);
-            populator.setSeparator(";");
+            // setSeparator(";") bỏ vì ";" là giá trị mặc định của ResourceDatabasePopulator
             populator.execute(dataSource);
             ensureSchema();
             log.info("Import OK. Demo password: 123456 — e.g. admin@hcmute.edu.vn");
@@ -83,71 +83,98 @@ public class DataInitializer implements ApplicationRunner {
         }
     }
 
+    /**
+     * Tìm file SQL seed theo CWD của process.
+     * Chỉ cần 1 candidate vì Paths.get(relative) và Paths.get("").toAbsolutePath()
+     * đều resolve về cùng thư mục làm việc (user.dir).
+     */
     private Resource resolveSeedScript() {
-        Path[] candidates = {
-                Paths.get(SEED_FILE),
-                Paths.get(System.getProperty("user.dir", ".")).resolve(SEED_FILE),
-                Paths.get("").toAbsolutePath().resolve(SEED_FILE)
-        };
-        for (Path p : candidates) {
-            if (Files.isRegularFile(p)) {
-                log.info("Seed file: {}", p.toAbsolutePath().normalize());
-                return new FileSystemResource(p.toFile());
-            }
+        Path candidate = Paths.get(SEED_FILE).toAbsolutePath().normalize();
+        if (Files.isRegularFile(candidate)) {
+            log.info("Seed file: {}", candidate);
+            return new FileSystemResource(candidate.toFile());
         }
         return null;
     }
 
+    /**
+     * Đếm số dòng trong bảng, trả về 0 nếu bảng chưa tồn tại.
+     * Dùng backtick để tránh xung đột với reserved keywords của MySQL.
+     */
     private long countSafe(String table) {
         try {
-            Long c = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM `" + table + "`", Long.class);
-            return c != null ? c : 0;
+            Long count = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM `" + table + "`", Long.class);
+            return count != null ? count : 0;
         } catch (Exception e) {
             return 0;
         }
     }
 
+    /**
+     * Đảm bảo schema DB có đủ các cột cần thiết.
+     * Dùng try-catch riêng từng lệnh ALTER vì MySQL sẽ ném lỗi nếu cột đã tồn tại —
+     * đây là cách idempotent (chạy nhiều lần vẫn an toàn) thay vì kiểm tra trước.
+     */
     private void ensureSchema() {
+        // topics: đảm bảo timestamp có precision 6 (microsecond) cho JPA
+        tryAlter("ALTER TABLE topics MODIFY created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)",
+                "topics.created_at", true);
+        tryAlter("ALTER TABLE topics MODIFY updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)",
+                "topics.updated_at", true);
+
+        // reports: thêm các cột mới nếu chưa có
+        tryAlter("ALTER TABLE reports ADD COLUMN approved BOOLEAN NOT NULL DEFAULT FALSE",
+                "reports.approved", false);
+        tryAlter("ALTER TABLE reports ADD COLUMN approved_at DATETIME NULL",
+                "reports.approved_at", false);
+        tryAlter("ALTER TABLE reports ADD COLUMN review_status VARCHAR(20) NOT NULL DEFAULT 'PENDING'",
+                "reports.review_status", false);
+    }
+
+    /**
+     * Thực thi một lệnh ALTER TABLE, bỏ qua lỗi nếu cột/thay đổi đã tồn tại.
+     *
+     * @param sql      Câu lệnh ALTER cần thực thi
+     * @param context  Tên cột/bảng để ghi log (dễ debug)
+     * @param isWarn   true = log ở mức WARN (quan trọng), false = log ở mức DEBUG
+     */
+    private void tryAlter(String sql, String context, boolean isWarn) {
         try {
-            jdbcTemplate.execute(
-                    "ALTER TABLE topics MODIFY created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)");
-            jdbcTemplate.execute(
-                    "ALTER TABLE topics MODIFY updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6)");
+            jdbcTemplate.execute(sql);
         } catch (Exception e) {
-            log.warn("ensureSchema topics: {}", e.getMessage());
-        }
-        try {
-            jdbcTemplate.execute(
-                    "ALTER TABLE reports ADD COLUMN approved BOOLEAN NOT NULL DEFAULT FALSE");
-        } catch (Exception e) {
-            log.debug("ensureSchema reports approved: {}", e.getMessage());
-        }
-        try {
-            jdbcTemplate.execute(
-                    "ALTER TABLE reports ADD COLUMN approved_at DATETIME NULL");
-        } catch (Exception e) {
-            log.debug("ensureSchema reports approved_at: {}", e.getMessage());
-        }
-        try {
-            jdbcTemplate.execute(
-                    "ALTER TABLE reports ADD COLUMN review_status VARCHAR(20) NOT NULL DEFAULT 'PENDING'");
-        } catch (Exception e) {
-            log.debug("ensureSchema reports review_status: {}", e.getMessage());
+            if (isWarn) {
+                log.warn("ensureSchema {}: {}", context, e.getMessage());
+            } else {
+                log.debug("ensureSchema {}: {}", context, e.getMessage());
+            }
         }
     }
 
+    /**
+     * Mã hóa BCrypt cho các tài khoản còn lưu mật khẩu dạng plain text.
+     * Nhận diện BCrypt bằng prefix chuẩn ($2a$, $2b$, $2y$) thay vì giải mã —
+     * vì BCrypt là one-way hash, không thể biết giá trị gốc theo cách khác.
+     */
     private void migratePlaintextPasswords() {
         try {
-            jdbcTemplate.query("SELECT id, password FROM users", resultSet -> {
-                String password = resultSet.getString("password");
-                if (password != null && !password.startsWith("$2a$")
-                        && !password.startsWith("$2b$") && !password.startsWith("$2y$")) {
+            jdbcTemplate.query("SELECT id, password FROM users", rs -> {
+                String password = rs.getString("password");
+                if (password != null && !isBCryptHashed(password)) {
                     jdbcTemplate.update("UPDATE users SET password = ? WHERE id = ?",
-                            passwordEncoder.encode(password), resultSet.getLong("id"));
+                            passwordEncoder.encode(password), rs.getLong("id"));
                 }
             });
         } catch (Exception e) {
             log.warn("password migration skipped: {}", e.getMessage());
         }
+    }
+
+    /**
+     * Kiểm tra một chuỗi có phải là BCrypt hash hay không.
+     * BCrypt hash luôn bắt đầu bằng $2a$, $2b$ hoặc $2y$.
+     */
+    private boolean isBCryptHashed(String value) {
+        return value.startsWith("$2a$") || value.startsWith("$2b$") || value.startsWith("$2y$");
     }
 }
