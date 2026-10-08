@@ -4,7 +4,11 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "users")
+@Table(name = "users", indexes = {
+    @Index(name = "idx_user_username", columnList = "username"),
+    @Index(name = "idx_user_email", columnList = "email"),
+    @Index(name = "idx_user_role", columnList = "role")
+})
 /** Bảng users: lưu tài khoản đăng nhập và thông tin cơ bản của người dùng. */
 public class UserAccount {
     @Id
@@ -20,7 +24,7 @@ public class UserAccount {
     // Mật khẩu đã được mã hóa.
     private String password;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "role_id")
     // Vai trò dùng để phân quyền truy cập.
     private Role permissionRole;
