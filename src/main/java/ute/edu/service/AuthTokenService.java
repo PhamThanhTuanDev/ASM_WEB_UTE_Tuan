@@ -34,9 +34,11 @@ public class AuthTokenService {
 
     /** Kiểm tra token còn hạn và trả về tài khoản tương ứng. */
     public UserAccount authenticate(String token) {
-        if (token == null || token.isBlank()) return null;
+        if (token == null || token.isBlank())
+            return null;
         TokenSession tokenSession = sessions.get(token);
-        if (tokenSession == null) return null;
+        if (tokenSession == null)
+            return null;
         if (tokenSession.expiresAt().isBefore(Instant.now())) {
             sessions.remove(token);
             return null;
@@ -47,7 +49,8 @@ public class AuthTokenService {
 
     /** Hủy token để kết thúc phiên đăng nhập. */
     public void revoke(String token) {
-        if (token != null) sessions.remove(token);
+        if (token != null)
+            sessions.remove(token);
     }
 
     /** Trả về thời gian sống của token theo giây. */
@@ -55,5 +58,6 @@ public class AuthTokenService {
         return tokenTtl.toSeconds();
     }
 
-    private record TokenSession(UserAccount user, Instant expiresAt) {}
+    private record TokenSession(UserAccount user, Instant expiresAt) {
+    }
 }

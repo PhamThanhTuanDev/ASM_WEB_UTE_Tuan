@@ -18,6 +18,7 @@ import ute.edu.service.AuthTokenService;
 import ute.edu.repository.UserAccountRepository;
 import ute.edu.repository.StudentRepository;
 import ute.edu.repository.LectureRepository;
+import org.springframework.beans.factory.annotation.Value;
 
 @Controller
 /** Controller xử lý đăng nhập, đăng ký và đăng xuất tài khoản. */
@@ -28,11 +29,14 @@ public class AuthController {
     private final LectureRepository lectureRepository;
     private final AuthTokenService authTokenService;
 
+    @Value("${app.demo.quick-login:false}")
+    private boolean quickLoginEnabled;
+
     public AuthController(AuthService authService,
-                          UserAccountRepository userRepository,
-                          StudentRepository studentRepository,
-                          LectureRepository lectureRepository,
-                          AuthTokenService authTokenService) {
+            UserAccountRepository userRepository,
+            StudentRepository studentRepository,
+            LectureRepository lectureRepository,
+            AuthTokenService authTokenService) {
         this.authService = authService;
         this.userRepository = userRepository;
         this.studentRepository = studentRepository;
@@ -53,15 +57,26 @@ public class AuthController {
     @PostMapping("/login")
     /** Kiểm tra thông tin đăng nhập và tạo phiên người dùng. */
     public String login(@RequestParam String email,
-                        @RequestParam String password,
-                        HttpServletRequest request,
-                        HttpServletResponse response,
-                        HttpSession session,
-                        Model model,
-                        RedirectAttributes redirectAttributes) {
+            @RequestParam String password,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            HttpSession session,
+            Model model,
+            RedirectAttributes redirectAttributes) {
         UserAccount user = authService.loginUser(email, password);
         if (user == null) {
             model.addAttribute("error", "Email hoặc mật khẩu không chính xác!");
+            return "login";
+        }
+
+        if (user.getRole() == UserRole.STUDENT && studentRepository.findByUserId(user.getId()) == null) {
+            model.addAttribute("error", "Tài khoản chưa được liên kết hồ sơ sinh viên!");
+            return "login";
+        }
+        if ((user.getRole() == UserRole.LECTURER || user.getRole() == UserRole.DEAN
+                || user.getRole() == UserRole.DEPARTMENT_HEAD)
+                && lectureRepository.findByUserId(user.getId()) == null) {
+            model.addAttribute("error", "Tài khoản chưa được liên kết hồ sơ giảng viên!");
             return "login";
         }
 
@@ -75,10 +90,13 @@ public class AuthController {
     @GetMapping("/quick-login")
     /** Đăng nhập nhanh bằng tên tài khoản mẫu. */
     public String quickLogin(@RequestParam String username,
-                             HttpServletRequest request,
-                             HttpServletResponse response,
-                             HttpSession session,
-                             RedirectAttributes redirectAttributes) {
+            HttpServletRequest request,
+            HttpServletResponse response,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
+        if (!quickLoginEnabled) {
+            return "redirect:/login";
+        }
         UserAccount user = authService.findByUsernameOrEmail(username);
         if (user != null) {
             request.changeSessionId();
@@ -92,7 +110,7 @@ public class AuthController {
     @GetMapping("/register")
     /** Hiển thị trang đăng ký tài khoản. */
     public String registerPage(Model model) {
-        model.addAttribute("roles", new UserRole[]{UserRole.STUDENT, UserRole.LECTURER});
+        model.addAttribute("roles", new UserRole[] { UserRole.STUDENT });
         model.addAttribute("registerRequest", new RegisterRequest());
         return "register";
     }
@@ -114,7 +132,7 @@ public class AuthController {
             return "redirect:/login";
         } catch (Exception e) {
             model.addAttribute("error", "Đăng ký thất bại: " + e.getMessage());
-            model.addAttribute("roles", new UserRole[]{UserRole.STUDENT, UserRole.LECTURER});
+            model.addAttribute("roles", new UserRole[] { UserRole.STUDENT });
             return "register";
         }
     }
@@ -122,9 +140,9 @@ public class AuthController {
     @GetMapping("/logout")
     /** Hủy phiên hiện tại và chuyển về trang đăng nhập. */
     public String logout(HttpServletRequest request,
-                         HttpServletResponse response,
-                         HttpSession session,
-                         RedirectAttributes redirectAttributes) {
+            HttpServletResponse response,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
         authTokenService.revoke(getToken(request));
         deleteTokenCookie(response, request);
         session.invalidate();
@@ -133,9 +151,11 @@ public class AuthController {
     }
 
     private String getToken(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
+        if (request.getCookies() == null)
+            return null;
         for (Cookie cookie : request.getCookies()) {
-            if (AuthTokenService.COOKIE_NAME.equals(cookie.getName())) return cookie.getValue();
+            if (AuthTokenService.COOKIE_NAME.equals(cookie.getName()))
+                return cookie.getValue();
         }
         return null;
     }
@@ -157,13 +177,15 @@ public class AuthController {
         session.setAttribute("userRole", user.getRole());
         if (user.getRole() == UserRole.STUDENT) {
             session.setAttribute("studentProfile", studentRepository.findByUserId(user.getId()));
-        } else if (user.getRole() == UserRole.LECTURER || user.getRole() == UserRole.DEAN || user.getRole() == UserRole.DEPARTMENT_HEAD) {
+        } else if (user.getRole() == UserRole.LECTURER || user.getRole() == UserRole.DEAN
+                || user.getRole() == UserRole.DEPARTMENT_HEAD) {
             session.setAttribute("lecturerProfile", lectureRepository.findByUserId(user.getId()));
         }
     }
 
     private String redirectToDashboard(UserAccount user) {
-        if (user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.DEAN || user.getRole() == UserRole.DEPARTMENT_HEAD) {
+        if (user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.DEAN
+                || user.getRole() == UserRole.DEPARTMENT_HEAD) {
             return "redirect:/admin/dashboard";
         }
         if (user.getRole() == UserRole.LECTURER) {
