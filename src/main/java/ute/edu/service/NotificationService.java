@@ -18,7 +18,7 @@ public class NotificationService {
     private final AnnouncementReadRepository readRepository;
 
     public NotificationService(NotificationRepository notificationRepository,
-                               AnnouncementReadRepository readRepository) {
+            AnnouncementReadRepository readRepository) {
         this.notificationRepository = notificationRepository;
         this.readRepository = readRepository;
     }
@@ -44,7 +44,8 @@ public class NotificationService {
 
     @Transactional
     /** Tạo và tùy chọn công bố một thông báo mới. */
-    public Notification create(String title, String content, NotificationType type, boolean published, UserAccount creator) {
+    public Notification create(String title, String content, NotificationType type, boolean published,
+            UserAccount creator) {
         Notification notification = new Notification();
         notification.setTitle(title);
         notification.setContent(content);
@@ -60,7 +61,8 @@ public class NotificationService {
     @Transactional
     /** Đánh dấu một thông báo là đã đọc cho người dùng. */
     public void markAsRead(Long notificationId, UserAccount user) {
-        if (user == null || notificationId == null) return;
+        if (user == null || notificationId == null)
+            return;
         if (!readRepository.existsByNotificationIdAndUserId(notificationId, user.getId())) {
             Notification n = notificationRepository.findById(notificationId).orElse(null);
             if (n != null) {
@@ -74,14 +76,16 @@ public class NotificationService {
 
     /** Kiểm tra người dùng đã đọc thông báo chưa. */
     public boolean isRead(Long notificationId, Long userId) {
-        if (userId == null || notificationId == null) return false;
+        if (userId == null || notificationId == null)
+            return false;
         return readRepository.existsByNotificationIdAndUserId(notificationId, userId);
     }
 
     @Transactional
     /** Đánh dấu toàn bộ danh sách thông báo là đã đọc. */
     public void markAllAsRead(List<Notification> notifications, UserAccount user) {
-        if (user == null || notifications == null) return;
+        if (user == null || notifications == null)
+            return;
         for (Notification notification : notifications) {
             markAsRead(notification.getId(), user);
         }

@@ -1,6 +1,6 @@
 package ute.edu.service;
 
-import ute.edu.model.MailInfo;
+import ute.edu.helper.MailInfo;
 
 import jakarta.mail.MessagingException;
 
