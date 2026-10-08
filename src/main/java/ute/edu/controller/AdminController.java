@@ -11,10 +11,19 @@ import ute.edu.repository.*;
 import ute.edu.service.*;
 
 import java.util.*;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import java.io.IOException;
+
+import org.springframework.security.access.prepost.PreAuthorize;
 
 @Controller
 @RequestMapping("/admin")
-/** Controller quản trị: quản lý đợt, đề tài, nhóm, hội đồng, điểm và thông báo. */
+@PreAuthorize("hasAnyRole('ADMIN', 'DEAN', 'DEPARTMENT_HEAD')")
+/**
+ * Controller quản trị: quản lý đợt, đề tài, nhóm, hội đồng, điểm và thông báo.
+ */
 public class AdminController {
     private final TopicService topicService;
     private final RegistrationPeriodService periodService;
@@ -32,19 +41,19 @@ public class AdminController {
     private final TopicAssignmentRepository assignmentRepository;
 
     public AdminController(TopicService topicService,
-                           RegistrationPeriodService periodService,
-                           DepartmentRepository departmentRepository,
-                           TopicRegistrationService registrationService,
-                           StudentGroupService groupService,
-                           StudentGroupRepository groupRepository,
-                           CouncilService councilService,
-                           ScoringService scoringService,
-                           ReportService reportService,
-                           NotificationService notificationService,
-                           LectureRepository lectureRepository,
-                           StudentRepository studentRepository,
-                           UserAccountRepository userRepository,
-                           TopicAssignmentRepository assignmentRepository) {
+            RegistrationPeriodService periodService,
+            DepartmentRepository departmentRepository,
+            TopicRegistrationService registrationService,
+            StudentGroupService groupService,
+            StudentGroupRepository groupRepository,
+            CouncilService councilService,
+            ScoringService scoringService,
+            ReportService reportService,
+            NotificationService notificationService,
+            LectureRepository lectureRepository,
+            StudentRepository studentRepository,
+            UserAccountRepository userRepository,
+            TopicAssignmentRepository assignmentRepository) {
         this.topicService = topicService;
         this.periodService = periodService;
         this.departmentRepository = departmentRepository;
@@ -62,7 +71,7 @@ public class AdminController {
     }
 
     // 1. Dashboard
-    @GetMapping({"", "/", "/dashboard"})
+    @GetMapping({ "", "/", "/dashboard" })
     /** Tổng hợp số liệu và các hoạt động gần đây cho trang quản trị. */
     public String dashboard(Model model) {
         List<Topic> topics = topicService.getAllTopics();
@@ -70,9 +79,9 @@ public class AdminController {
         List<RegistrationPeriod> periods = periodService.getAll();
         model.addAttribute("periods", periods);
         model.addAttribute("dashboardPeriods", periods.stream()
-            .sorted(Comparator.comparing(RegistrationPeriod::getId).reversed())
-            .limit(3)
-            .toList());
+                .sorted(Comparator.comparing(RegistrationPeriod::getId).reversed())
+                .limit(3)
+                .toList());
         model.addAttribute("groupCount", groupRepository.count());
         model.addAttribute("councilCount", councilService.getAll().size());
         model.addAttribute("totalLecturers", lectureRepository.count());
@@ -80,21 +89,23 @@ public class AdminController {
         model.addAttribute("totalRegistrations", registrationService.getAll().size());
 
         // Count topics by status
-        long publishedCount = topics.stream().filter(t -> t.getStatus() == TopicStatus.PUBLISHED || t.getStatus() == TopicStatus.APPROVED).count();
-        long pendingCount = topics.stream().filter(t -> t.getStatus() == TopicStatus.PENDING || t.getStatus() == TopicStatus.DRAFT).count();
+        long publishedCount = topics.stream()
+                .filter(t -> t.getStatus() == TopicStatus.PUBLISHED || t.getStatus() == TopicStatus.APPROVED).count();
+        long pendingCount = topics.stream()
+                .filter(t -> t.getStatus() == TopicStatus.PENDING || t.getStatus() == TopicStatus.DRAFT).count();
         long rejectedCount = topics.stream().filter(t -> t.getStatus() == TopicStatus.REJECTED).count();
         model.addAttribute("publishedTopicCount", publishedCount);
         model.addAttribute("pendingTopicCount", pendingCount);
         model.addAttribute("rejectedTopicCount", rejectedCount);
 
         model.addAttribute("recentRegistrations", registrationService.getAll().stream()
-            .sorted(Comparator.comparing(TopicRegistration::getId).reversed())
-            .limit(5)
-            .toList());
+                .sorted(Comparator.comparing(TopicRegistration::getId).reversed())
+                .limit(5)
+                .toList());
         model.addAttribute("recentCouncils", councilService.getAll().stream()
-            .sorted(Comparator.comparing(ReviewCouncil::getId).reversed())
-            .limit(5)
-            .toList());
+                .sorted(Comparator.comparing(ReviewCouncil::getId).reversed())
+                .limit(5)
+                .toList());
         model.addAttribute("notifications", notificationService.getAll());
 
         return "admin/dashboard";
@@ -114,15 +125,16 @@ public class AdminController {
     @PostMapping("/periods/save")
     /** Lưu một đợt đăng ký mới hoặc cập nhật đợt hiện có. */
     public String savePeriod(@ModelAttribute RegistrationPeriod period,
-                             HttpSession session,
-                             RedirectAttributes redirectAttributes) {
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
         try {
             UserAccount adminUser = (UserAccount) session.getAttribute("user");
             if (period.getCreatedBy() == null && adminUser != null) {
                 period.setCreatedBy(adminUser);
             }
             periodService.save(period);
-            redirectAttributes.addFlashAttribute("successMessage", "Lưu đợt đăng ký '" + period.getName() + "' thành công!");
+            redirectAttributes.addFlashAttribute("successMessage",
+                    "Lưu đợt đăng ký '" + period.getName() + "' thành công!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Lỗi lưu đợt đăng ký: " + e.getMessage());
         }
@@ -136,7 +148,8 @@ public class AdminController {
             periodService.delete(id);
             redirectAttributes.addFlashAttribute("successMessage", "Đã xóa đợt đăng ký thành công.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không thể xóa đợt này do đang có đề tài hoặc dữ liệu liên kết.");
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Không thể xóa đợt này do đang có đề tài hoặc dữ liệu liên kết.");
         }
         return "redirect:/admin/periods";
     }
@@ -145,14 +158,17 @@ public class AdminController {
     @GetMapping("/topics")
     /** Lọc và hiển thị danh sách đề tài cho quản trị. */
     public String topics(@RequestParam(required = false) Long departmentId,
-                         @RequestParam(required = false) Long periodId,
-                         Model model) {
+            @RequestParam(required = false) Long periodId,
+            Model model) {
         List<Topic> list = topicService.getAllTopics();
         if (departmentId != null && departmentId > 0) {
-            list = list.stream().filter(t -> t.getDepartment() != null && t.getDepartment().getId().equals(departmentId)).toList();
+            list = list.stream()
+                    .filter(t -> t.getDepartment() != null && t.getDepartment().getId().equals(departmentId)).toList();
         }
         if (periodId != null && periodId > 0) {
-            list = list.stream().filter(t -> t.getRegistrationPeriod() != null && t.getRegistrationPeriod().getId().equals(periodId)).toList();
+            list = list.stream().filter(
+                    t -> t.getRegistrationPeriod() != null && t.getRegistrationPeriod().getId().equals(periodId))
+                    .toList();
         }
 
         model.addAttribute("topics", list);
@@ -169,11 +185,11 @@ public class AdminController {
     @PostMapping("/topics/save")
     /** Lưu thông tin đề tài. */
     public String saveTopic(@ModelAttribute Topic topic,
-                            @RequestParam(name = "departmentId") Long departmentId,
-                            @RequestParam(name = "periodId") Long periodId,
-                            @RequestParam(name = "primaryLecturerId") Long primaryLecturerId,
-                            @RequestParam(name = "coLecturerId", required = false) Long coLecturerId,
-                            RedirectAttributes redirectAttributes) {
+            @RequestParam(name = "departmentId") Long departmentId,
+            @RequestParam(name = "periodId") Long periodId,
+            @RequestParam(name = "primaryLecturerId") Long primaryLecturerId,
+            @RequestParam(name = "coLecturerId", required = false) Long coLecturerId,
+            RedirectAttributes redirectAttributes) {
         try {
             topic.setDepartment(departmentRepository.findById(departmentId).orElseThrow());
             topic.setRegistrationPeriod(periodService.findById(periodId));
@@ -194,8 +210,8 @@ public class AdminController {
     @PostMapping("/topics/{id}/status")
     /** Duyệt, từ chối hoặc đổi trạng thái đề tài. */
     public String updateTopicStatus(@PathVariable Long id,
-                                    @RequestParam TopicStatus status,
-                                    RedirectAttributes redirectAttributes) {
+            @RequestParam TopicStatus status,
+            RedirectAttributes redirectAttributes) {
         try {
             topicService.updateStatus(id, status);
             redirectAttributes.addFlashAttribute("successMessage", "Cập nhật trạng thái đề tài thành công!");
@@ -209,15 +225,17 @@ public class AdminController {
     @ResponseBody
     /** Đổi trạng thái đề tài và trả kết quả JSON. */
     public Map<String, Object> updateTopicStatusAjax(@PathVariable Long id,
-                                                     @RequestParam TopicStatus status,
-                                                     @RequestParam(required = false) String rejectionReason) {
+            @RequestParam TopicStatus status,
+            @RequestParam(required = false) String rejectionReason) {
         Map<String, Object> resp = new HashMap<>();
         try {
             Topic updated = topicService.updateStatus(id, status);
             resp.put("success", true);
             resp.put("status", updated.getStatus().name());
             resp.put("message", status == TopicStatus.REJECTED
-                    ? "Đã từ chối đề tài" + (rejectionReason != null && !rejectionReason.isBlank() ? ": " + rejectionReason.trim() : ".")
+                    ? "Đã từ chối đề tài"
+                            + (rejectionReason != null && !rejectionReason.isBlank() ? ": " + rejectionReason.trim()
+                                    : ".")
                     : "Cập nhật trạng thái đề tài thành công!");
         } catch (Exception e) {
             resp.put("success", false);
@@ -233,7 +251,8 @@ public class AdminController {
             topicService.delete(id);
             redirectAttributes.addFlashAttribute("successMessage", "Đã xóa đề tài thành công.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không thể xóa đề tài đang có nhóm đăng ký hoặc liên kết.");
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Không thể xóa đề tài đang có nhóm đăng ký hoặc liên kết.");
         }
         return "redirect:/admin/topics";
     }
@@ -256,9 +275,9 @@ public class AdminController {
         Map<Long, List<TopicRegistration>> eligibleRegistrationsByCouncil = new HashMap<>();
         for (ReviewCouncil council : councils) {
             List<TopicRegistration> eligibleRegistrations = approvedRegistrations.stream()
-                .filter(registration -> !assignmentRepository.existsByTopicRegistrationId(registration.getId()))
-                .filter(registration -> councilService.canAssignToCouncil(council, registration))
-                .toList();
+                    .filter(registration -> !assignmentRepository.existsByTopicRegistrationId(registration.getId()))
+                    .filter(registration -> councilService.canAssignToCouncil(council, registration))
+                    .toList();
             eligibleRegistrationsByCouncil.put(council.getId(), eligibleRegistrations);
         }
 
@@ -273,12 +292,12 @@ public class AdminController {
     @PostMapping("/councils/save")
     /** Tạo hội đồng và thiết lập thành viên. */
     public String saveCouncil(@ModelAttribute ReviewCouncil council,
-                              @RequestParam Long periodId,
-                              @RequestParam Long departmentId,
-                              @RequestParam Long chairmanId,
-                              @RequestParam Long secretaryId,
-                              @RequestParam(required = false) List<Long> memberIds,
-                              RedirectAttributes redirectAttributes) {
+            @RequestParam Long periodId,
+            @RequestParam Long departmentId,
+            @RequestParam Long chairmanId,
+            @RequestParam Long secretaryId,
+            @RequestParam(required = false) List<Long> memberIds,
+            RedirectAttributes redirectAttributes) {
         try {
             council.setRegistrationPeriod(periodService.findById(periodId));
             council.setDepartment(departmentRepository.findById(departmentId).orElse(null));
@@ -293,8 +312,8 @@ public class AdminController {
     @PostMapping("/councils/{id}/assign-topic")
     /** Phân công đề tài vào hội đồng. */
     public String assignTopicToCouncil(@PathVariable Long id,
-                                       @RequestParam Long registrationId,
-                                       RedirectAttributes redirectAttributes) {
+            @RequestParam Long registrationId,
+            RedirectAttributes redirectAttributes) {
         try {
             councilService.assignTopic(id, registrationId);
             redirectAttributes.addFlashAttribute("successMessage", "Đã phân công đề tài vào Hội đồng!");
@@ -330,7 +349,7 @@ public class AdminController {
     @PostMapping("/results/{councilId}/finalize")
     /** Chốt hội đồng sau khi đã đủ điểm. */
     public String finalizeCouncil(@PathVariable Long councilId,
-                                  RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes) {
         try {
             scoringService.finalizeCouncil(councilId);
             redirectAttributes.addFlashAttribute("successMessage", "Đã chốt và công bố kết quả đánh giá cho Hội đồng!");
@@ -345,8 +364,8 @@ public class AdminController {
     /** Hiển thị báo cáo thuộc các đề tài đủ điều kiện. */
     public String reports(Model model) {
         model.addAttribute("reports", reportService.getAll().stream()
-            .filter(report -> councilService.isEligibleForCouncil(report.getTopicRegistration()))
-            .toList());
+                .filter(report -> councilService.isEligibleForCouncil(report.getTopicRegistration()))
+                .toList());
         return "admin/reports";
     }
 
@@ -354,7 +373,7 @@ public class AdminController {
     @GetMapping("/notifications")
     /** Hiển thị danh sách thông báo. */
     public String notifications(@RequestParam(required = false) Long notificationId,
-                                HttpSession session, Model model) {
+            HttpSession session, Model model) {
         if (notificationId != null) {
             notificationService.markAsRead(notificationId, (UserAccount) session.getAttribute("user"));
         }
@@ -366,11 +385,11 @@ public class AdminController {
     @PostMapping("/notifications/save")
     /** Tạo thông báo mới. */
     public String saveNotification(@RequestParam String title,
-                                   @RequestParam String content,
-                                   @RequestParam NotificationType type,
-                                   @RequestParam(defaultValue = "true") boolean published,
-                                   HttpSession session,
-                                   RedirectAttributes redirectAttributes) {
+            @RequestParam String content,
+            @RequestParam NotificationType type,
+            @RequestParam(defaultValue = "true") boolean published,
+            HttpSession session,
+            RedirectAttributes redirectAttributes) {
         try {
             UserAccount creator = (UserAccount) session.getAttribute("user");
             notificationService.create(title, content, type, published, creator);
@@ -404,5 +423,50 @@ public class AdminController {
         model.addAttribute("lecturers", lectureRepository.findAll());
         model.addAttribute("students", studentRepository.findAll());
         return "admin/users";
+    }
+
+    // 11. Export Excel
+    @GetMapping("/councils/{id}/export")
+    public void exportCouncilScoresToExcel(@PathVariable Long id, HttpServletResponse response) throws IOException {
+        ReviewCouncil council = councilService.findById(id);
+        if (council == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Council not found");
+            return;
+        }
+
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=council_scores_" + id + ".xlsx");
+
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("Điểm Hội Đồng");
+            Row headerRow = sheet.createRow(0);
+            headerRow.createCell(0).setCellValue("Mã Nhóm");
+            headerRow.createCell(1).setCellValue("Tên Đề Tài");
+            headerRow.createCell(2).setCellValue("Điểm Quá Trình");
+            headerRow.createCell(3).setCellValue("Điểm Hội Đồng");
+            headerRow.createCell(4).setCellValue("Điểm Tổng Kết");
+
+            List<TopicAssignment> assignments = councilService.getAssignments(id);
+            int rowNum = 1;
+            for (TopicAssignment assignment : assignments) {
+                Row row = sheet.createRow(rowNum++);
+                row.createCell(0).setCellValue(assignment.getTopicRegistration().getGroup().getName());
+                row.createCell(1).setCellValue(assignment.getTopicRegistration().getTopic().getTitle());
+
+                Double processScore = scoringService.calculateProcessAverageScore(assignment.getId());
+                if (processScore != null)
+                    row.createCell(2).setCellValue(processScore);
+
+                Double councilScore = scoringService.calculateAverageScore(assignment.getId());
+                if (councilScore != null)
+                    row.createCell(3).setCellValue(councilScore);
+
+                Double finalScore = scoringService.calculateFinalScore(assignment.getId());
+                if (finalScore != null)
+                    row.createCell(4).setCellValue(finalScore);
+            }
+
+            workbook.write(response.getOutputStream());
+        }
     }
 }

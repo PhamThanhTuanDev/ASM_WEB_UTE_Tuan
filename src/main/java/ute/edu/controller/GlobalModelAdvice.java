@@ -32,34 +32,34 @@ public class GlobalModelAdvice {
     public int getUnreadNotificationsCount(HttpSession session) {
         UserAccount user = (UserAccount) session.getAttribute("user");
         if (user == null) return 0;
-        String roleStr = user.getRole() != null ? user.getRole().name() : "STUDENT";
-        List<Notification> userNotifs = notificationService.getPublishedForRole(roleStr);
-        int unread = 0;
-        for (Notification n : userNotifs) {
-            if (!notificationService.isRead(n.getId(), user.getId())) {
-                unread++;
-            }
-        }
-        return unread;
+        // Tải danh sách 1 lần và đếm, tránh gọi isRead() lặp thêm lần nữa
+        return (int) getUnreadNotifications(session).size();
     }
 
     @ModelAttribute("unreadNotifyCount")
+    /** Alias của unreadNotifCount — dùng bởi header.jsp. Tái sử dụng cùng 1 helper. */
     public int getUnreadNotifyCountAlias(HttpSession session) {
         return getUnreadNotificationsCount(session);
     }
 
     @ModelAttribute("topNotifications")
-    /** Lấy một số thông báo mới nhất để hiển thị trên thanh điều hướng. */
+    /** Lấy tối đa 5 thông báo chưa đọc để hiển thị trên thanh điều hướng. */
     public List<Notification> getTopNotifications(HttpSession session) {
+        List<Notification> unread = getUnreadNotifications(session);
+        return unread.size() > 5 ? unread.subList(0, 5) : unread;
+    }
+
+    /**
+     * Tải danh sách thông báo chưa đọc của user hiện tại.
+     * Tập trung logic vào 1 chỗ để @ModelAttribute tái sử dụng,
+     * tránh gọi getPublishedForRole() nhiều lần trên cùng 1 request.
+     */
+    private List<Notification> getUnreadNotifications(HttpSession session) {
         UserAccount user = (UserAccount) session.getAttribute("user");
         if (user == null) return Collections.emptyList();
         String roleStr = user.getRole() != null ? user.getRole().name() : "STUDENT";
-        List<Notification> notifs = notificationService.getPublishedForRole(roleStr).stream()
-            .filter(notification -> !notificationService.isRead(notification.getId(), user.getId()))
-            .toList();
-        if (notifs.size() > 5) {
-            return notifs.subList(0, 5);
-        }
-        return notifs;
+        return notificationService.getPublishedForRole(roleStr).stream()
+                .filter(n -> !notificationService.isRead(n.getId(), user.getId()))
+                .toList();
     }
 }
