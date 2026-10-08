@@ -220,7 +220,8 @@
                                     </button>
                                 </div>
                                 <p class="mt-1.5 text-[10px] text-slate-400">Tài khoản thử nghiệm có mật khẩu mặc định:
-                                    <strong class="text-slate-600">123456</strong></p>
+                                    <strong class="text-slate-600">123456</strong>
+                                </p>
                             </div>
 
                             <div class="flex items-center justify-between pt-1">

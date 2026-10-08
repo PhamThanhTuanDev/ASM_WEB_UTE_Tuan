@@ -763,8 +763,6 @@
                     });
                 </script>
 
-                <!-- AI Assistant Chatbox Component -->
-                <jsp:include page="common/ai-chatbox.jsp" />
 
                 <script src="${pageContext.request.contextPath}/assets/js/enterprise-ui.js?v=4.4.1"></script>
             </body>
