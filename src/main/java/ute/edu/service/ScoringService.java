@@ -18,19 +18,22 @@ public class ScoringService {
     private final TopicSupervisorRepository supervisorRepository;
     private final ReviewCouncilRepository councilRepository;
     private final TopicEvaluationRepository evaluationRepository;
+    private final MailerService mailerService;
 
     public ScoringService(ScoreRepository scoreRepository,
                           TopicAssignmentRepository assignmentRepository,
                           ReviewCouncilMemberRepository memberRepository,
                           TopicSupervisorRepository supervisorRepository,
                           ReviewCouncilRepository councilRepository,
-                          TopicEvaluationRepository evaluationRepository) {
+                          TopicEvaluationRepository evaluationRepository,
+                          MailerService mailerService) {
         this.scoreRepository = scoreRepository;
         this.assignmentRepository = assignmentRepository;
         this.memberRepository = memberRepository;
         this.supervisorRepository = supervisorRepository;
         this.councilRepository = councilRepository;
         this.evaluationRepository = evaluationRepository;
+        this.mailerService = mailerService;
     }
 
     /** Lấy các điểm hội đồng của một phân công. */
@@ -55,6 +58,10 @@ public class ScoringService {
 
         Topic topic = assignment.getTopicRegistration().getTopic();
         Long councilId = assignment.getCouncil().getId();
+
+        if (assignment.getCouncil().getStatus() == CouncilStatus.COMPLETED) {
+            throw new IllegalStateException("Hội đồng đã chốt điểm, không thể sửa điểm!");
+        }
 
         // 1. Check anti-supervision constraint
         boolean isSupervisor = false;
@@ -179,6 +186,19 @@ public class ScoringService {
             }
             assignment.setStatus(AssignmentStatus.EVALUATED);
             assignmentRepository.save(assignment);
+            
+            Double finalScore = calculateFinalScore(assignment.getId());
+            List<String> emails = new java.util.ArrayList<>();
+            for (StudentGroupMember member : assignment.getTopicRegistration().getGroup().getMembers()) {
+                if (member.getStudent().getUser() != null && member.getStudent().getUser().getEmail() != null) {
+                    emails.add(member.getStudent().getUser().getEmail());
+                }
+            }
+            if (!emails.isEmpty() && finalScore != null) {
+                String subject = "Kết quả bảo vệ đề tài: " + assignment.getTopicRegistration().getTopic().getTitle();
+                String body = "Chào nhóm,<br><br>Điểm tổng kết bảo vệ đề tài của nhóm bạn là: <b>" + finalScore + "</b>.<br>Chúc mừng các bạn đã hoàn thành!<br><br>Khoa CNTT.";
+                mailerService.queue(emails.toArray(new String[0]), subject, body);
+            }
         }
 
         council.setStatus(CouncilStatus.COMPLETED);

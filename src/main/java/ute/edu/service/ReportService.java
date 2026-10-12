@@ -86,6 +86,9 @@ public class ReportService {
     public Report submitReport(Long registrationId, Long studentId, String fileName, String filePath, String note) {
         TopicRegistration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin đăng ký đề tài"));
+        if (registration.getStatus() != ute.edu.enums.RegistrationStatus.APPROVED) {
+            throw new IllegalStateException("Đơn đăng ký chưa được duyệt, chưa thể nộp báo cáo!");
+        }
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin sinh viên"));
 

@@ -15,8 +15,7 @@
         </div> <!-- end app-main -->
         </div> <!-- end app-wrapper -->
 
-        <!-- AI Assistant Chatbox Component -->
-        <jsp:include page="ai-chatbox.jsp" />
+
 
         <!-- Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>

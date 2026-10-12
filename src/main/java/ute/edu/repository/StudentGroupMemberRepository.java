@@ -9,12 +9,22 @@ import ute.edu.entity.StudentGroupMember;
 public interface StudentGroupMemberRepository extends JpaRepository<StudentGroupMember, Long> {
     /** Lấy thành viên của một nhóm. */
     List<StudentGroupMember> findByGroupId(Long groupId);
+
     /** Lấy các nhóm mà sinh viên tham gia. */
     List<StudentGroupMember> findByStudentId(Long studentId);
+
     /** Tìm sinh viên trong một nhóm. */
     Optional<StudentGroupMember> findByGroupIdAndStudentId(Long groupId, Long studentId);
+
     /** Kiểm tra sinh viên đã thuộc nhóm chưa. */
     boolean existsByGroupIdAndStudentId(Long groupId, Long studentId);
+
     /** Xóa sinh viên khỏi nhóm. */
     void deleteByGroupIdAndStudentId(Long groupId, Long studentId);
+
+    /**
+     * Kiểm tra sinh viên đã tham gia bất kỳ nhóm nào trong một đợt đăng ký chưa.
+     * Truy vấn thẳng DB (JOIN), không tải toàn bộ bảng vào bộ nhớ.
+     */
+    boolean existsByStudentIdAndGroupRegistrationPeriodId(Long studentId, Long periodId);
 }

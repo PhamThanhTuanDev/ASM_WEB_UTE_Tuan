@@ -37,20 +37,62 @@ public class Student {
     // Ngành đào tạo.
     private String major;
 
-    public Student() {}
+    public Student() {
+    }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
-    public UserAccount getUser() { return user; }
-    public void setUser(UserAccount user) { this.user = user; }
-    public Department getDepartment() { return department; }
-    public void setDepartment(Department department) { this.department = department; }
-    public String getStudentCode() { return studentCode; }
-    public void setStudentCode(String studentCode) { this.studentCode = studentCode; }
-    public String getCourseYear() { return courseYear; }
-    public void setCourseYear(String courseYear) { this.courseYear = courseYear; }
-    public String getClassName() { return className; }
-    public void setClassName(String className) { this.className = className; }
-    public String getMajor() { return major; }
-    public void setMajor(String major) { this.major = major; }
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public UserAccount getUser() {
+        return user;
+    }
+
+    public void setUser(UserAccount user) {
+        this.user = user;
+    }
+
+    public Department getDepartment() {
+        return department;
+    }
+
+    public void setDepartment(Department department) {
+        this.department = department;
+    }
+
+    public String getStudentCode() {
+        return studentCode;
+    }
+
+    public void setStudentCode(String studentCode) {
+        this.studentCode = studentCode;
+    }
+
+    public String getCourseYear() {
+        return courseYear;
+    }
+
+    public void setCourseYear(String courseYear) {
+        this.courseYear = courseYear;
+    }
+
+    public String getClassName() {
+        return className;
+    }
+
+    public void setClassName(String className) {
+        this.className = className;
+    }
+
+    public String getMajor() {
+        return major;
+    }
+
+    public void setMajor(String major) {
+        this.major = major;
+    }
 }

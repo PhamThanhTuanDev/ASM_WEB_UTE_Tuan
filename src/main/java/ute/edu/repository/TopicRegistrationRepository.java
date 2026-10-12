@@ -9,8 +9,10 @@ import ute.edu.entity.TopicRegistration;
 public interface TopicRegistrationRepository extends JpaRepository<TopicRegistration, Long> {
     /** Lấy đăng ký theo trạng thái duyệt. */
     List<TopicRegistration> findByStatus(RegistrationStatus status);
+
     /** Lấy tất cả đăng ký của một nhóm. */
     List<TopicRegistration> findByGroupId(Long groupId);
+
     /** Kiểm tra nhóm đã đăng ký đề tài này chưa. */
     boolean existsByGroupIdAndTopicId(Long groupId, Long topicId);
 }

@@ -20,7 +20,7 @@ public class TopicRegistrationService {
     private final StudentGroupRepository groupRepository;
 
     public TopicRegistrationService(TopicRegistrationRepository registrationRepository,
-                                    StudentGroupRepository groupRepository) {
+            StudentGroupRepository groupRepository) {
         this.registrationRepository = registrationRepository;
         this.groupRepository = groupRepository;
     }
@@ -54,7 +54,8 @@ public class TopicRegistrationService {
     public TopicRegistration getActiveRegistrationForGroup(Long groupId) {
         List<TopicRegistration> list = registrationRepository.findByGroupId(groupId);
         return list.stream()
-                .filter(r -> r.getStatus() == RegistrationStatus.APPROVED || r.getStatus() == RegistrationStatus.PENDING)
+                .filter(r -> r.getStatus() == RegistrationStatus.APPROVED
+                        || r.getStatus() == RegistrationStatus.PENDING)
                 .findFirst()
                 .orElse(null);
     }
@@ -65,12 +66,29 @@ public class TopicRegistrationService {
         if (group == null || topic == null) {
             throw new IllegalArgumentException("Nhóm và đề tài không được để trống");
         }
+        if (!group.getRegistrationPeriod().getId().equals(topic.getRegistrationPeriod().getId())) {
+            throw new IllegalStateException("Đề tài không thuộc đợt đăng ký của nhóm!");
+        }
+        if (topic.getStatus() != ute.edu.enums.TopicStatus.PUBLISHED) {
+            throw new IllegalStateException("Đề tài chưa được công bố!");
+        }
         if (group.getTopic() != null) {
             throw new IllegalStateException("QUY ĐỊNH: Nhóm đã được gán một đề tài chính thức!");
         }
         if (registrationRepository.existsByGroupIdAndTopicId(group.getId(), topic.getId())) {
             throw new IllegalStateException("Nhóm đã gửi yêu cầu đăng ký cho đề tài này!");
         }
+        if (group.getMembers().size() < 3) {
+            throw new IllegalStateException("QUY ĐỊNH: Nhóm phải có từ 3-5 thành viên mới được đăng ký đề tài!");
+        }
+        // Kiểm tra BIZ-05: Nhóm đang có đơn chờ duyệt
+        List<TopicRegistration> existingRegs = registrationRepository.findByGroupId(group.getId());
+        for (TopicRegistration reg : existingRegs) {
+            if (reg.getStatus() == RegistrationStatus.PENDING) {
+                throw new IllegalStateException("Nhóm đang có đơn chờ duyệt, không thể đăng ký thêm!");
+            }
+        }
+
         TopicRegistration registration = new TopicRegistration();
         registration.setGroup(group);
         registration.setTopic(topic);
@@ -83,9 +101,13 @@ public class TopicRegistrationService {
     @Transactional
     /** Cập nhật kết quả duyệt đăng ký và gán đề tài cho nhóm khi được duyệt. */
     public TopicRegistration updateStatus(Long id, RegistrationStatus status,
-                                          UserAccount approver, String rejectionReason) {
+            UserAccount approver, String rejectionReason) {
         TopicRegistration registration = registrationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đăng ký đề tài"));
+        if (registration.getStatus() != RegistrationStatus.PENDING) {
+            throw new IllegalStateException("Đơn này đã được xử lý!");
+        }
+
         registration.setStatus(status);
         registration.setApprovedBy(approver);
         registration.setRejectionReason(rejectionReason);
