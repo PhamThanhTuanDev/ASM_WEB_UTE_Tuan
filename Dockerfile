@@ -1,4 +1,4 @@
-FROM maven:3.9.9-eclipse-temurin-25 AS build
+FROM maven:3.10.0-eclipse-temurin-25 AS build
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ RUN mvn -DskipTests clean package
 
 # Reuse the build image for the runtime so Railway does not need to pull
 # a second Docker Hub image during deployment.
-FROM maven:3.9.9-eclipse-temurin-25
+FROM maven:3.10.0-eclipse-temurin-25
 
 WORKDIR /app
 
