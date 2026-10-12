@@ -9,8 +9,10 @@ import ute.edu.enums.CouncilStatus;
 import ute.edu.enums.AssignmentStatus;
 import ute.edu.repository.*;
 
+/**
+ * Service quản lý hội đồng, thành viên hội đồng và phân công đề tài.
+ */
 @Service
-/** Service quản lý hội đồng, thành viên hội đồng và phân công đề tài. */
 public class CouncilService {
     private final ReviewCouncilRepository councilRepository;
     private final ReviewCouncilMemberRepository memberRepository;
@@ -18,24 +20,21 @@ public class CouncilService {
     private final TopicRegistrationRepository registrationRepository;
     private final LectureRepository lectureRepository;
     private final TopicSupervisorRepository supervisorRepository;
-    private final ReportRepository reportRepository;
     private final TopicEvaluationRepository evaluationRepository;
 
     public CouncilService(ReviewCouncilRepository councilRepository,
-                          ReviewCouncilMemberRepository memberRepository,
-                          TopicAssignmentRepository assignmentRepository,
-                          TopicRegistrationRepository registrationRepository,
-                          LectureRepository lectureRepository,
-                          TopicSupervisorRepository supervisorRepository,
-                          ReportRepository reportRepository,
-                          TopicEvaluationRepository evaluationRepository) {
+            ReviewCouncilMemberRepository memberRepository,
+            TopicAssignmentRepository assignmentRepository,
+            TopicRegistrationRepository registrationRepository,
+            LectureRepository lectureRepository,
+            TopicSupervisorRepository supervisorRepository,
+            TopicEvaluationRepository evaluationRepository) {
         this.councilRepository = councilRepository;
         this.memberRepository = memberRepository;
         this.assignmentRepository = assignmentRepository;
         this.registrationRepository = registrationRepository;
         this.lectureRepository = lectureRepository;
         this.supervisorRepository = supervisorRepository;
-        this.reportRepository = reportRepository;
         this.evaluationRepository = evaluationRepository;
     }
 
@@ -52,7 +51,9 @@ public class CouncilService {
     }
 
     @Transactional
-    /** Tạo hội đồng, kiểm tra khoa và bảo đảm có từ 3 đến 5 thành viên. */
+    /**
+     * Tạo hội đồng, kiểm tra khoa và bảo đảm có từ 3 đến 5 thành viên.
+     */
     public ReviewCouncil createCouncil(ReviewCouncil council, Long chairmanId, Long secretaryId, List<Long> memberIds) {
         if (chairmanId == null || secretaryId == null) {
             throw new IllegalArgumentException("Chủ tịch và Thư ký hội đồng là bắt buộc");
@@ -60,9 +61,11 @@ public class CouncilService {
         if (chairmanId.equals(secretaryId)) {
             throw new IllegalArgumentException("Chủ tịch và Thư ký không được trùng nhau");
         }
-        
-        Lecture chairman = lectureRepository.findById(chairmanId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Chủ tịch"));
-        Lecture secretary = lectureRepository.findById(secretaryId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Thư ký"));
+
+        Lecture chairman = lectureRepository.findById(chairmanId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Chủ tịch"));
+        Lecture secretary = lectureRepository.findById(secretaryId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Thư ký"));
 
         if (council.getDepartment() == null) {
             throw new IllegalArgumentException("Khoa quản lý hội đồng là bắt buộc");
@@ -72,7 +75,7 @@ public class CouncilService {
                 || !departmentId.equals(secretary.getDepartment().getId())) {
             throw new IllegalArgumentException("Chủ tịch và Thư ký phải thuộc khoa quản lý của hội đồng");
         }
-        
+
         council.setChairman(chairman);
         council.setSecretary(secretary);
         if (council.getStatus() == null) {
@@ -115,7 +118,8 @@ public class CouncilService {
 
         long totalMembers = memberRepository.findByCouncilId(saved.getId()).size();
         if (totalMembers < 3 || totalMembers > 5) {
-            throw new IllegalArgumentException("Hội đồng phải có từ 3 đến 5 giảng viên (Hiện có: " + totalMembers + ")");
+            throw new IllegalArgumentException(
+                    "Hội đồng phải có từ 3 đến 5 giảng viên (Hiện có: " + totalMembers + ")");
         }
 
         return saved;
@@ -124,8 +128,10 @@ public class CouncilService {
     @Transactional
     /** Phân công đăng ký đề tài vào hội đồng sau khi kiểm tra toàn bộ điều kiện. */
     public TopicAssignment assignTopic(Long councilId, Long registrationId) {
-        ReviewCouncil council = councilRepository.findById(councilId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Hội đồng"));
-        TopicRegistration registration = registrationRepository.findById(registrationId).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Đăng ký đề tài"));
+        ReviewCouncil council = councilRepository.findById(councilId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Hội đồng"));
+        TopicRegistration registration = registrationRepository.findById(registrationId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Đăng ký đề tài"));
 
         if (council.getDepartment() == null || registration.getTopic() == null
                 || registration.getTopic().getDepartment() == null
@@ -133,12 +139,13 @@ public class CouncilService {
             throw new IllegalArgumentException("Đề tài phải thuộc cùng khoa với hội đồng");
         }
 
-        if (assignmentRepository.existsByCouncilIdAndTopicRegistrationId(councilId, registrationId)) {
-            throw new IllegalStateException("Đề tài đã được phân công cho Hội đồng này");
+        if (assignmentRepository.findFirstByTopicRegistrationId(registrationId).isPresent()) {
+            throw new IllegalStateException("Đề tài đã được phân công cho một hội đồng khác!");
         }
 
         if (!isEligibleForCouncil(registration)) {
-            throw new IllegalStateException("Nhóm chưa đủ điều kiện vào Hội đồng: đăng ký phải được duyệt và điểm quá trình của GVHD phải lớn hơn 5");
+            throw new IllegalStateException(
+                    "Nhóm chưa đủ điều kiện vào Hội đồng: đăng ký phải được duyệt và điểm quá trình của GVHD phải lớn hơn 5");
         }
 
         Topic topic = registration.getTopic();
@@ -146,16 +153,16 @@ public class CouncilService {
         for (ReviewCouncilMember councilMember : councilMembers) {
             Long lecturerId = councilMember.getLecturer().getId();
             boolean isSupervisor = topic.getLecturer() != null
-                && topic.getLecturer().getId().equals(lecturerId);
+                    && topic.getLecturer().getId().equals(lecturerId);
             boolean isCoSupervisor = topic.getCoLecturer() != null
-                && topic.getCoLecturer().getId().equals(lecturerId);
+                    && topic.getCoLecturer().getId().equals(lecturerId);
             boolean isAssignedSupervisor = supervisorRepository.existsByTopicIdAndLecturerId(topic.getId(), lecturerId);
 
             if (isSupervisor || isCoSupervisor || isAssignedSupervisor) {
-            String lecturerName = councilMember.getLecturer().getUser().getFullName();
-            throw new IllegalStateException("Không thể phân công: " + lecturerName
-                + " là giảng viên hướng dẫn của đề tài " + topic.getCode()
-                + " và không được tham gia chấm đề tài này");
+                String lecturerName = councilMember.getLecturer().getUser().getFullName();
+                throw new IllegalStateException("Không thể phân công: " + lecturerName
+                        + " là giảng viên hướng dẫn của đề tài " + topic.getCode()
+                        + " và không được tham gia chấm đề tài này");
             }
         }
 
@@ -168,23 +175,26 @@ public class CouncilService {
 
     /** Kiểm tra đăng ký đã duyệt và điểm quá trình GVHD chính lớn hơn 5. */
     public boolean isEligibleForCouncil(TopicRegistration registration) {
-        if (registration == null || registration.getTopic() == null) return false;
-        if (registration.getStatus() != ute.edu.enums.RegistrationStatus.APPROVED) return false;
+        if (registration == null || registration.getTopic() == null)
+            return false;
+        if (registration.getStatus() != ute.edu.enums.RegistrationStatus.APPROVED)
+            return false;
         Topic topic = registration.getTopic();
-        if (topic.getLecturer() == null) return false;
+        if (topic.getLecturer() == null)
+            return false;
 
         TopicEvaluation supervisorEvaluation = evaluationRepository
-            .findByTopicIdAndReviewerId(topic.getId(), topic.getLecturer().getId())
-            .orElse(null);
+                .findByTopicIdAndReviewerId(topic.getId(), topic.getLecturer().getId())
+                .orElse(null);
         return supervisorEvaluation != null
-            && supervisorEvaluation.getScore() != null
-            && supervisorEvaluation.getScore() > 5.0;
+                && supervisorEvaluation.getScore() != null
+                && supervisorEvaluation.getScore() > 5.0;
     }
 
-    /** Kiểm tra thêm việc GVHD không được là thành viên của hội đồng đang chọn. */
-    /** Kiểm tra thêm điều kiện cùng khoa và loại GVHD khỏi hội đồng được chọn. */
+    /** Kiểm tra điều kiện: cùng khoa, đăng ký đã duyệt, và GVHD không là thành viên hội đồng. */
     public boolean canAssignToCouncil(ReviewCouncil council, TopicRegistration registration) {
-        if (council == null || !isEligibleForCouncil(registration)) return false;
+        if (council == null || !isEligibleForCouncil(registration))
+            return false;
 
         Topic topic = registration.getTopic();
         if (council.getDepartment() == null || topic.getDepartment() == null
@@ -199,7 +209,8 @@ public class CouncilService {
             boolean isCoSupervisor = topic.getCoLecturer() != null
                     && topic.getCoLecturer().getId().equals(lecturerId);
             boolean isAssignedSupervisor = supervisorRepository.existsByTopicIdAndLecturerId(topic.getId(), lecturerId);
-            if (isSupervisor || isCoSupervisor || isAssignedSupervisor) return false;
+            if (isSupervisor || isCoSupervisor || isAssignedSupervisor)
+                return false;
         }
         return true;
     }

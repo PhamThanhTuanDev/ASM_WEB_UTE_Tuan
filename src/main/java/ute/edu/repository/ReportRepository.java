@@ -8,6 +8,7 @@ import ute.edu.entity.Report;
 public interface ReportRepository extends JpaRepository<Report, Long> {
     /** Lấy báo cáo của đăng ký, mới nhất trước. */
     List<Report> findByTopicRegistrationIdOrderBySubmittedAtDesc(Long registrationId);
+
     /** Kiểm tra đăng ký đã có báo cáo được duyệt chưa. */
     boolean existsByTopicRegistrationIdAndApprovedTrue(Long registrationId);
 }

@@ -1,4 +1,4 @@
-package ute.edu.model;
+package ute.edu.helper;
 
 import java.io.File;
 import java.util.ArrayList;

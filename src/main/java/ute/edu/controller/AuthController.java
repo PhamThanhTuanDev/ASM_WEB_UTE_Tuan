@@ -107,35 +107,6 @@ public class AuthController {
         return "redirect:/login";
     }
 
-    @GetMapping("/register")
-    /** Hiển thị trang đăng ký tài khoản. */
-    public String registerPage(Model model) {
-        model.addAttribute("roles", new UserRole[] { UserRole.STUDENT });
-        model.addAttribute("registerRequest", new RegisterRequest());
-        return "register";
-    }
-
-    @PostMapping("/register")
-    /** Kiểm tra và lưu tài khoản mới. */
-    public String register(RegisterRequest request, Model model, RedirectAttributes redirectAttributes) {
-        try {
-            UserAccount user = new UserAccount();
-            user.setUsername(request.getUsername().trim());
-            user.setPassword(request.getPassword());
-            user.setFullName(request.getFullName().trim());
-            user.setEmail(request.getEmail().trim());
-            user.setPhone(request.getPhone().trim());
-            user.setRole(UserRole.valueOf(request.getRole()));
-
-            authService.register(user);
-            redirectAttributes.addFlashAttribute("successMessage", "Đăng ký tài khoản thành công! Vui lòng đăng nhập.");
-            return "redirect:/login";
-        } catch (Exception e) {
-            model.addAttribute("error", "Đăng ký thất bại: " + e.getMessage());
-            model.addAttribute("roles", new UserRole[] { UserRole.STUDENT });
-            return "register";
-        }
-    }
 
     @GetMapping("/logout")
     /** Hủy phiên hiện tại và chuyển về trang đăng nhập. */
@@ -162,14 +133,18 @@ public class AuthController {
 
     private void writeTokenCookie(HttpServletResponse response, HttpServletRequest request, String token) {
         String secure = request.isSecure() ? "; Secure" : "";
+        String contextPath = request.getContextPath();
+        String path = (contextPath == null || contextPath.isEmpty()) ? "/" : contextPath;
         response.addHeader("Set-Cookie", AuthTokenService.COOKIE_NAME + "=" + token
                 + "; Max-Age=" + authTokenService.getTokenTtlSeconds()
-                + "; Path=" + request.getContextPath() + "; HttpOnly; SameSite=Lax" + secure);
+                + "; Path=" + path + "; HttpOnly; SameSite=Lax" + secure);
     }
 
     private void deleteTokenCookie(HttpServletResponse response, HttpServletRequest request) {
+        String contextPath = request.getContextPath();
+        String path = (contextPath == null || contextPath.isEmpty()) ? "/" : contextPath;
         response.addHeader("Set-Cookie", AuthTokenService.COOKIE_NAME
-                + "=; Max-Age=0; Path=" + request.getContextPath() + "; HttpOnly; SameSite=Lax");
+                + "=; Max-Age=0; Path=" + path + "; HttpOnly; SameSite=Lax");
     }
 
     private void setupSession(HttpSession session, UserAccount user) {

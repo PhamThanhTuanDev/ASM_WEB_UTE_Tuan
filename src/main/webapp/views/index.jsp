@@ -171,10 +171,6 @@
                                         class="btn-ui btn-ui-outline text-xs py-2 px-3.5">
                                         <i data-lucide="log-in" class="w-4 h-4"></i> Đăng nhập
                                     </a>
-                                    <a href="${pageContext.request.contextPath}/register"
-                                        class="btn-ui btn-ui-primary text-xs py-2 px-4 shadow-sm hidden sm:inline-flex">
-                                        <i data-lucide="user-plus" class="w-4 h-4"></i> Đăng ký
-                                    </a>
                                 </c:otherwise>
                             </c:choose>
                         </div>
@@ -665,10 +661,6 @@
                             <a href="${pageContext.request.contextPath}/login"
                                 class="btn-ui btn-ui-primary text-xs py-3 px-6 shadow-md shadow-sky-500/20">
                                 <i data-lucide="log-in" class="w-4 h-4"></i> Đăng nhập hệ thống
-                            </a>
-                            <a href="${pageContext.request.contextPath}/register"
-                                class="btn-ui btn-ui-outline text-xs py-3 px-5">
-                                <i data-lucide="user-plus" class="w-4 h-4"></i> Đăng ký tài khoản
                             </a>
                         </div>
                     </div>

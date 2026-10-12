@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 import ute.edu.enums.TopicStatus;
 import ute.edu.enums.SupervisorRole;
 import ute.edu.entity.Topic;
-import ute.edu.entity.Lecture;
 import ute.edu.entity.TopicSupervisor;
 import ute.edu.repository.TopicRepository;
 import ute.edu.repository.TopicSupervisorRepository;
@@ -19,13 +18,14 @@ public class TopicService {
     private final TopicSupervisorRepository supervisorRepository;
 
     public TopicService(TopicRepository topicRepository,
-                        TopicSupervisorRepository supervisorRepository) {
+            TopicSupervisorRepository supervisorRepository) {
         this.topicRepository = topicRepository;
         this.supervisorRepository = supervisorRepository;
     }
 
     /**
      * Lấy toàn bộ danh sách đề tài hiện có.
+     * 
      * @return Danh sách các đối tượng Topic
      */
     public List<Topic> getAllTopics() {
@@ -34,6 +34,7 @@ public class TopicService {
 
     /**
      * Lấy danh sách đề tài dựa theo trạng thái duyệt.
+     * 
      * @param status Trạng thái của đề tài (Ví dụ: APPROVED, PENDING)
      * @return Danh sách các đề tài có trạng thái tương ứng
      */
@@ -43,6 +44,7 @@ public class TopicService {
 
     /**
      * Lấy danh sách đề tài trực thuộc một khoa (Department).
+     * 
      * @param departmentId Mã định danh của khoa
      * @return Danh sách đề tài thuộc khoa
      */
@@ -52,6 +54,7 @@ public class TopicService {
 
     /**
      * Lấy danh sách đề tài trong một đợt đăng ký cụ thể.
+     * 
      * @param periodId Mã định danh của đợt đăng ký
      * @return Danh sách đề tài thuộc đợt đăng ký đó
      */
@@ -60,7 +63,9 @@ public class TopicService {
     }
 
     /**
-     * Lấy danh sách đề tài do một giảng viên phụ trách (có thể là GVHD chính hoặc Đồng GVHD).
+     * Lấy danh sách đề tài do một giảng viên phụ trách (có thể là GVHD chính hoặc
+     * Đồng GVHD).
+     * 
      * @param lecturerId Mã định danh của giảng viên
      * @return Danh sách đề tài của giảng viên đó
      */
@@ -70,6 +75,7 @@ public class TopicService {
 
     /**
      * Tìm một đề tài cụ thể theo mã định danh (ID).
+     * 
      * @param id Mã định danh của đề tài
      * @return Đối tượng Topic nếu tìm thấy, ngược lại trả về null
      */
@@ -80,6 +86,7 @@ public class TopicService {
     /**
      * Lưu mới hoặc cập nhật một đề tài.
      * Tự động thiết lập thời gian tạo/cập nhật và đồng bộ bảng TopicSupervisor.
+     * 
      * @param topic Đối tượng đề tài cần lưu
      * @return Đề tài sau khi đã lưu thành công vào CSDL
      */
@@ -115,8 +122,9 @@ public class TopicService {
 
     /**
      * Cập nhật trạng thái duyệt của đề tài.
+     * 
      * @param topicId Mã định danh của đề tài cần cập nhật
-     * @param status Trạng thái mới của đề tài
+     * @param status  Trạng thái mới của đề tài
      * @return Đề tài sau khi đã cập nhật trạng thái
      * @throws IllegalArgumentException Nếu không tìm thấy đề tài
      */
@@ -132,6 +140,7 @@ public class TopicService {
     /**
      * Xóa một đề tài ra khỏi hệ thống.
      * Thực hiện xóa các liên kết giám sát (TopicSupervisor) trước khi xóa đề tài.
+     * 
      * @param id Mã định danh của đề tài cần xóa
      */
     @Transactional
