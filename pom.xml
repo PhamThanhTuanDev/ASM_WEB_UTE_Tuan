@@ -19,6 +19,7 @@
 	<groupId>ute.edu</groupId>
 	<artifactId>ASM_WEB.UTE</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
+	<packaging>war</packaging>
 	<name>ASM_WEB_UTE</name>
 	<description>Demo project for Spring Boot</description>
 	<url />
