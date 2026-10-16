@@ -2,6 +2,8 @@ package ute.edu.repository;
 
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import ute.edu.entity.TopicSupervisor;
 
 /** Truy vấn bảng topic_supervisors (quan hệ GVHD - đề tài). */
@@ -12,6 +14,9 @@ public interface TopicSupervisorRepository extends JpaRepository<TopicSupervisor
     List<TopicSupervisor> findByLecturerId(Long lecturerId);
     /** Kiểm tra giảng viên có hướng dẫn đề tài không. */
     boolean existsByTopicIdAndLecturerId(Long topicId, Long lecturerId);
+    /** Lấy ID các đề tài giảng viên được phân công hướng dẫn — dùng khi lọc cả danh sách. */
+    @Query("select ts.topic.id from TopicSupervisor ts where ts.lecturer.id = :lecturerId")
+    List<Long> findTopicIdsByLecturerId(@Param("lecturerId") Long lecturerId);
     /** Xóa các quan hệ hướng dẫn của đề tài. */
     void deleteByTopicId(Long topicId);
 }

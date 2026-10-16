@@ -1,6 +1,9 @@
 package ute.edu.service;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -44,6 +47,16 @@ public class ScoringService {
     /** Kiểm tra giảng viên có đang hướng dẫn đề tài hay không. */
     public boolean isLecturerSupervisingTopic(Long lecturerId, Long topicId) {
         return supervisorRepository.existsByTopicIdAndLecturerId(topicId, lecturerId);
+    }
+
+    /**
+     * Lấy 1 lần tập ID đề tài mà giảng viên được phân công hướng dẫn.
+     * Dùng khi cần kiểm tra cả danh sách, tránh gọi isLecturerSupervisingTopic()
+     * cho từng phần tử (mỗi lần gọi = 1 truy vấn DB).
+     */
+    public Set<Long> getSupervisedTopicIds(Long lecturerId) {
+        if (lecturerId == null) return Collections.emptySet();
+        return new HashSet<>(supervisorRepository.findTopicIdsByLecturerId(lecturerId));
     }
 
     @Transactional

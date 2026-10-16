@@ -32,6 +32,11 @@ public class TopicService {
         return topicRepository.findAll();
     }
 
+    /** Đếm tổng số đề tài bằng SELECT COUNT(*) — không tải toàn bộ đề tài chỉ để lấy size(). */
+    public long countAllTopics() {
+        return topicRepository.count();
+    }
+
     /**
      * Lấy danh sách đề tài dựa theo trạng thái duyệt.
      * 
