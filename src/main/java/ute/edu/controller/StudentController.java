@@ -574,6 +574,9 @@ public class StudentController {
         model.addAttribute("notifications", list);
         model.addAttribute("notificationService", notificationService);
         model.addAttribute("currentUser", user);
+        // Tập ID đã đọc (1 truy vấn) để JSP không phải gọi isRead() cho từng thông báo
+        model.addAttribute("readNotificationIds",
+                notificationService.getReadNotificationIds(user != null ? user.getId() : null));
 
         return "student/notifications";
     }

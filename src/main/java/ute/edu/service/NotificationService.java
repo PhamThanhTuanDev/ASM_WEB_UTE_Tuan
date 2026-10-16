@@ -1,6 +1,9 @@
 package ute.edu.service;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -72,6 +75,16 @@ public class NotificationService {
                 readRepository.save(read);
             }
         }
+    }
+
+    /**
+     * Lấy tập ID các thông báo người dùng đã đọc bằng 1 truy vấn.
+     * Dùng thay cho việc gọi isRead() lặp lại cho từng thông báo (lỗi N+1).
+     */
+    public Set<Long> getReadNotificationIds(Long userId) {
+        if (userId == null)
+            return Collections.emptySet();
+        return new HashSet<>(readRepository.findNotificationIdsByUserId(userId));
     }
 
     /** Kiểm tra người dùng đã đọc thông báo chưa. */

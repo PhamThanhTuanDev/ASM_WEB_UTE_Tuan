@@ -86,6 +86,20 @@ public class LecturerController {
     }
 
     /**
+     * Phiên bản dùng khi lọc cả danh sách: tập ID đề tài GV hướng dẫn được lấy
+     * sẵn 1 lần (scoringService.getSupervisedTopicIds) nên không truy vấn DB
+     * cho từng phần tử như hàm ở trên (tránh lỗi N+1 truy vấn).
+     */
+    private boolean isSupervisorOf(Topic topic, Lecture lecturer, Set<Long> supervisedTopicIds) {
+        if (topic == null || lecturer == null)
+            return false;
+        Long lecturerId = lecturer.getId();
+        return (topic.getLecturer() != null && topic.getLecturer().getId().equals(lecturerId))
+                || (topic.getCoLecturer() != null && topic.getCoLecturer().getId().equals(lecturerId))
+                || supervisedTopicIds.contains(topic.getId());
+    }
+
+    /**
      * Hiển thị trang tổng quan (dashboard) của giảng viên.
      * 
      * @param session Phiên đăng nhập
@@ -100,8 +114,9 @@ public class LecturerController {
 
         List<Topic> myTopics = topicService.getTopicsByLecturer(lecturer.getId());
         List<ReviewCouncilMember> myCouncils = councilService.getCouncilsForLecturer(lecturer.getId());
+        Set<Long> supervisedTopicIds = scoringService.getSupervisedTopicIds(lecturer.getId());
         List<TopicRegistration> myGroupRegs = registrationService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopic(), lecturer))
+                .filter(r -> isSupervisorOf(r.getTopic(), lecturer, supervisedTopicIds))
                 .toList();
 
         model.addAttribute("lecturer", lecturer);
@@ -222,8 +237,9 @@ public class LecturerController {
         if (lecturer == null)
             return "redirect:/login";
 
+        Set<Long> supervisedTopicIds = scoringService.getSupervisedTopicIds(lecturer.getId());
         List<TopicRegistration> myGroupRegs = registrationService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopic(), lecturer))
+                .filter(r -> isSupervisorOf(r.getTopic(), lecturer, supervisedTopicIds))
                 .toList();
 
         model.addAttribute("registrations", myGroupRegs);
@@ -447,8 +463,9 @@ public class LecturerController {
         if (lecturer == null)
             return "redirect:/login";
 
+        Set<Long> supervisedTopicIds = scoringService.getSupervisedTopicIds(lecturer.getId());
         List<Report> myReports = reportService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopicRegistration().getTopic(), lecturer))
+                .filter(r -> isSupervisorOf(r.getTopicRegistration().getTopic(), lecturer, supervisedTopicIds))
                 .toList();
 
         model.addAttribute("reports", myReports);
@@ -590,6 +607,9 @@ public class LecturerController {
         model.addAttribute("notifications", notifications);
         model.addAttribute("notificationService", notificationService);
         model.addAttribute("currentUser", user);
+        // Tập ID đã đọc (1 truy vấn) để JSP không phải gọi isRead() cho từng thông báo
+        model.addAttribute("readNotificationIds",
+                notificationService.getReadNotificationIds(user != null ? user.getId() : null));
         return "lecturer/notifications";
     }
 

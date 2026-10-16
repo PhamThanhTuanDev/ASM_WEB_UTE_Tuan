@@ -88,7 +88,7 @@ public class HomeController {
         model.addAttribute("keyword", keyword);
 
         // Stats
-        model.addAttribute("totalTopics", topicService.getAllTopics().size());
+        model.addAttribute("totalTopics", topicService.countAllTopics());
         model.addAttribute("totalLecturers", lectureRepository.count());
         model.addAttribute("totalStudents", studentRepository.count());
         model.addAttribute("totalGroups", groupRepository.count());
