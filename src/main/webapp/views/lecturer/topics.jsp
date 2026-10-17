@@ -241,6 +241,7 @@
     </div>
 
 <jsp:include page="../common/footer.jsp" />
+    <jsp:include page="../common/flash.jsp" />
 
 <script>
     (function () {

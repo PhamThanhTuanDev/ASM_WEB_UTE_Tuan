@@ -107,10 +107,18 @@ public class TopicRegistrationService {
         if (registration.getStatus() != RegistrationStatus.PENDING) {
             throw new IllegalStateException("Đơn này đã được xử lý!");
         }
+        // Giảng viên chỉ được Duyệt hoặc Từ chối
+        if (status != RegistrationStatus.APPROVED && status != RegistrationStatus.REJECTED) {
+            throw new IllegalArgumentException("Chỉ được duyệt hoặc từ chối đơn đăng ký");
+        }
+        // Từ chối bắt buộc có lý do — kiểm tra cả ở server, không chỉ dựa vào form trên trình duyệt
+        if (status == RegistrationStatus.REJECTED && (rejectionReason == null || rejectionReason.isBlank())) {
+            throw new IllegalArgumentException("Bắt buộc nhập lý do khi từ chối nhóm đăng ký");
+        }
 
         registration.setStatus(status);
         registration.setApprovedBy(approver);
-        registration.setRejectionReason(rejectionReason);
+        registration.setRejectionReason(status == RegistrationStatus.REJECTED ? rejectionReason.trim() : null);
         registration.setApprovedAt(status == RegistrationStatus.APPROVED ? LocalDateTime.now() : null);
 
         if (status == RegistrationStatus.APPROVED) {

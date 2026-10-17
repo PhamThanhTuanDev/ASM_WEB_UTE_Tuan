@@ -175,6 +175,25 @@ public class LecturerController {
             return "redirect:/login";
 
         try {
+            // Giảng viên chỉ được TẠO đề tài mới: bỏ qua id/status nếu form gửi kèm
+            // (chống sửa đề tài của người khác hoặc tự công bố mà không qua Trưởng khoa duyệt)
+            topic.setId(null);
+            String code = topic.getCode() != null ? topic.getCode().trim() : "";
+            if (code.isEmpty()) {
+                throw new IllegalArgumentException("Mã đề tài không được để trống");
+            }
+            topic.setCode(code);
+            if (topic.getTitle() == null || topic.getTitle().isBlank()) {
+                throw new IllegalArgumentException("Tên đề tài không được để trống");
+            }
+            if (topicService.existsByCode(code)) {
+                throw new IllegalArgumentException("Mã đề tài " + code + " đã tồn tại, vui lòng chọn mã khác");
+            }
+            // Đề bài: mỗi nhóm tối đa 03 sinh viên (trước đây chỉ chặn ở trình duyệt)
+            if (topic.getMaxStudents() < 1 || topic.getMaxStudents() > 3) {
+                throw new IllegalArgumentException("Số sinh viên tối đa của đề tài phải từ 1 đến 3");
+            }
+
             topic.setLecturer(lecturer);
             topic.setDepartment(departmentRepository.findById(departmentId).orElseThrow());
             topic.setRegistrationPeriod(periodService.findById(periodId));
@@ -185,9 +204,7 @@ public class LecturerController {
                 topic.setCoLecturer(null);
             }
 
-            if (topic.getId() == null) {
-                topic.setStatus(TopicStatus.PENDING); // Gửi chờ Trưởng khoa duyệt
-            }
+            topic.setStatus(TopicStatus.PENDING); // Luôn gửi chờ Trưởng khoa duyệt
             topicService.save(topic);
             redirectAttributes.addFlashAttribute("successMessage", "Đề xuất đề tài thành công! Chờ Trưởng khoa duyệt.");
         } catch (Exception e) {

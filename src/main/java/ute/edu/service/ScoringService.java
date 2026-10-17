@@ -7,6 +7,9 @@ import java.util.Set;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import ute.edu.helper.MailInfo;
 import ute.edu.entity.*;
 import ute.edu.enums.AssignmentStatus;
 import ute.edu.enums.CouncilStatus;
@@ -179,10 +182,23 @@ public class ScoringService {
     }
 
     @Transactional
-    /** Chốt hội đồng khi tất cả thành viên đã nhập điểm. */
+    /**
+     * Chốt hội đồng khi tất cả thành viên đã nhập điểm, rồi gửi email kết quả cho sinh viên.
+     *
+     * Làm theo 3 bước để không gửi nhầm email:
+     * 1. Kiểm tra TOÀN BỘ đề tài trước (đủ điểm hội đồng, có điểm quá trình) — chưa ghi gì vào DB.
+     * 2. Cập nhật trạng thái phân công + hội đồng.
+     * 3. Chỉ đưa email vào hàng đợi SAU KHI transaction commit thành công.
+     * Trước đây email được xếp hàng ngay trong vòng lặp: nếu đề tài phía sau thiếu điểm thì
+     * transaction bị rollback (hội đồng chưa chốt) nhưng nhóm phía trước vẫn nhận email điểm.
+     */
     public void finalizeCouncil(Long councilId) {
         ReviewCouncil council = councilRepository.findById(councilId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Hội đồng"));
+
+        if (council.getStatus() == CouncilStatus.COMPLETED) {
+            throw new IllegalStateException("Hội đồng đã được chốt điểm trước đó, không thể chốt lại (tránh gửi email trùng)");
+        }
 
         List<ReviewCouncilMember> members = memberRepository.findByCouncilId(councilId);
         if (members.size() < 3) {
@@ -190,31 +206,66 @@ public class ScoringService {
         }
 
         List<TopicAssignment> assignments = assignmentRepository.findByCouncilId(councilId);
+
+        // Bước 1: kiểm tra hết, tính sẵn điểm tổng kết; có lỗi thì dừng khi chưa thay đổi gì
+        java.util.Map<Long, Double> finalScores = new java.util.HashMap<>();
         for (TopicAssignment assignment : assignments) {
+            String topicCode = assignment.getTopicRegistration().getTopic().getCode();
             int scoreCount = scoreRepository.findByTopicAssignmentId(assignment.getId()).size();
             if (scoreCount < members.size()) {
-                String topicCode = assignment.getTopicRegistration().getTopic().getCode();
                 throw new IllegalStateException("Đề tài " + topicCode + " mới có " + scoreCount
                         + "/" + members.size() + " điểm; cần đủ điểm của tất cả thành viên hội đồng");
             }
+            Double finalScore = calculateFinalScore(assignment.getId());
+            if (finalScore == null) {
+                throw new IllegalStateException("Đề tài " + topicCode
+                        + " chưa có điểm quá trình của GVHD nên chưa tính được điểm tổng kết");
+            }
+            finalScores.put(assignment.getId(), finalScore);
+        }
+
+        // Bước 2: cập nhật trạng thái và chuẩn bị nội dung email
+        List<MailInfo> mails = new java.util.ArrayList<>();
+        for (TopicAssignment assignment : assignments) {
             assignment.setStatus(AssignmentStatus.EVALUATED);
             assignmentRepository.save(assignment);
-            
-            Double finalScore = calculateFinalScore(assignment.getId());
+
             List<String> emails = new java.util.ArrayList<>();
             for (StudentGroupMember member : assignment.getTopicRegistration().getGroup().getMembers()) {
                 if (member.getStudent().getUser() != null && member.getStudent().getUser().getEmail() != null) {
                     emails.add(member.getStudent().getUser().getEmail());
                 }
             }
-            if (!emails.isEmpty() && finalScore != null) {
+            if (!emails.isEmpty()) {
                 String subject = "Kết quả bảo vệ đề tài: " + assignment.getTopicRegistration().getTopic().getTitle();
-                String body = "Chào nhóm,<br><br>Điểm tổng kết bảo vệ đề tài của nhóm bạn là: <b>" + finalScore + "</b>.<br>Chúc mừng các bạn đã hoàn thành!<br><br>Khoa CNTT.";
-                mailerService.queue(emails.toArray(new String[0]), subject, body);
+                String body = "Chào nhóm,<br><br>Điểm tổng kết bảo vệ đề tài của nhóm bạn là: <b>"
+                        + finalScores.get(assignment.getId())
+                        + "</b>.<br>Chúc mừng các bạn đã hoàn thành!<br><br>Khoa CNTT.";
+                mails.add(new MailInfo(emails.toArray(new String[0]), subject, body));
             }
         }
 
         council.setStatus(CouncilStatus.COMPLETED);
         councilRepository.save(council);
+
+        // Bước 3: chỉ xếp email vào hàng đợi khi dữ liệu đã lưu chắc chắn (sau commit)
+        queueAfterCommit(mails);
+    }
+
+    /** Đưa email vào hàng đợi sau khi transaction hiện tại commit thành công. */
+    private void queueAfterCommit(List<MailInfo> mails) {
+        if (mails.isEmpty()) {
+            return;
+        }
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    mails.forEach(mailerService::queue);
+                }
+            });
+        } else {
+            mails.forEach(mailerService::queue);
+        }
     }
 }

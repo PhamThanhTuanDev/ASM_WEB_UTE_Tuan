@@ -32,6 +32,11 @@ public class TopicService {
         return topicRepository.findAll();
     }
 
+    /** Kiểm tra mã đề tài đã được dùng chưa. */
+    public boolean existsByCode(String code) {
+        return code != null && topicRepository.existsByCode(code.trim());
+    }
+
     /** Đếm tổng số đề tài bằng SELECT COUNT(*) — không tải toàn bộ đề tài chỉ để lấy size(). */
     public long countAllTopics() {
         return topicRepository.count();
