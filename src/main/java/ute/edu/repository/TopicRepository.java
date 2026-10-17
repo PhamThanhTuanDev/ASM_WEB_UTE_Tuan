@@ -9,6 +9,8 @@ import ute.edu.entity.Topic;
 public interface TopicRepository extends JpaRepository<Topic, Long> {
     /** Lấy các đề tài theo trạng thái. */
     List<Topic> findByStatus(TopicStatus status);
+    /** Kiểm tra mã đề tài đã tồn tại chưa (mã là duy nhất). */
+    boolean existsByCode(String code);
     /** Lấy các đề tài thuộc một khoa. */
     List<Topic> findByDepartmentId(Long departmentId);
     /** Lấy các đề tài thuộc một đợt đăng ký. */
