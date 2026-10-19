@@ -188,6 +188,12 @@
                 reasonInput.name = 'rejectionReason';
                 reasonInput.value = result.value.trim();
                 form.appendChild(reasonInput);
+                // Form tạo bằng JavaScript cũng phải gửi kèm mã CSRF, nếu không Spring Security trả 403
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = '${_csrf.parameterName}';
+                csrfInput.value = '${_csrf.token}';
+                form.appendChild(csrfInput);
                 document.body.appendChild(form);
                 form.submit();
             }

@@ -358,7 +358,7 @@
                                                     <div class="font-bold text-slate-800">
                                                         ${sc.councilMember.lecturer.user.fullName}
                                                         (${enumLabel.label(sc.councilMember.role)}):</div>
-                                                    <div class="text-slate-600 italic text-[11px]">"${sc.comment}"</div>
+                                                    <div class="text-slate-600 italic text-[11px]">"<c:out value="${sc.comment}" />"</div>
                                                 </div>
                                             </c:forEach>
                                         </div>

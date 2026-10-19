@@ -138,7 +138,7 @@
                                                         <span class="font-bold text-slate-800"><c:out value="${evaluation.reviewer.user.fullName}" /></span>
                                                         <span class="font-black text-sky-700">${evaluation.score} / 10</span>
                                                     </div>
-                                                    <div class="text-slate-600 italic text-[11px] leading-relaxed">"${evaluation.comment}"</div>
+                                                    <div class="text-slate-600 italic text-[11px] leading-relaxed">"<c:out value="${evaluation.comment}" />"</div>
                                                 </div>
                                             </c:forEach>
                                         </div>
@@ -173,7 +173,7 @@
                                                     </button>
                                                     <div data-accordion-panel class="${st.first ? '' : 'hidden'} px-4 pb-4">
                                                         <div class="bg-white p-3.5 rounded-xl border border-slate-200/80 text-slate-700 italic leading-relaxed text-[11px]">
-                                                            "${sc.comment}"
+                                                            "<c:out value="${sc.comment}" />"
                                                         </div>
                                                     </div>
                                                 </div>

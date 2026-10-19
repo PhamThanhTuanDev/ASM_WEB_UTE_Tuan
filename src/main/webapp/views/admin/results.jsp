@@ -89,7 +89,7 @@
                                                                         <span class="font-bold text-slate-800">${sc.councilMember.lecturer.user.fullName}:</span>
                                                                         <span class="font-black text-sky-700 bg-sky-50 px-2 py-0.5 rounded-md border border-sky-100">${sc.score} / 10</span>
                                                                     </div>
-                                                                    <p class="text-slate-500 italic mt-0.5 line-clamp-1">"${sc.comment}"</p>
+                                                                    <p class="text-slate-500 italic mt-0.5 line-clamp-1">"<c:out value="${sc.comment}" />"</p>
                                                                 </div>
                                                             </c:forEach>
                                                         </div>

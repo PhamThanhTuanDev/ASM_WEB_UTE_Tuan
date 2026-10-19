@@ -212,7 +212,7 @@
                                                 ${sc.score} / 10
                                             </span>
                                         </div>
-                                        <p class="text-slate-600 italic mt-1 text-[11px]">"${sc.comment}"</p>
+                                        <p class="text-slate-600 italic mt-1 text-[11px]">"<c:out value="${sc.comment}" />"</p>
                                     </div>
                                 </c:forEach>
                             </div>
