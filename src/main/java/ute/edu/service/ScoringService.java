@@ -41,6 +41,11 @@ public class ScoringService {
         return scoreRepository.findByTopicAssignmentId(assignmentId);
     }
 
+    /** Tập mã đề tài giảng viên hướng dẫn (1 câu truy vấn) để lọc danh sách mà không truy vấn từng dòng. */
+    public java.util.Set<Long> getSupervisedTopicIds(Long lecturerId) {
+        return supervisorRepository.findTopicIdsByLecturerId(lecturerId);
+    }
+
     /** Kiểm tra giảng viên có đang hướng dẫn đề tài hay không. */
     public boolean isLecturerSupervisingTopic(Long lecturerId, Long topicId) {
         return supervisorRepository.existsByTopicIdAndLecturerId(topicId, lecturerId);

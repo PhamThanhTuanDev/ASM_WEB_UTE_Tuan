@@ -16,7 +16,7 @@
                 <main class="app-content workspace-page space-y-6">
                     <div class="space-y-3" data-pagination-list data-pagination-target="${param.notificationId}">
                         <c:forEach var="n" items="${notifications}">
-                            <c:set var="isRead" value="${notificationService.isRead(n.id, currentUser.id)}" />
+                            <c:set var="isRead" value="${readIds.contains(n.id)}" />
                             <div id="notification-${n.id}" data-notification-id="${n.id}" data-pagination-item
                                 data-pagination-priority="${isRead ? 1 : 0}">
                                 <div

@@ -642,6 +642,8 @@ public class StudentController {
         model.addAttribute("student", student);
         model.addAttribute("notifications", list);
         model.addAttribute("notificationService", notificationService);
+        // Tải 1 lần tập thông báo đã đọc, JSP tra trong tập thay vì mỗi dòng một câu SELECT
+        model.addAttribute("readIds", notificationService.getReadIds(user));
         model.addAttribute("currentUser", user);
 
         return "student/notifications";

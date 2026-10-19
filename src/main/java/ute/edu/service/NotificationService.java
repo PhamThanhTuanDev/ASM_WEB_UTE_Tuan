@@ -85,6 +85,15 @@ public class NotificationService {
         }
     }
 
+    /** Tập mã thông báo người dùng đã đọc (1 câu truy vấn) để trang danh sách không gọi isRead() cho từng dòng. */
+    @Transactional(readOnly = true)
+    public java.util.Set<Long> getReadIds(UserAccount user) {
+        if (user == null)
+            return java.util.Set.of();
+        return readRepository.findByUserId(user.getId()).stream()
+                .map(r -> r.getNotification().getId()).collect(java.util.stream.Collectors.toSet());
+    }
+
     /** Kiểm tra người dùng đã đọc thông báo chưa. */
     public boolean isRead(Long notificationId, Long userId) {
         if (userId == null || notificationId == null)

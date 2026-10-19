@@ -268,15 +268,28 @@ public class AdminController {
     }
 
     // 5. Review Councils & Assignment
+    private static boolean sameId(Long a, Long b) {
+        return a != null && a.equals(b);
+    }
+
     @GetMapping("/councils")
     /** Hiển thị hội đồng và danh sách đề tài đủ điều kiện phân công. */
     public String councils(Model model) {
         List<ReviewCouncil> councils = councilService.getAll();
         List<TopicRegistration> approvedRegistrations = registrationService.getApprovedRegistrations();
+        // Lọc 1 lần các đăng ký chưa phân công và đủ điều kiện, rồi mới so khớp từng hội đồng theo đợt/khoa
+        // trước khi gọi canAssignToCouncil (tránh hàng trăm câu truy vấn lặp khi CSDL đặt ở máy chủ xa).
+        List<TopicRegistration> candidates = approvedRegistrations.stream()
+                .filter(registration -> !assignmentRepository.existsByTopicRegistrationId(registration.getId()))
+                .filter(councilService::isEligibleForCouncil)
+                .toList();
         Map<Long, List<TopicRegistration>> eligibleRegistrationsByCouncil = new HashMap<>();
         for (ReviewCouncil council : councils) {
-            List<TopicRegistration> eligibleRegistrations = approvedRegistrations.stream()
-                    .filter(registration -> !assignmentRepository.existsByTopicRegistrationId(registration.getId()))
+            List<TopicRegistration> eligibleRegistrations = candidates.stream()
+                    .filter(registration -> sameId(council.getRegistrationPeriod() == null ? null : council.getRegistrationPeriod().getId(),
+                            registration.getTopic().getRegistrationPeriod() == null ? null : registration.getTopic().getRegistrationPeriod().getId())
+                            && sameId(council.getDepartment() == null ? null : council.getDepartment().getId(),
+                                    registration.getTopic().getDepartment() == null ? null : registration.getTopic().getDepartment().getId()))
                     .filter(registration -> councilService.canAssignToCouncil(council, registration))
                     .toList();
             eligibleRegistrationsByCouncil.put(council.getId(), eligibleRegistrations);

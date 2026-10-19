@@ -86,6 +86,19 @@ public class LecturerController {
     }
 
     /**
+     * Bộ lọc "giảng viên có hướng dẫn đề tài không" cho cả một danh sách: tải trước tập mã đề tài
+     * bằng 1 câu truy vấn thay vì mỗi dòng một câu (lỗi N+1, rất chậm khi CSDL đặt ở máy chủ xa).
+     */
+    private java.util.function.Predicate<Topic> supervisedBy(Lecture lecturer) {
+        Long lecturerId = lecturer.getId();
+        java.util.Set<Long> topicIds = scoringService.getSupervisedTopicIds(lecturerId);
+        return topic -> topic != null
+                && ((topic.getLecturer() != null && topic.getLecturer().getId().equals(lecturerId))
+                        || (topic.getCoLecturer() != null && topic.getCoLecturer().getId().equals(lecturerId))
+                        || topicIds.contains(topic.getId()));
+    }
+
+    /**
      * Hiển thị trang tổng quan (dashboard) của giảng viên.
      * 
      * @param session Phiên đăng nhập
@@ -100,8 +113,9 @@ public class LecturerController {
 
         List<Topic> myTopics = topicService.getTopicsByLecturer(lecturer.getId());
         List<ReviewCouncilMember> myCouncils = councilService.getCouncilsForLecturer(lecturer.getId());
+        var supervised = supervisedBy(lecturer);
         List<TopicRegistration> myGroupRegs = registrationService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopic(), lecturer))
+                .filter(r -> supervised.test(r.getTopic()))
                 .toList();
 
         model.addAttribute("lecturer", lecturer);
@@ -239,8 +253,9 @@ public class LecturerController {
         if (lecturer == null)
             return "redirect:/login";
 
+        var supervised = supervisedBy(lecturer);
         List<TopicRegistration> myGroupRegs = registrationService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopic(), lecturer))
+                .filter(r -> supervised.test(r.getTopic()))
                 .toList();
 
         model.addAttribute("registrations", myGroupRegs);
@@ -473,8 +488,9 @@ public class LecturerController {
         if (lecturer == null)
             return "redirect:/login";
 
+        var supervised = supervisedBy(lecturer);
         List<Report> myReports = reportService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopicRegistration().getTopic(), lecturer))
+                .filter(r -> supervised.test(r.getTopicRegistration().getTopic()))
                 .toList();
 
         model.addAttribute("reports", myReports);
@@ -620,6 +636,8 @@ public class LecturerController {
         List<Notification> notifications = notificationService.getPublishedForRole("LECTURER");
         model.addAttribute("notifications", notifications);
         model.addAttribute("notificationService", notificationService);
+        // Tải 1 lần tập thông báo đã đọc, JSP tra trong tập thay vì mỗi dòng một câu SELECT
+        model.addAttribute("readIds", notificationService.getReadIds(user));
         model.addAttribute("currentUser", user);
         return "lecturer/notifications";
     }
