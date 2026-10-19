@@ -80,7 +80,7 @@
                                     <div class="flex justify-between items-start mb-3.5">
                                         <div class="flex items-center gap-2">
                                             <span
-                                                class="code-tag font-bold text-xs bg-slate-900 text-white border-slate-900">
+                                                class="code-tag font-bold text-xs bg-slate-900 border-slate-900">
                                                 ${c.code}
                                             </span>
                                             <span class="text-xs text-slate-500 font-semibold">

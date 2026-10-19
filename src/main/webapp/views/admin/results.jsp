@@ -31,7 +31,7 @@
                     <!-- Council Header -->
                     <div class="bg-white px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div class="flex items-center gap-3 flex-wrap">
-                            <span class="code-tag font-bold text-xs bg-slate-900 text-white border-slate-900">${c.code}</span>
+                            <span class="code-tag font-bold text-xs bg-slate-900 border-slate-900">${c.code}</span>
                             <h3 class="text-sm font-extrabold text-slate-900"><c:out value="${c.name}" /></h3>
                             <span class="status-badge ${c.status == 'COMPLETED' ? 'status-approved' : 'status-pending'}">
                                 ${enumLabel.label(c.status)}

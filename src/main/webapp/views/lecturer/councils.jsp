@@ -52,7 +52,7 @@
                                             class="bg-white p-5 border-b border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-3">
                                             <div class="flex items-center gap-3 flex-wrap">
                                                 <span
-                                                    class="code-tag font-bold text-xs bg-slate-900 text-white border-slate-900">
+                                                    class="code-tag font-bold text-xs bg-slate-900 border-slate-900">
                                                     ${mc.council.code}
                                                 </span>
                                                 <h3 class="text-base font-extrabold text-slate-900"><c:out value="${mc.council.name}" />
