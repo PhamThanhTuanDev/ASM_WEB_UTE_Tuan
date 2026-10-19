@@ -200,6 +200,28 @@ public class CouncilService {
         return assignmentRepository.save(assignment);
     }
 
+    /**
+     * Bản lọc hàng loạt của isEligibleForCouncil (cùng điều kiện): lấy điểm quá trình của cả danh sách
+     * bằng 1 câu truy vấn thay vì mỗi đăng ký một câu.
+     */
+    public List<TopicRegistration> filterEligibleForCouncil(List<TopicRegistration> registrations) {
+        List<TopicRegistration> candidates = registrations.stream()
+                .filter(r -> r != null && r.getTopic() != null && r.getTopic().getLecturer() != null
+                        && r.getStatus() == ute.edu.enums.RegistrationStatus.APPROVED)
+                .toList();
+        if (candidates.isEmpty())
+            return List.of();
+        java.util.Map<String, Double> scores = new java.util.HashMap<>();
+        for (TopicEvaluation evaluation : evaluationRepository.findByTopicIdIn(
+                candidates.stream().map(r -> r.getTopic().getId()).collect(java.util.stream.Collectors.toSet()))) {
+            scores.put(evaluation.getTopic().getId() + ":" + evaluation.getReviewer().getId(), evaluation.getScore());
+        }
+        return candidates.stream().filter(r -> {
+            Double score = scores.get(r.getTopic().getId() + ":" + r.getTopic().getLecturer().getId());
+            return score != null && Double.isFinite(score) && score <= 10 && score > 5.0;
+        }).toList();
+    }
+
     /** Kiểm tra đăng ký đã duyệt và điểm quá trình GVHD chính lớn hơn 5. */
     public boolean isEligibleForCouncil(TopicRegistration registration) {
         if (registration == null || registration.getTopic() == null)
@@ -238,13 +260,16 @@ public class CouncilService {
             return false;
         }
 
+        // Lấy 1 lần danh sách GVHD của đề tài thay vì hỏi CSDL cho từng thành viên hội đồng
+        java.util.Set<Long> supervisorIds = supervisorRepository.findByTopicId(topic.getId()).stream()
+                .map(ts -> ts.getLecturer().getId()).collect(java.util.stream.Collectors.toSet());
         for (ReviewCouncilMember member : memberRepository.findByCouncilId(council.getId())) {
             Long lecturerId = member.getLecturer().getId();
             boolean isSupervisor = topic.getLecturer() != null
                     && topic.getLecturer().getId().equals(lecturerId);
             boolean isCoSupervisor = topic.getCoLecturer() != null
                     && topic.getCoLecturer().getId().equals(lecturerId);
-            boolean isAssignedSupervisor = supervisorRepository.existsByTopicIdAndLecturerId(topic.getId(), lecturerId);
+            boolean isAssignedSupervisor = supervisorIds.contains(lecturerId);
             if (isSupervisor || isCoSupervisor || isAssignedSupervisor)
                 return false;
         }

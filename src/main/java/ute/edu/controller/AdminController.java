@@ -279,10 +279,10 @@ public class AdminController {
         List<TopicRegistration> approvedRegistrations = registrationService.getApprovedRegistrations();
         // Lọc 1 lần các đăng ký chưa phân công và đủ điều kiện, rồi mới so khớp từng hội đồng theo đợt/khoa
         // trước khi gọi canAssignToCouncil (tránh hàng trăm câu truy vấn lặp khi CSDL đặt ở máy chủ xa).
-        List<TopicRegistration> candidates = approvedRegistrations.stream()
-                .filter(registration -> !assignmentRepository.existsByTopicRegistrationId(registration.getId()))
-                .filter(councilService::isEligibleForCouncil)
-                .toList();
+        java.util.Set<Long> assignedIds = assignmentRepository.findAssignedRegistrationIds();
+        List<TopicRegistration> candidates = councilService.filterEligibleForCouncil(approvedRegistrations.stream()
+                .filter(registration -> !assignedIds.contains(registration.getId()))
+                .toList());
         Map<Long, List<TopicRegistration>> eligibleRegistrationsByCouncil = new HashMap<>();
         for (ReviewCouncil council : councils) {
             List<TopicRegistration> eligibleRegistrations = candidates.stream()

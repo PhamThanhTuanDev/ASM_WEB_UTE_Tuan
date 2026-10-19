@@ -15,6 +15,9 @@ public interface TopicAssignmentRepository extends JpaRepository<TopicAssignment
     boolean existsByCouncilIdAndTopicRegistrationId(Long councilId, Long topicRegistrationId);
     /** Kiểm tra đăng ký đã thuộc bất kỳ hội đồng nào chưa. */
     boolean existsByTopicRegistrationId(Long topicRegistrationId);
+    /** Mã các đăng ký đã được phân công vào hội đồng (1 câu truy vấn cho cả trang quản lý hội đồng). */
+    @org.springframework.data.jpa.repository.Query("select ta.topicRegistration.id from TopicAssignment ta")
+    java.util.Set<Long> findAssignedRegistrationIds();
     /** Lấy phân công đầu tiên của một đăng ký. */
     Optional<TopicAssignment> findFirstByTopicRegistrationId(Long topicRegistrationId);
     /** Xóa tất cả phân công của một hội đồng. */

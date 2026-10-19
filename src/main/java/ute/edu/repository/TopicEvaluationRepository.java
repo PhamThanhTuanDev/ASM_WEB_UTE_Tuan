@@ -11,4 +11,6 @@ public interface TopicEvaluationRepository extends JpaRepository<TopicEvaluation
     Optional<TopicEvaluation> findByTopicIdAndReviewerId(Long topicId, Long reviewerId);
     /** Lấy toàn bộ đánh giá quá trình của một đề tài. */
     List<TopicEvaluation> findByTopicId(Long topicId);
+    /** Lấy đánh giá quá trình của nhiều đề tài trong 1 câu truy vấn. */
+    List<TopicEvaluation> findByTopicIdIn(java.util.Collection<Long> topicIds);
 }
