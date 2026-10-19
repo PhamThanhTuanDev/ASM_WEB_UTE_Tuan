@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Quản lý thông báo khoa" />
-<c:set var="pageHeading" value="Quản lý &amp; đăng thông báo khoa CNTT" />
-<c:set var="pageSubheading" value="Đăng thông báo theo từng đối tượng: Toàn trường, Sinh viên, hoặc Giảng viên" />
-<c:set var="activeMenu" value="notifications" />
+<c:set scope="request" var="pageTitle" value="Quản lý thông báo khoa" />
+<c:set scope="request" var="pageHeading" value="Quản lý và đăng thông báo khoa CNTT" />
+<c:set scope="request" var="pageSubheading" value="Đăng thông báo theo từng đối tượng: Toàn trường, Sinh viên, hoặc Giảng viên" />
+<c:set scope="request" var="activeMenu" value="notifications" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -47,7 +47,7 @@
                     <c:forEach var="n" items="${notifications}">
                         <tr id="notification-${n.id}" data-notification-id="${n.id}" class="hover:bg-slate-50/80 transition-colors">
                             <td class="align-top">
-                                <div class="font-bold text-slate-900 leading-snug">${n.title}</div>
+                                <div class="font-bold text-slate-900 leading-snug"><c:out value="${n.title}" /></div>
                                 <p class="text-[11px] text-slate-500 line-clamp-1 mt-1 leading-relaxed">${n.content}</p>
                             </td>
 
@@ -62,11 +62,11 @@
                             </td>
 
                             <td class="align-top font-semibold text-slate-800">
-                                ${n.createdBy != null ? n.createdBy.fullName : 'Ban Chủ nhiệm Khoa'}
+                                <c:out value="${n.createdBy != null ? n.createdBy.fullName : 'Ban Chủ nhiệm Khoa'}" />
                             </td>
 
                             <td class="align-top text-slate-500 font-medium whitespace-nowrap">
-                                ${n.createdAt}
+                                ${dateDisplay.format(n.createdAt)}
                             </td>
 
                             <td class="align-top text-center whitespace-nowrap">
@@ -78,11 +78,13 @@
                             <td class="align-top text-right whitespace-nowrap">
                                 <div class="inline-flex items-center gap-1.5 justify-end">
                                     <form method="post" action="${pageContext.request.contextPath}/admin/notifications/${n.id}/toggle" class="inline">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                         <button type="submit" class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors" title="Ẩn / Hiện thông báo">
                                             <i data-lucide="${n.published ? 'eye-off' : 'eye'}" class="w-4 h-4"></i>
                                         </button>
                                     </form>
                                     <form method="post" action="${pageContext.request.contextPath}/admin/notifications/${n.id}/delete" class="inline" onsubmit="return confirmDeleteNotif(event, '${n.title}');">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                         <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Xóa thông báo">
                                             <i data-lucide="trash-2" class="w-4 h-4"></i>
                                         </button>
@@ -113,9 +115,10 @@
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content rounded-3xl border-0 shadow-2xl overflow-hidden">
                 <form method="post" action="${pageContext.request.contextPath}/admin/notifications/save">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                     <div class="bg-gradient-to-r from-sky-700 to-blue-900 px-6 py-4 text-white flex justify-between items-center">
                         <h5 class="text-base font-bold flex items-center gap-2">
-                            <i data-lucide="bell-plus" class="w-5 h-5 text-sky-300"></i> Soạn &amp; Đăng Thông Báo Mới
+                            <i data-lucide="bell-plus" class="w-5 h-5 text-sky-300"></i> Soạn và Đăng Thông Báo Mới
                         </h5>
                         <button type="button" class="text-white/80 hover:text-white p-1" data-bs-dismiss="modal">
                             <i data-lucide="x" class="w-5 h-5"></i>

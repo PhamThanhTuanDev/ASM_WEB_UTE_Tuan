@@ -1,11 +1,11 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
     <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-            <c:set var="pageTitle" value="Bảng điều khiển giảng viên" />
-            <c:set var="pageHeading" value="Không gian làm việc giảng viên" />
-            <c:set var="pageSubheading"
+            <c:set scope="request" var="pageTitle" value="Bảng điều khiển giảng viên" />
+            <c:set scope="request" var="pageHeading" value="Không gian làm việc giảng viên" />
+            <c:set scope="request" var="pageSubheading"
                 value="Chào mừng Thầy/Cô ${lecturer.user.fullName} (${lecturer.department.name})" />
-            <c:set var="activeMenu" value="dashboard" />
+            <c:set scope="request" var="activeMenu" value="dashboard" />
 
             <jsp:include page="../common/header.jsp" />
             <jsp:include page="../common/sidebar.jsp" />
@@ -33,7 +33,7 @@
                                 <div
                                     class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-sky-200 text-[10px] font-extrabold uppercase tracking-widest border border-white/15 backdrop-blur-md">
                                     <i data-lucide="graduation-cap" class="w-3.5 h-3.5 text-amber-300"></i>
-                                    <span>Giảng viên hướng dẫn &bull; ${lecturer.department.name}</span>
+                                    <span>Giảng viên hướng dẫn và ${lecturer.department.name}</span>
                                 </div>
                                 <h2
                                     class="text-2xl sm:text-3xl font-extrabold tracking-tight text-white flex items-center gap-2.5">
@@ -54,7 +54,7 @@
                                 </a>
                                 <a href="${pageContext.request.contextPath}/lecturer/councils"
                                     class="btn-ui bg-white/10 text-white hover:bg-white/20 border border-white/20 font-bold text-xs px-4 py-2.5 rounded-xl backdrop-blur-md transition-all justify-center">
-                                    <i data-lucide="scale" class="w-4 h-4 text-purple-300"></i> Hội đồng &amp; Điểm
+                                    <i data-lucide="scale" class="w-4 h-4 text-purple-300"></i> Hội đồng và Điểm
                                 </a>
                             </div>
                         </div>
@@ -74,7 +74,7 @@
                                 </div>
                                 <div class="text-3xl font-black text-slate-900 tracking-tight">${fn:length(myTopics)}
                                 </div>
-                                <div class="text-xs text-sky-600 font-bold truncate">GVHD Chính &amp; Đồng HD</div>
+                                <div class="text-xs text-sky-600 font-bold truncate">Giảng viên hướng dẫn chính và Đồng HD</div>
                                 <div class="stat-mini-progress">
                                     <div class="stat-mini-progress-bar"
                                         style="width: ${fn:length(myTopics) > 0 ? '100%' : '20%'}"></div>
@@ -95,7 +95,7 @@
                                 </div>
                                 <div class="text-3xl font-black text-slate-900 tracking-tight">${fn:length(myGroupRegs)}
                                 </div>
-                                <div class="text-xs text-emerald-600 font-bold truncate">Đang theo dõi &amp; duyệt đăng
+                                <div class="text-xs text-emerald-600 font-bold truncate">Đang theo dõi và duyệt đăng
                                     ký</div>
                                 <div class="stat-mini-progress">
                                     <div class="stat-mini-progress-bar"
@@ -138,7 +138,7 @@
                                         <i data-lucide="calendar-check" class="w-5 h-5"></i>
                                     </div>
                                     <div>
-                                        <h3 class="text-sm font-bold text-slate-900">${activePeriod.name}</h3>
+                                        <h3 class="text-sm font-bold text-slate-900"><c:out value="${activePeriod.name}" /></h3>
                                         <p class="text-xs text-slate-500">Đợt đăng ký và bảo vệ khóa luận đang diễn ra
                                         </p>
                                     </div>
@@ -158,8 +158,8 @@
                                     <div>
                                         <div class="text-[10px] text-slate-400 font-bold uppercase">Hạn GV đề xuất:
                                         </div>
-                                        <div class="font-bold text-slate-800">${activePeriod.lecturerStartDate} &rarr;
-                                            ${activePeriod.lecturerEndDate}</div>
+                                        <div class="font-bold text-slate-800">${dateDisplay.format(activePeriod.lecturerStartDate)} &rarr;
+                                            ${dateDisplay.format(activePeriod.lecturerEndDate)}</div>
                                     </div>
                                 </div>
 
@@ -172,8 +172,8 @@
                                     <div>
                                         <div class="text-[10px] text-slate-400 font-bold uppercase">Hạn SV đăng ký:
                                         </div>
-                                        <div class="font-bold text-slate-800">${activePeriod.studentStartDate} &rarr;
-                                            ${activePeriod.studentEndDate}</div>
+                                        <div class="font-bold text-slate-800">${dateDisplay.format(activePeriod.studentStartDate)} &rarr;
+                                            ${dateDisplay.format(activePeriod.studentEndDate)}</div>
                                     </div>
                                 </div>
 
@@ -186,14 +186,14 @@
                                     <div>
                                         <div class="text-[10px] text-slate-400 font-bold uppercase">Hạn nộp điểm:</div>
                                         <div class="font-bold text-slate-800">${activePeriod.reviewerDeadline != null ?
-                                            activePeriod.reviewerDeadline : 'Chưa định'}</div>
+                                            dateDisplay.format(activePeriod.reviewerDeadline) : 'Chưa định'}</div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </c:if>
 
-                    <!-- Bottom 2 Columns: Topics & Councils -->
+                    <!-- Bottom 2 Columns: Topics và Councils -->
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                         <!-- Supervised Topics List (7 cols) -->
                         <div class="lg:col-span-7 space-y-6">
@@ -212,7 +212,7 @@
                                 <table class="w-full text-left border-collapse">
                                     <thead>
                                         <tr>
-                                            <th class="w-[42%]">Mã &amp; Tên Đề tài</th>
+                                            <th class="w-[42%]">Mã và Tên Đề tài</th>
                                             <th class="w-[20%]">Vai trò</th>
                                             <th class="w-[20%]">Đồng HD</th>
                                             <th class="w-[18%] text-center">Trạng thái</th>
@@ -237,18 +237,17 @@
                                                 <td class="align-top">
                                                     <span class="code-tag mb-1 inline-block">${t.code}</span>
                                                     <div class="font-bold text-slate-900 leading-snug">
-                                                        ${t.title}
+                                                        <c:out value="${t.title}" />
                                                     </div>
                                                 </td>
                                                 <td class="align-top whitespace-nowrap">
                                                     <span
                                                         class="status-badge ${t.lecturer.id == lecturer.id ? 'status-info' : 'status-neutral'}">
-                                                        ${t.lecturer.id == lecturer.id ? 'GVHD Chính' : 'Đồng HD'}
+                                                        ${t.lecturer.id == lecturer.id ? 'Giảng viên hướng dẫn chính' : 'Đồng HD'}
                                                     </span>
                                                 </td>
                                                 <td class="align-top text-slate-600 font-medium">
-                                                    ${t.coLecturer != null ? t.coLecturer.user.fullName : '<span
-                                                        class="text-slate-400">Không</span>'}
+                                                    <c:out value="${t.coLecturer != null ? t.coLecturer.user.fullName : 'Không'}" />
                                                 </td>
                                                 <td class="align-top text-center whitespace-nowrap">
                                                     <span
@@ -300,7 +299,7 @@
                                                     class="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3 text-xs transition-all hover:bg-sky-50/20">
                                                     <div class="flex items-center justify-between gap-2">
                                                         <h5 class="font-bold text-slate-900 text-sm leading-snug">
-                                                            ${mc.council.name}</h5>
+                                                            <c:out value="${mc.council.name}" /></h5>
                                                         <span
                                                             class="status-badge ${mc.role == 'CHAIRMAN' ? 'status-pending' : mc.role == 'SECRETARY' ? 'status-info' : 'status-neutral'} shrink-0">
                                                             <c:choose>
@@ -314,7 +313,7 @@
                                                     <div class="text-slate-500 space-y-1">
                                                         <div>Ngày báo cáo: <strong
                                                                 class="text-slate-800">${mc.council.councilDate != null
-                                                                ? mc.council.councilDate : 'Chưa định'}</strong></div>
+                                                                ? dateDisplay.format(mc.council.councilDate) : 'Chưa định'}</strong></div>
                                                         <div>Địa điểm: <strong
                                                                 class="text-slate-800">${mc.council.location != null ?
                                                                 mc.council.location : 'Chưa định'}</strong></div>
@@ -335,4 +334,3 @@
                 </main>
 
                 <jsp:include page="../common/footer.jsp" />
-    <jsp:include page="../common/flash.jsp" />

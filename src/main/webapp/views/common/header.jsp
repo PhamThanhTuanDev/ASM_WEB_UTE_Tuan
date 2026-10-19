@@ -7,6 +7,8 @@
 
                 <head>
                     <meta charset="UTF-8">
+                    <meta name="csrf-token" content="${_csrf.token}">
+                    <meta name="csrf-header" content="${_csrf.headerName}">
                     <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <meta name="theme-color" content="#003865">
                     <meta name="color-scheme" content="light">
@@ -14,11 +16,11 @@
                     <link rel="icon" type="image/png"
                         href="${pageContext.request.contextPath}/assets/img/logo/logo_hcmute.png">
 
-                    <!-- Google Fonts: Plus Jakarta Sans -->
+                    <!-- Google Fonts: Be Vietnam Pro -->
                     <link rel="preconnect" href="https://fonts.googleapis.com">
                     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                     <link
-                        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap"
+                        href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap"
                         rel="stylesheet">
 
                     <!-- Tailwind CSS for functional utility spacing -->
@@ -38,20 +40,20 @@
                                         }
                                     },
                                     fontFamily: {
-                                        sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif']
+                                        sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif']
                                     }
                                 }
                             }
                         }
                     </script>
 
-                    <!-- Icons & Core Libraries -->
+                    <!-- Icons và Core Libraries -->
                     <script src="https://unpkg.com/lucide@latest"></script>
                     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
                         rel="stylesheet">
                     <link rel="stylesheet"
-                        href="${pageContext.request.contextPath}/assets/css/custom-theme.css?v=5.0.0">
+                        href="${pageContext.request.contextPath}/assets/css/custom-theme.css?v=5.2.0">
                 </head>
 
                 <body
@@ -70,7 +72,7 @@
                                     src="${pageContext.request.contextPath}/assets/img/logo/logo_nav_hcmute.png"
                                     alt="HCMUTE">
                             </div>
-                            <div class="page-loader-text">HCMUTE • ACADEMIC PORTAL</div>
+                            <div class="page-loader-text">HCMUTE • CỔNG THÔNG TIN HỌC THUẬT</div>
                         </div>
                     </div>
 

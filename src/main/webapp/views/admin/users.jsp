@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Quản lý tài khoản & người dùng" />
-<c:set var="pageHeading" value="Quản lý tài khoản & phân quyền hệ thống" />
-<c:set var="pageSubheading" value="Danh sách tài khoản Giảng viên, Sinh viên và Quản trị viên trong hệ thống" />
-<c:set var="activeMenu" value="users" />
+<c:set scope="request" var="pageTitle" value="Quản lý tài khoản và người dùng" />
+<c:set scope="request" var="pageHeading" value="Quản lý tài khoản và phân quyền hệ thống" />
+<c:set scope="request" var="pageSubheading" value="Danh sách tài khoản Giảng viên, Sinh viên và Quản trị viên trong hệ thống" />
+<c:set scope="request" var="activeMenu" value="users" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -51,7 +51,7 @@
                                         <span class="code-tag">${l.lecturerCode}</span>
                                     </td>
                                     <td class="align-middle">
-                                        <div class="font-bold text-slate-900 leading-snug">${l.user.fullName}</div>
+                                        <div class="font-bold text-slate-900 leading-snug"><c:out value="${l.user.fullName}" /></div>
                                         <div class="text-[11px] text-slate-400 mt-0.5 font-mono">@${l.user.username}</div>
                                     </td>
                                     <td class="align-middle">
@@ -61,7 +61,7 @@
                                     </td>
                                     <td class="align-middle">
                                         <span class="status-badge status-neutral">
-                                            ${l.department != null ? l.department.name : 'Chung'}
+                                            <c:out value="${l.department != null ? l.department.name : 'Chung'}" />
                                         </span>
                                     </td>
                                     <td class="align-middle text-slate-600 font-medium">
@@ -86,7 +86,7 @@
                                 <tr>
                                     <th class="w-[14%]">Mã số SV (MSSV)</th>
                                     <th class="w-[22%]">Họ và Tên Sinh viên</th>
-                                    <th class="w-[16%]">Lớp &amp; Khóa</th>
+                                    <th class="w-[16%]">Lớp và Khóa</th>
                                     <th class="w-[18%]">Ngành học</th>
                                     <th class="w-[15%]">Khoa</th>
                                     <th class="w-[15%]">Email Sinh viên</th>
@@ -99,7 +99,7 @@
                                             <span class="code-tag font-bold text-emerald-700 bg-emerald-50 border-emerald-200">${s.studentCode}</span>
                                         </td>
                                         <td class="align-middle">
-                                            <div class="font-bold text-slate-900">${s.user.fullName}</div>
+                                            <div class="font-bold text-slate-900"><c:out value="${s.user.fullName}" /></div>
                                             <div class="text-[11px] text-slate-400 font-mono">@${s.user.username}</div>
                                         </td>
                                         <td class="align-middle whitespace-nowrap font-medium text-slate-700">
@@ -146,7 +146,7 @@
                                         <td class="align-middle font-mono font-bold text-sky-700">
                                             @${u.username}
                                         </td>
-                                        <td class="align-middle font-bold text-slate-900">${u.fullName}</td>
+                                        <td class="align-middle font-bold text-slate-900"><c:out value="${u.fullName}" /></td>
                                         <td class="align-middle text-slate-500 font-mono text-[11px]">
                                             ${u.email}
                                         </td>

@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Báo cáo sinh viên" />
-<c:set var="pageHeading" value="Xem báo cáo sinh viên hướng dẫn" />
-<c:set var="pageSubheading" value="Danh sách các file báo cáo tiến độ và báo cáo hoàn chỉnh do Nhóm trưởng nộp" />
-<c:set var="activeMenu" value="reports" />
+<c:set scope="request" var="pageTitle" value="Báo cáo sinh viên" />
+<c:set scope="request" var="pageHeading" value="Xem báo cáo sinh viên hướng dẫn" />
+<c:set scope="request" var="pageSubheading" value="Danh sách các file báo cáo tiến độ và báo cáo hoàn chỉnh do Nhóm trưởng nộp" />
+<c:set scope="request" var="activeMenu" value="reports" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -55,8 +55,8 @@
                             </colgroup>
                             <thead>
                                 <tr>
-                                    <th>Mã &amp; Đề tài</th>
-                                    <th>Nhóm &amp; Người nộp</th>
+                                    <th>Mã và Đề tài</th>
+                                    <th>Nhóm và Người nộp</th>
                                     <th>Tên file báo cáo</th>
                                     <th class="whitespace-nowrap">Thời gian nộp</th>
                                     <th>Ghi chú</th>
@@ -69,19 +69,19 @@
                                         <td class="align-top">
                                             <span class="code-tag">${r.topicRegistration.topic.code}</span>
                                             <div class="font-bold text-slate-900 mt-1 leading-snug line-clamp-2" title="${r.topicRegistration.topic.title}">
-                                                ${r.topicRegistration.topic.title}
+                                                <c:out value="${r.topicRegistration.topic.title}" />
                                             </div>
                                         </td>
                                         <td class="align-top">
                                             <div class="font-bold text-slate-800 text-xs leading-snug mb-1">
-                                                ${r.topicRegistration.group.name}
+                                                <c:out value="${r.topicRegistration.group.name}" />
                                             </div>
                                             
                                             <c:set var="isSubmitterLeader" value="${r.topicRegistration.group.leader != null && r.topicRegistration.group.leader.id == r.submittedBy.id}" />
                                             
                                             <div class="font-bold text-slate-800 leading-snug flex items-center gap-1.5">
                                                 <i data-lucide="user" class="w-3.5 h-3.5 text-sky-600"></i>
-                                                <span>${r.submittedBy.user.fullName}<c:if test="${isSubmitterLeader}"> (Nhóm trưởng)</c:if></span>
+                                                <span><c:out value="${r.submittedBy.user.fullName}" /><c:if test="${isSubmitterLeader}"> (Nhóm trưởng)</c:if></span>
                                             </div>
                                             
                                             <div class="text-[11px] text-slate-500 mt-0.5">
@@ -96,13 +96,13 @@
                                             </div>
                                         </td>
                                         <td class="align-top text-slate-500 font-medium whitespace-nowrap">
-                                            ${r.submittedAt}
+                                            ${dateDisplay.format(r.submittedAt)}
                                         </td>
                                         <td class="align-top">
                                             <c:choose>
                                                 <c:when test="${not empty r.note}">
                                                     <p class="text-slate-600 italic leading-relaxed break-words whitespace-normal">
-                                                        ${r.note}
+                                                        <c:out value="${r.note}" />
                                                     </p>
                                                 </c:when>
                                                 <c:otherwise>
@@ -140,7 +140,6 @@
     </main>
 
 <jsp:include page="../common/footer.jsp" />
-    <jsp:include page="../common/flash.jsp" />
 
 <script>
     function filterReportsTable() {

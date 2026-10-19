@@ -1,15 +1,9 @@
 package ute.edu.service;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-import ute.edu.helper.MailInfo;
 import ute.edu.entity.*;
 import ute.edu.enums.AssignmentStatus;
 import ute.edu.enums.CouncilStatus;
@@ -27,12 +21,12 @@ public class ScoringService {
     private final MailerService mailerService;
 
     public ScoringService(ScoreRepository scoreRepository,
-                          TopicAssignmentRepository assignmentRepository,
-                          ReviewCouncilMemberRepository memberRepository,
-                          TopicSupervisorRepository supervisorRepository,
-                          ReviewCouncilRepository councilRepository,
-                          TopicEvaluationRepository evaluationRepository,
-                          MailerService mailerService) {
+            TopicAssignmentRepository assignmentRepository,
+            ReviewCouncilMemberRepository memberRepository,
+            TopicSupervisorRepository supervisorRepository,
+            ReviewCouncilRepository councilRepository,
+            TopicEvaluationRepository evaluationRepository,
+            MailerService mailerService) {
         this.scoreRepository = scoreRepository;
         this.assignmentRepository = assignmentRepository;
         this.memberRepository = memberRepository;
@@ -52,20 +46,10 @@ public class ScoringService {
         return supervisorRepository.existsByTopicIdAndLecturerId(topicId, lecturerId);
     }
 
-    /**
-     * Lấy 1 lần tập ID đề tài mà giảng viên được phân công hướng dẫn.
-     * Dùng khi cần kiểm tra cả danh sách, tránh gọi isLecturerSupervisingTopic()
-     * cho từng phần tử (mỗi lần gọi = 1 truy vấn DB).
-     */
-    public Set<Long> getSupervisedTopicIds(Long lecturerId) {
-        if (lecturerId == null) return Collections.emptySet();
-        return new HashSet<>(supervisorRepository.findTopicIdsByLecturerId(lecturerId));
-    }
-
     @Transactional
     /** Lưu hoặc cập nhật điểm của một thành viên hội đồng. */
     public Score gradeTopic(Long assignmentId, Long lecturerId, Double scoreValue, String comment) {
-        if (scoreValue == null || scoreValue < 0 || scoreValue > 10) {
+        if (scoreValue == null || !Double.isFinite(scoreValue) || scoreValue < 0 || scoreValue > 10) {
             throw new IllegalArgumentException("Điểm số phải từ 0 đến 10");
         }
 
@@ -74,9 +58,19 @@ public class ScoringService {
 
         Topic topic = assignment.getTopicRegistration().getTopic();
         Long councilId = assignment.getCouncil().getId();
+        assignment.setCouncil(councilRepository.findForUpdate(councilId).orElseThrow());
 
         if (assignment.getCouncil().getStatus() == CouncilStatus.COMPLETED) {
             throw new IllegalStateException("Hội đồng đã chốt điểm, không thể sửa điểm!");
+        }
+        var councilDate = assignment.getCouncil().getCouncilDate();
+        var period = topic.getRegistrationPeriod();
+        if (councilDate == null || RegistrationPeriodService.today().isBefore(councilDate)) {
+            throw new IllegalStateException("Chưa đến ngày báo cáo hội đồng, không thể nhập điểm!");
+        }
+        if (period != null && period.getReviewerDeadline() != null
+                && RegistrationPeriodService.today().isAfter(period.getReviewerDeadline())) {
+            throw new IllegalStateException("Đã hết hạn GVPB nộp điểm!");
         }
 
         // 1. Check anti-supervision constraint
@@ -92,7 +86,8 @@ public class ScoringService {
         }
 
         if (isSupervisor) {
-            throw new IllegalStateException("RÀNG BUỘC BẢO MẬT: Giảng viên hướng dẫn không được phép chấm điểm hoặc phản biện cho đề tài này!");
+            throw new IllegalStateException(
+                    "RÀNG BUỘC BẢO MẬT: Giảng viên hướng dẫn không được phép chấm điểm hoặc phản biện cho đề tài này!");
         }
 
         // 2. Find council member record
@@ -182,90 +177,66 @@ public class ScoringService {
     }
 
     @Transactional
-    /**
-     * Chốt hội đồng khi tất cả thành viên đã nhập điểm, rồi gửi email kết quả cho sinh viên.
-     *
-     * Làm theo 3 bước để không gửi nhầm email:
-     * 1. Kiểm tra TOÀN BỘ đề tài trước (đủ điểm hội đồng, có điểm quá trình) — chưa ghi gì vào DB.
-     * 2. Cập nhật trạng thái phân công + hội đồng.
-     * 3. Chỉ đưa email vào hàng đợi SAU KHI transaction commit thành công.
-     * Trước đây email được xếp hàng ngay trong vòng lặp: nếu đề tài phía sau thiếu điểm thì
-     * transaction bị rollback (hội đồng chưa chốt) nhưng nhóm phía trước vẫn nhận email điểm.
-     */
+    /** Chốt hội đồng khi tất cả thành viên đã nhập điểm. */
     public void finalizeCouncil(Long councilId) {
-        ReviewCouncil council = councilRepository.findById(councilId)
+        ReviewCouncil council = councilRepository.findForUpdate(councilId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Hội đồng"));
-
-        if (council.getStatus() == CouncilStatus.COMPLETED) {
-            throw new IllegalStateException("Hội đồng đã được chốt điểm trước đó, không thể chốt lại (tránh gửi email trùng)");
+        if (council.getStatus() == CouncilStatus.COMPLETED)
+            throw new IllegalStateException("Hội đồng đã công bố điểm!");
+        if (council.getCouncilDate() == null || RegistrationPeriodService.today().isBefore(council.getCouncilDate())) {
+            throw new IllegalStateException("Chưa đến ngày báo cáo, không thể công bố điểm!");
         }
 
         List<ReviewCouncilMember> members = memberRepository.findByCouncilId(councilId);
-        if (members.size() < 3) {
+        if (members.size() < 3 || members.size() > 5) {
             throw new IllegalStateException("Hội đồng phải có ít nhất 3 thành viên trước khi công bố điểm");
         }
 
-        List<TopicAssignment> assignments = assignmentRepository.findByCouncilId(councilId);
-
-        // Bước 1: kiểm tra hết, tính sẵn điểm tổng kết; có lỗi thì dừng khi chưa thay đổi gì
-        java.util.Map<Long, Double> finalScores = new java.util.HashMap<>();
+        List<TopicAssignment> assignments = assignmentRepository.findByCouncilIdOrderByAssignedAtDescIdDesc(councilId);
+        if (assignments.isEmpty())
+            throw new IllegalStateException("Hội đồng chưa có đề tài để công bố kết quả!");
         for (TopicAssignment assignment : assignments) {
-            String topicCode = assignment.getTopicRegistration().getTopic().getCode();
             int scoreCount = scoreRepository.findByTopicAssignmentId(assignment.getId()).size();
             if (scoreCount < members.size()) {
+                String topicCode = assignment.getTopicRegistration().getTopic().getCode();
                 throw new IllegalStateException("Đề tài " + topicCode + " mới có " + scoreCount
                         + "/" + members.size() + " điểm; cần đủ điểm của tất cả thành viên hội đồng");
             }
-            Double finalScore = calculateFinalScore(assignment.getId());
-            if (finalScore == null) {
-                throw new IllegalStateException("Đề tài " + topicCode
-                        + " chưa có điểm quá trình của GVHD nên chưa tính được điểm tổng kết");
-            }
-            finalScores.put(assignment.getId(), finalScore);
-        }
-
-        // Bước 2: cập nhật trạng thái và chuẩn bị nội dung email
-        List<MailInfo> mails = new java.util.ArrayList<>();
-        for (TopicAssignment assignment : assignments) {
             assignment.setStatus(AssignmentStatus.EVALUATED);
             assignmentRepository.save(assignment);
 
+            Double finalScore = calculateFinalScore(assignment.getId());
+            if (finalScore == null || !Double.isFinite(finalScore)) {
+                throw new IllegalStateException("Chưa đủ điểm quá trình và điểm hội đồng hợp lệ!");
+            }
+            assignment.getTopicRegistration().getTopic().setStatus(ute.edu.enums.TopicStatus.COMPLETED);
             List<String> emails = new java.util.ArrayList<>();
             for (StudentGroupMember member : assignment.getTopicRegistration().getGroup().getMembers()) {
                 if (member.getStudent().getUser() != null && member.getStudent().getUser().getEmail() != null) {
                     emails.add(member.getStudent().getUser().getEmail());
                 }
             }
-            if (!emails.isEmpty()) {
+            if (!emails.isEmpty() && finalScore != null) {
                 String subject = "Kết quả bảo vệ đề tài: " + assignment.getTopicRegistration().getTopic().getTitle();
-                String body = "Chào nhóm,<br><br>Điểm tổng kết bảo vệ đề tài của nhóm bạn là: <b>"
-                        + finalScores.get(assignment.getId())
+                String body = "Chào nhóm,<br><br>Điểm tổng kết bảo vệ đề tài của nhóm bạn là: <b>" + finalScore
                         + "</b>.<br>Chúc mừng các bạn đã hoàn thành!<br><br>Khoa CNTT.";
-                mails.add(new MailInfo(emails.toArray(new String[0]), subject, body));
+                String[] recipients = emails.toArray(new String[0]);
+                if (org.springframework.transaction.support.TransactionSynchronizationManager
+                        .isSynchronizationActive()) {
+                    org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+                            new org.springframework.transaction.support.TransactionSynchronization() {
+                                @Override
+                                public void afterCommit() {
+                                    mailerService.queue(recipients, subject, body);
+                                }
+                            });
+                } else {
+                    mailerService.queue(recipients, subject, body);
+                }
             }
         }
 
         council.setStatus(CouncilStatus.COMPLETED);
         councilRepository.save(council);
-
-        // Bước 3: chỉ xếp email vào hàng đợi khi dữ liệu đã lưu chắc chắn (sau commit)
-        queueAfterCommit(mails);
-    }
-
-    /** Đưa email vào hàng đợi sau khi transaction hiện tại commit thành công. */
-    private void queueAfterCommit(List<MailInfo> mails) {
-        if (mails.isEmpty()) {
-            return;
-        }
-        if (TransactionSynchronizationManager.isSynchronizationActive()) {
-            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    mails.forEach(mailerService::queue);
-                }
-            });
-        } else {
-            mails.forEach(mailerService::queue);
-        }
     }
 }

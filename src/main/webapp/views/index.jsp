@@ -14,18 +14,18 @@
                 <link rel="icon" type="image/png"
                     href="${pageContext.request.contextPath}/assets/img/logo/logo_hcmute.png">
 
-                <!-- Google Fonts & Tailwind CDN -->
+                <!-- Google Fonts và Tailwind CDN -->
                 <link rel="preconnect" href="https://fonts.googleapis.com">
                 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
                 <link
-                    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+                    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap"
                     rel="stylesheet">
                 <script src="https://cdn.tailwindcss.com"></script>
                 <script>
                     tailwind.config = {
                         theme: {
                             extend: {
-                                fontFamily: { sans: ['"Plus Jakarta Sans"', 'sans-serif'] },
+                                fontFamily: { sans: ['"Be Vietnam Pro"', 'sans-serif'] },
                                 colors: {
                                     brand: { 50: '#eff6ff', 100: '#dbeafe', 500: '#0088cc', 600: '#006da8', 700: '#005584', 800: '#003865', 900: '#002444' }
                                 }
@@ -34,7 +34,7 @@
                     }
                 </script>
                 <script src="https://unpkg.com/lucide@latest"></script>
-                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/custom-theme.css?v=4.4.0">
+                <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/custom-theme.css?v=5.2.0">
 
                 <style>
                     .landing-hero {
@@ -197,7 +197,7 @@
                                 <div
                                     class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-sky-200 text-xs font-bold backdrop-blur-md">
                                     <i data-lucide="sparkles" class="w-3.5 h-3.5 text-sky-300"></i>
-                                    <span>CỔNG QUẢN LÝ ĐỀ TÀI & KHÓA LUẬN HCMUTE</span>
+                                    <span>CỔNG QUẢN LÝ ĐỀ TÀI và KHÓA LUẬN HCMUTE</span>
                                 </div>
 
                                 <h1
@@ -238,22 +238,22 @@
                                                     ĐANG MỞ
                                                 </div>
                                                 <div class="font-extrabold text-white text-sm sm:text-base mt-0.5">
-                                                    ${activePeriod.name}</div>
+                                                    <c:out value="${activePeriod.name}" /></div>
                                             </div>
                                             <div
                                                 class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-sky-200">
                                                 <span class="inline-flex items-center gap-1.5"><i data-lucide="calendar"
                                                         class="w-3.5 h-3.5 text-sky-300"></i> Hạn SV:
-                                                    ${activePeriod.studentEndDate}</span>
+                                                    ${dateDisplay.format(activePeriod.studentEndDate)}</span>
                                                 <c:if test="${not empty activePeriod.reviewerDeadline}">
                                                     <span class="inline-flex items-center gap-1.5"><i
                                                             data-lucide="clock" class="w-3.5 h-3.5 text-sky-300"></i>
-                                                        GVPB: ${activePeriod.reviewerDeadline}</span>
+                                                        GVPB: ${dateDisplay.format(activePeriod.reviewerDeadline)}</span>
                                                 </c:if>
                                                 <c:if test="${not empty activePeriod.councilReportDate}">
                                                     <span class="inline-flex items-center gap-1.5"><i
                                                             data-lucide="award" class="w-3.5 h-3.5 text-sky-300"></i>
-                                                        Hội đồng: ${activePeriod.councilReportDate}</span>
+                                                        Hội đồng: ${dateDisplay.format(activePeriod.councilReportDate)}</span>
                                                 </c:if>
                                             </div>
                                         </div>
@@ -275,7 +275,7 @@
                                             data-lucide="book-open" class="w-10 h-10 text-sky-300"></i></div>
                                     <div
                                         class="hero-cube-face flex items-center justify-center text-sky-200 font-mono font-bold text-xs">
-                                        THESIS</div>
+                                        KHÓA LUẬN</div>
                                     <div class="hero-cube-face flex items-center justify-center text-sky-200"><i
                                             data-lucide="shield-check" class="w-10 h-10 text-sky-300"></i></div>
                                     <div
@@ -339,7 +339,7 @@
                             </div>
                             <div class="text-3xl font-black text-slate-900">${totalGroups}</div>
                             <div class="text-[11px] text-slate-500 mt-1 font-semibold flex items-center gap-1">
-                                <i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i> Nhóm đã lập & đăng ký
+                                <i data-lucide="sparkles" class="w-3 h-3 text-amber-500"></i> Nhóm đã lập và đăng ký
                             </div>
                         </div>
 
@@ -356,7 +356,7 @@
                             </div>
                             <div class="text-3xl font-black text-slate-900">${totalLecturers}</div>
                             <div class="text-[11px] text-slate-500 mt-1 font-semibold flex items-center gap-1">
-                                <i data-lucide="award" class="w-3 h-3 text-sky-500"></i> Hướng dẫn & Hội đồng
+                                <i data-lucide="award" class="w-3 h-3 text-sky-500"></i> Hướng dẫn và Hội đồng
                             </div>
                         </div>
 
@@ -373,7 +373,7 @@
                             </div>
                             <div class="text-3xl font-black text-slate-900">${totalStudents}</div>
                             <div class="text-[11px] text-slate-500 mt-1 font-semibold flex items-center gap-1">
-                                <i data-lucide="shield-check" class="w-3 h-3 text-indigo-500"></i> Khóa luận & Đồ án
+                                <i data-lucide="shield-check" class="w-3 h-3 text-indigo-500"></i> Khóa luận và Đồ án
                             </div>
                         </div>
                     </div>
@@ -403,7 +403,7 @@
                                 class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-600 to-blue-700 text-white font-black text-base flex items-center justify-center mb-4 shadow-md shadow-sky-500/20 group-hover:scale-110 transition-transform">
                                 01
                             </div>
-                            <h3 class="text-base font-bold text-slate-900 mb-1.5">Mở đợt & Đề xuất</h3>
+                            <h3 class="text-base font-bold text-slate-900 mb-1.5">Mở đợt và Đề xuất</h3>
                             <p class="text-xs text-slate-500 leading-relaxed">
                                 Khoa công bố kế hoạch thời gian; Giảng viên đề xuất danh mục đề tài khóa luận để hội
                                 đồng khoa thẩm định và phê duyệt.
@@ -417,7 +417,7 @@
                                 class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-700 text-white font-black text-base flex items-center justify-center mb-4 shadow-md shadow-blue-500/20 group-hover:scale-110 transition-transform">
                                 02
                             </div>
-                            <h3 class="text-base font-bold text-slate-900 mb-1.5">Lập nhóm & Đăng ký</h3>
+                            <h3 class="text-base font-bold text-slate-900 mb-1.5">Lập nhóm và Đăng ký</h3>
                             <p class="text-xs text-slate-500 leading-relaxed">
                                 Sinh viên tạo nhóm tối đa 03 thành viên. Nhóm trưởng đại diện gửi đơn đăng ký đề tài
                                 mong muốn tới Giảng viên hướng dẫn.
@@ -445,7 +445,7 @@
                                 class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-700 text-white font-black text-base flex items-center justify-center mb-4 shadow-md shadow-emerald-500/20 group-hover:scale-110 transition-transform">
                                 04
                             </div>
-                            <h3 class="text-base font-bold text-slate-900 mb-1.5">Hội đồng & Công bố điểm</h3>
+                            <h3 class="text-base font-bold text-slate-900 mb-1.5">Hội đồng và Công bố điểm</h3>
                             <p class="text-xs text-slate-500 leading-relaxed">
                                 Hội đồng phản biện tổ chức bảo vệ, chấm điểm độc lập qua hệ thống và công bố kết quả
                                 đánh giá tổng kết chính thức.
@@ -486,7 +486,7 @@
                                             <option value="">-- Tất cả Khoa --</option>
                                             <c:forEach var="dept" items="${departments}">
                                                 <option value="${dept.id}" ${selectedDept==dept.id ? 'selected' : '' }>
-                                                    ${dept.name}</option>
+                                                    <c:out value="${dept.name}" /></option>
                                             </c:forEach>
                                         </select>
                                     </div>
@@ -588,16 +588,16 @@
                                                             class="px-2.5 py-1 rounded-xl font-mono font-bold text-xs bg-sky-50 text-sky-700 border border-sky-200/80 shadow-2xs">${topic.code}</span>
                                                         <span
                                                             class="px-2.5 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-600 border border-slate-200 truncate max-w-[45%]">
-                                                            ${topic.department != null ? topic.department.name : 'CNTT'}
+                                                            <c:out value="${topic.department != null ? topic.department.name : 'CNTT'}" />
                                                         </span>
                                                     </div>
                                                     <h3
                                                         class="text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors leading-snug mb-2 line-clamp-2">
-                                                        ${topic.title}</h3>
+                                                        <c:out value="${topic.title}" /></h3>
                                                     <p
                                                         class="text-xs text-slate-500 leading-relaxed line-clamp-3 mb-4 flex-1">
-                                                        ${topic.description != null ? topic.description : 'Chưa có mô tả
-                                                        chi tiết.'}
+                                                        <c:out value="${topic.description != null ? topic.description : 'Chưa có mô tả
+                                                        chi tiết.'}" />
                                                     </p>
                                                 </div>
 
@@ -608,9 +608,9 @@
                                                         <div class="min-w-0">
                                                             <span class="text-slate-500">GVHD:</span>
                                                             <strong
-                                                                class="font-semibold text-slate-800">${topic.lecturer !=
+                                                                class="font-semibold text-slate-800"><c:out value="${topic.lecturer !=
                                                                 null ? topic.lecturer.user.fullName : 'Chưa phân
-                                                                công'}</strong>
+                                                                công'}" /></strong>
                                                             <c:if test="${not empty topic.coLecturer}">
                                                                 <div class="text-[11px] text-slate-500 mt-0.5 truncate">
                                                                     Đồng HD: ${topic.coLecturer.user.fullName}</div>
@@ -625,7 +625,7 @@
                                                                 class="text-slate-700">${topic.maxStudents}</strong> SV
                                                         </span>
                                                         <a href="${pageContext.request.contextPath}/login"
-                                                            class="btn-ui btn-ui-primary text-xs py-1.5 px-3.5 shadow-sm">
+                                                            class="btn-ui btn-ui-primary text-xs !h-8 !py-0 px-3.5 shadow-sm">
                                                             Đăng ký <i data-lucide="arrow-right"
                                                                 class="w-3.5 h-3.5"></i>
                                                         </a>
@@ -685,78 +685,11 @@
                     document.addEventListener('DOMContentLoaded', function () {
                         if (typeof lucide !== 'undefined') lucide.createIcons();
 
-                        // Pagination for public topic cards - Standard 10 items / page
-                        const pageSize = 10;
-                        const list = document.querySelector('[data-pagination-list]');
-                        const controls = document.querySelector('[data-pagination-controls]');
-                        if (!list || !controls) return;
-
-                        const items = Array.from(list.querySelectorAll('[data-pagination-item]'));
-                        const pageCount = Math.ceil(items.length / pageSize);
-                        if (pageCount <= 1) return;
-
-                        let currentPage = 1;
-                        const render = function () {
-                            const start = (currentPage - 1) * pageSize;
-                            items.forEach(function (item, index) {
-                                item.classList.toggle('hidden', index < start || index >= start + pageSize);
-                            });
-
-                            controls.innerHTML = '';
-                            const summary = document.createElement('span');
-                            summary.className = 'text-xs font-semibold text-slate-500';
-                            summary.textContent = 'Trang ' + currentPage + ' / ' + pageCount;
-
-                            const navigation = document.createElement('div');
-                            navigation.className = 'flex items-center gap-1.5';
-                            const previous = createPageButton('Trước', currentPage === 1);
-                            previous.addEventListener('click', function () {
-                                if (currentPage > 1) {
-                                    currentPage -= 1;
-                                    render();
-                                }
-                            });
-                            navigation.appendChild(previous);
-
-                            for (let page = 1; page <= pageCount; page += 1) {
-                                const button = createPageButton(String(page), false);
-                                if (page === currentPage) {
-                                    button.className = 'min-w-8 h-8 px-2.5 rounded-xl bg-sky-600 text-white text-xs font-bold shadow-sm';
-                                }
-                                button.addEventListener('click', function () {
-                                    currentPage = page;
-                                    render();
-                                });
-                                navigation.appendChild(button);
-                            }
-
-                            const next = createPageButton('Sau', currentPage === pageCount);
-                            next.addEventListener('click', function () {
-                                if (currentPage < pageCount) {
-                                    currentPage += 1;
-                                    render();
-                                }
-                            });
-                            navigation.appendChild(next);
-                            controls.appendChild(summary);
-                            controls.appendChild(navigation);
-                        };
-
-                        const createPageButton = function (label, disabled) {
-                            const button = document.createElement('button');
-                            button.type = 'button';
-                            button.className = 'min-w-8 h-8 px-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-bold hover:border-sky-300 hover:text-sky-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors';
-                            button.textContent = label;
-                            button.disabled = disabled;
-                            return button;
-                        };
-
-                        render();
                     });
                 </script>
 
 
-                <script src="${pageContext.request.contextPath}/assets/js/enterprise-ui.js?v=4.4.1"></script>
+                <script src="${pageContext.request.contextPath}/assets/js/enterprise-ui.js?v=5.2.0"></script>
             </body>
 
             </html>

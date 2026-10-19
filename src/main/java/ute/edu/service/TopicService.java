@@ -29,17 +29,12 @@ public class TopicService {
      * @return Danh sách các đối tượng Topic
      */
     public List<Topic> getAllTopics() {
-        return topicRepository.findAll();
+        return topicRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt", "id"));
     }
 
-    /** Kiểm tra mã đề tài đã được dùng chưa. */
-    public boolean existsByCode(String code) {
-        return code != null && topicRepository.existsByCode(code.trim());
-    }
-
-    /** Đếm tổng số đề tài bằng SELECT COUNT(*) — không tải toàn bộ đề tài chỉ để lấy size(). */
-    public long countAllTopics() {
-        return topicRepository.count();
+    public List<Topic> getAvailableTopics() {
+        return topicRepository.findAvailableTopics();
     }
 
     /**
@@ -49,7 +44,7 @@ public class TopicService {
      * @return Danh sách các đề tài có trạng thái tương ứng
      */
     public List<Topic> getTopicsByStatus(TopicStatus status) {
-        return topicRepository.findByStatus(status);
+        return topicRepository.findByStatusOrderByCreatedAtDescIdDesc(status);
     }
 
     /**
@@ -59,7 +54,7 @@ public class TopicService {
      * @return Danh sách đề tài thuộc khoa
      */
     public List<Topic> getTopicsByDepartment(Long departmentId) {
-        return topicRepository.findByDepartmentId(departmentId);
+        return topicRepository.findByDepartmentIdOrderByCreatedAtDescIdDesc(departmentId);
     }
 
     /**
@@ -69,7 +64,7 @@ public class TopicService {
      * @return Danh sách đề tài thuộc đợt đăng ký đó
      */
     public List<Topic> getTopicsByPeriod(Long periodId) {
-        return topicRepository.findByRegistrationPeriodId(periodId);
+        return topicRepository.findByRegistrationPeriodIdOrderByCreatedAtDescIdDesc(periodId);
     }
 
     /**
@@ -80,7 +75,7 @@ public class TopicService {
      * @return Danh sách đề tài của giảng viên đó
      */
     public List<Topic> getTopicsByLecturer(Long lecturerId) {
-        return topicRepository.findByLecturerIdOrCoLecturerId(lecturerId, lecturerId);
+        return topicRepository.findByLecturerIdOrCoLecturerIdOrderByCreatedAtDescIdDesc(lecturerId, lecturerId);
     }
 
     /**
@@ -102,6 +97,30 @@ public class TopicService {
      */
     @Transactional
     public Topic save(Topic topic) {
+        if (topic.getCode() == null || topic.getCode().isBlank() || topic.getCode().trim().length() > 30
+                || topic.getTitle() == null || topic.getTitle().isBlank() || topic.getTitle().trim().length() > 255
+                || topic.getDescription() == null || topic.getDescription().isBlank()) {
+            throw new IllegalArgumentException("Vui lòng nhập mã (tối đa 30 ký tự), tên (tối đa 255 ký tự) và mô tả đề tài!");
+        }
+        topic.setCode(topic.getCode().trim());
+        topic.setTitle(topic.getTitle().trim());
+        topic.setDescription(topic.getDescription().trim());
+        if (topic.getId() != null) {
+            Topic existing = topicRepository.findForUpdate(topic.getId()).orElseThrow();
+            if (existing.getStatus() == TopicStatus.ASSIGNED || existing.getStatus() == TopicStatus.COMPLETED) {
+                throw new IllegalStateException("Đề tài đã có nhóm thực hiện hoặc đã hoàn tất, không thể ghi đè thông tin!");
+            }
+            topic.setCreatedAt(existing.getCreatedAt());
+        }
+        if (topic.getDepartment() == null || topic.getRegistrationPeriod() == null || topic.getLecturer() == null
+                || topic.getMaxStudents() < 1 || topic.getMaxStudents() > 3) {
+            throw new IllegalArgumentException("Khoa, đợt, GVHD là bắt buộc; số sinh viên từ 1 đến 3!");
+        }
+        if (!topic.getDepartment().getId().equals(topic.getLecturer().getDepartment().getId())
+                || (topic.getCoLecturer() != null && (!topic.getDepartment().getId().equals(topic.getCoLecturer().getDepartment().getId())
+                || topic.getCoLecturer().getId().equals(topic.getLecturer().getId())))) {
+            throw new IllegalArgumentException("GVHD và đồng hướng dẫn phải cùng khoa, không được trùng nhau!");
+        }
         if (topic.getCreatedAt() == null) {
             topic.setCreatedAt(LocalDateTime.now());
         }
@@ -142,6 +161,10 @@ public class TopicService {
     public Topic updateStatus(Long topicId, TopicStatus status) {
         Topic topic = topicRepository.findById(topicId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đề tài với ID: " + topicId));
+        if (status == null || status == TopicStatus.ASSIGNED || status == TopicStatus.COMPLETED
+                || topic.getStatus() == TopicStatus.ASSIGNED || topic.getStatus() == TopicStatus.COMPLETED) {
+            throw new IllegalStateException("Trạng thái thực hiện/hoàn tất phải được cập nhật qua duyệt đăng ký và chốt điểm!");
+        }
         topic.setStatus(status);
         topic.setUpdatedAt(LocalDateTime.now());
         return topicRepository.save(topic);

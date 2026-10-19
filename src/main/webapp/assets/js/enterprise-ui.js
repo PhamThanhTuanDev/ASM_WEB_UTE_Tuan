@@ -7,6 +7,23 @@
 
   const CTX = document.body?.dataset?.contextPath || '';
 
+  // Shared Vietnamese defaults also apply to dialogs opened by individual pages.
+  if (window.Swal) {
+    window.Swal = window.Swal.mixin({
+      confirmButtonText: 'Đóng',
+      cancelButtonText: 'Hủy',
+      denyButtonText: 'Không đồng ý',
+      closeButtonAriaLabel: 'Đóng thông báo',
+      confirmButtonAriaLabel: 'Xác nhận',
+      cancelButtonAriaLabel: 'Hủy thao tác',
+      confirmButtonColor: '#006da8',
+      cancelButtonColor: '#64748b',
+      reverseButtons: true,
+      heightAuto: false,
+      returnFocus: true
+    });
+  }
+
   function refreshIcons() {
     if (typeof lucide !== 'undefined') {
       lucide.createIcons();
@@ -58,6 +75,15 @@
     return Promise.resolve({ isConfirmed: window.confirm(opts.title + (opts.text ? '\n' + opts.text : '')) });
   }
 
+  /** Add the session CSRF token to requests which modify server data. */
+  function csrfHeaders(headers = {}) {
+    const result = new Headers(headers);
+    const token = document.querySelector('meta[name="csrf-token"]')?.content;
+    const header = document.querySelector('meta[name="csrf-header"]')?.content;
+    if (token && header) result.set(header, token);
+    return result;
+  }
+
   async function postForm(url, data) {
     const body = new URLSearchParams();
     Object.entries(data || {}).forEach(([k, v]) => {
@@ -66,7 +92,7 @@
     try {
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+        headers: csrfHeaders({ 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' }),
         body: body.toString()
       });
       const contentType = res.headers.get('content-type') || '';
@@ -90,27 +116,50 @@
     const KEY = 'hcmute_sidebar_collapsed';
     const isDesktop = () => window.matchMedia('(min-width: 1025px)').matches;
 
-    if (isDesktop() && localStorage.getItem(KEY) === '1') {
-      wrapper.classList.add('sidebar-collapsed');
+    try {
+      if (isDesktop() && localStorage.getItem(KEY) === '1') wrapper.classList.add('sidebar-collapsed');
+    } catch (_) { /* Navigation also works when browser storage is unavailable. */ }
+
+    function syncToggle() {
+      toggleBtn.setAttribute('aria-expanded', String(isDesktop()
+        ? !wrapper.classList.contains('sidebar-collapsed') : sidebar.classList.contains('show')));
+      if (overlay) overlay.setAttribute('aria-hidden', String(!sidebar.classList.contains('show')));
     }
+
+    function closeDrawer() {
+      sidebar.classList.remove('show');
+      if (overlay) overlay.classList.remove('show');
+      syncToggle();
+    }
+    syncToggle();
 
     toggleBtn.addEventListener('click', () => {
       if (isDesktop()) {
         wrapper.classList.toggle('sidebar-collapsed');
-        localStorage.setItem(KEY, wrapper.classList.contains('sidebar-collapsed') ? '1' : '0');
+        try {
+          localStorage.setItem(KEY, wrapper.classList.contains('sidebar-collapsed') ? '1' : '0');
+        } catch (_) { /* Keep the current layout without persisting the preference. */ }
       } else {
         sidebar.classList.toggle('show');
         if (overlay) overlay.classList.toggle('show');
       }
+      syncToggle();
       setTimeout(refreshIcons, 60);
     });
 
     if (overlay) {
-      overlay.addEventListener('click', () => {
-        sidebar.classList.remove('show');
-        overlay.classList.remove('show');
-      });
+      overlay.addEventListener('click', closeDrawer);
     }
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && sidebar.classList.contains('show')) {
+        closeDrawer();
+        toggleBtn.focus();
+      }
+    });
+    sidebar.querySelectorAll('a[href]').forEach(link => link.addEventListener('click', () => {
+      if (!isDesktop()) closeDrawer();
+    }));
+    window.addEventListener('resize', () => { if (isDesktop()) closeDrawer(); else syncToggle(); });
   }
 
   /* ──────────────────────────────────────────────────────────────────
@@ -223,13 +272,15 @@
     document.querySelectorAll('form').forEach((form) => {
       if (form.dataset.loadingBound === '1') return;
       form.dataset.loadingBound = '1';
-      form.addEventListener('submit', () => {
+      form.addEventListener('submit', (event) => {
         if (form.dataset.preventLoading === '1' || form.hasAttribute('onsubmit')) return;
         window.setTimeout(() => {
+          if (event.defaultPrevented) return;
           form.querySelectorAll('button[type="submit"], input[type="submit"]').forEach((button) => {
             if (button.disabled) return;
             button.disabled = true;
             button.dataset.originalLabel = button.innerHTML || button.value || '';
+            button.dataset.submitLoading = '1';
             if (button.tagName === 'BUTTON') {
               button.innerHTML = '<span class="inline-flex items-center gap-2"><i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i><span>Đang xử lý...</span></span>';
               refreshIcons();
@@ -238,6 +289,14 @@
             }
           });
         }, 0);
+      });
+    });
+    window.addEventListener('pageshow', () => {
+      document.querySelectorAll('[data-submit-loading="1"]').forEach(button => {
+        button.disabled = false;
+        if (button.tagName === 'BUTTON') button.innerHTML = button.dataset.originalLabel;
+        else button.value = button.dataset.originalLabel;
+        delete button.dataset.submitLoading;
       });
     });
   }
@@ -447,7 +506,10 @@
       if (nextBtn) nextBtn.addEventListener('click', () => { if (currentPage < totalPages) renderPage(currentPage + 1); });
     }
 
-    renderPage(1);
+    const targetIndex = list.dataset.paginationTarget
+      ? getVisibleItems().findIndex(item => item.dataset.notificationId === list.dataset.paginationTarget)
+      : -1;
+    renderPage(targetIndex >= 0 ? Math.floor(targetIndex / itemsPerPage) + 1 : 1);
     list._renderPagination = () => renderPage(1);
   }
 
@@ -521,7 +583,7 @@
 
       if (!fileInput) return;
 
-      zone.addEventListener('click', () => fileInput.click());
+      zone.addEventListener('click', event => { if (event.target !== fileInput) fileInput.click(); });
 
       ['dragenter', 'dragover'].forEach(name => {
         zone.addEventListener(name, (e) => {
@@ -540,9 +602,17 @@
       const handleFiles = (files) => {
         if (!files || files.length === 0) return;
         const file = files[0];
-        
+        const maxSize = Number(fileInput.dataset.maxSize || 0);
+        const allowed = (fileInput.accept || '').split(',').map(ext => ext.trim().toLowerCase()).filter(Boolean);
+        if ((maxSize && file.size > maxSize) || (allowed.length && !allowed.some(ext => file.name.toLowerCase().endsWith(ext)))) {
+          fileInput.value = '';
+          if (preview) preview.classList.remove('has-file');
+          toast('error', 'Tệp không hợp lệ', 'Chọn tệp đúng định dạng, tối đa 10 MB.');
+          return;
+        }
+
         // Populate fileNameInput if present and empty
-        if (nameInput && !nameInput.value.trim()) {
+        if (nameInput) {
           nameInput.value = file.name;
         }
 
@@ -598,6 +668,7 @@
     toast,
     confirmDialog,
     postForm,
+    csrfHeaders,
     initSidebar,
     initParallax,
     initAccordion,
@@ -617,7 +688,7 @@
     initFormStates();
     initCommandPalette();
     initDropzone();
-    
+
     // Auto-init for common tables with class .datatable-pagination (default 10 rows)
     document.querySelectorAll('.datatable-pagination').forEach(table => {
       if (!table.id) {
@@ -625,12 +696,12 @@
       }
       initPagination('#' + table.id, parseInt(table.dataset.pageSize || 10));
     });
-    
+
     // Also init all specific table IDs with 10 rows
     const knownTables = [
-      '#topicsTable', '#usersTable', '#groupsTable', '#councilsTable', 
+      '#topicsTable', '#usersTable', '#groupsTable', '#councilsTable',
       '#reportsTable', '#periodsTable', '#regsTable', '#adminNotificationsTable',
-      '#lecturerTopicsTable', '#lecturerGroupsTable', '#lecturersTable', 
+      '#lecturerTopicsTable', '#lecturerGroupsTable', '#lecturersTable',
       '#studentsTable', '#adminsTable'
     ];
     knownTables.forEach(selector => {

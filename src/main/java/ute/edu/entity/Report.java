@@ -21,7 +21,7 @@ public class Report {
     @Column(nullable = false)
     // Tên file báo cáo do nhóm nộp.
     private String fileName;
-    @Column(nullable = false, length = 1000)
+    @Column(length = 1000)
     // Đường dẫn lưu file trên máy chủ.
     private String filePath;
     @Column(length = 1000)

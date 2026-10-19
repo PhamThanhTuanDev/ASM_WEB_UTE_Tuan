@@ -13,7 +13,7 @@
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -21,7 +21,7 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    fontFamily: { sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'] },
+                    fontFamily: { sans: ['"Be Vietnam Pro"', 'system-ui', 'sans-serif'] },
                     colors: {
                         brand: {
                             50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9',
@@ -33,7 +33,7 @@
         }
     </script>
     <script src="https://unpkg.com/lucide@latest"></script>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/custom-theme.css?v=4.4.0">
+    <link rel="stylesheet" href="${pageContext.request.contextPath}/assets/css/custom-theme.css?v=5.2.0">
     <style>
         .login-visual-container {
             background: linear-gradient(135deg, #003865 0%, #00568c 50%, #006da8 100%);
@@ -78,7 +78,7 @@
                     <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/10 text-sky-100 text-[10px] font-bold border border-white/20">
                         <i data-lucide="sparkles" class="w-3 h-3 text-amber-300"></i> Nền tảng quản lý đề tài
                     </div>
-                    <h1 class="text-3xl font-black mt-3 leading-tight tracking-tight">Cổng Đề Tài & Khóa Luận</h1>
+                    <h1 class="text-3xl font-black mt-3 leading-tight tracking-tight">Cổng Đề Tài và Khóa Luận</h1>
                     <p class="text-xs text-sky-100/90 mt-2 leading-relaxed opacity-90">Hệ thống thông minh kết nối Sinh viên, Giảng viên và Hội đồng. Tự động hóa từ đăng ký nhóm đến bảo vệ khóa luận.</p>
                 </div>
             </div>
@@ -110,6 +110,11 @@
             </div>
 
             <!-- Alerts -->
+            <c:if test="${param.error == 'account_not_found' || param.error == 'missing_profile' || param.error == 'account_disabled' || param.error == 'unverified_email'}">
+                <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs">
+                    Tài khoản chưa được cấp đầy đủ hồ sơ, đã bị khóa hoặc email chưa xác minh. Vui lòng liên hệ quản trị viên.
+                </div>
+            </c:if>
             <c:if test="${param.error == 'invalid_domain'}">
                 <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
                     <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
@@ -125,11 +130,12 @@
             <c:if test="${not empty errorMessage}">
                 <div class="p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded-xl text-xs flex items-center gap-2">
                     <i data-lucide="alert-circle" class="w-4 h-4 text-rose-600 shrink-0"></i>
-                    <span>${errorMessage}</span>
+                    <span><c:out value="${errorMessage}" /></span>
                 </div>
             </c:if>
 
             <form method="post" action="${pageContext.request.contextPath}/login" class="space-y-3.5">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                 <div>
                     <div class="relative">
                         <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
@@ -141,7 +147,7 @@
                 <div>
                     <div class="relative">
                         <i data-lucide="lock" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
-                        <input type="password" name="password" id="loginPassword" placeholder="Mật khẩu (Demo: 123456)"
+                        <input type="password" name="password" id="loginPassword" placeholder="Mật khẩu (Dùng thử: 123456)"
                             class="w-full pl-10 pr-11 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all" required>
                         <button type="button" id="togglePassword" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-600">
                             <i data-lucide="eye" class="w-4 h-4"></i>
@@ -170,12 +176,13 @@
             </a>
 
             <!-- Compact Quick Demo Roles -->
+            <c:if test="${quickLoginEnabled}">
             <div class="bg-slate-50 border border-slate-100 rounded-xl p-3 mt-2">
                 <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Tài khoản trải nghiệm nhanh</div>
                 <div class="flex flex-wrap justify-center gap-2">
                     <a href="${pageContext.request.contextPath}/quick-login?username=admin@hcmute.edu.vn" 
                         class="demo-chip flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 text-rose-700 border border-rose-200 rounded-lg text-[10px] font-bold transition-all">
-                        <i data-lucide="shield" class="w-3.5 h-3.5"></i> Admin
+                        <i data-lucide="shield" class="w-3.5 h-3.5"></i> Quản trị viên
                     </a>
                     <a href="${pageContext.request.contextPath}/quick-login?username=dean.fit@hcmute.edu.vn" 
                         class="demo-chip flex items-center gap-1.5 px-3 py-1.5 bg-brand-50 text-brand-700 border border-brand-200 rounded-lg text-[10px] font-bold transition-all">
@@ -193,6 +200,7 @@
             </div>
 
             <!-- Footer -->
+            </c:if>
             <div class="text-center pt-1">
                 <a href="${pageContext.request.contextPath}/" class="text-[11px] text-slate-400 hover:text-brand-600 font-medium transition-colors">Về trang chủ Portal</a>
             </div>

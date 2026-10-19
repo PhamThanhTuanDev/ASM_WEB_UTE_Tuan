@@ -86,20 +86,6 @@ public class LecturerController {
     }
 
     /**
-     * Phiên bản dùng khi lọc cả danh sách: tập ID đề tài GV hướng dẫn được lấy
-     * sẵn 1 lần (scoringService.getSupervisedTopicIds) nên không truy vấn DB
-     * cho từng phần tử như hàm ở trên (tránh lỗi N+1 truy vấn).
-     */
-    private boolean isSupervisorOf(Topic topic, Lecture lecturer, Set<Long> supervisedTopicIds) {
-        if (topic == null || lecturer == null)
-            return false;
-        Long lecturerId = lecturer.getId();
-        return (topic.getLecturer() != null && topic.getLecturer().getId().equals(lecturerId))
-                || (topic.getCoLecturer() != null && topic.getCoLecturer().getId().equals(lecturerId))
-                || supervisedTopicIds.contains(topic.getId());
-    }
-
-    /**
      * Hiển thị trang tổng quan (dashboard) của giảng viên.
      * 
      * @param session Phiên đăng nhập
@@ -114,9 +100,8 @@ public class LecturerController {
 
         List<Topic> myTopics = topicService.getTopicsByLecturer(lecturer.getId());
         List<ReviewCouncilMember> myCouncils = councilService.getCouncilsForLecturer(lecturer.getId());
-        Set<Long> supervisedTopicIds = scoringService.getSupervisedTopicIds(lecturer.getId());
         List<TopicRegistration> myGroupRegs = registrationService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopic(), lecturer, supervisedTopicIds))
+                .filter(r -> isSupervisorOf(r.getTopic(), lecturer))
                 .toList();
 
         model.addAttribute("lecturer", lecturer);
@@ -146,7 +131,7 @@ public class LecturerController {
         model.addAttribute("topics", topicService.getTopicsByLecturer(lecturer.getId()));
         model.addAttribute("topic", new Topic());
         model.addAttribute("departments", departmentRepository.findAll());
-        model.addAttribute("periods", periodService.getAll());
+        model.addAttribute("periods", periodService.getOpenLecturerPeriods());
         model.addAttribute("lecturers", lectureRepository.findAll());
         model.addAttribute("activePeriod", periodService.getActivePeriod());
         return "lecturer/topics";
@@ -165,8 +150,8 @@ public class LecturerController {
      */
     @PostMapping("/topics/save")
     public String saveTopic(@ModelAttribute Topic topic,
-            @RequestParam Long departmentId,
-            @RequestParam Long periodId,
+            @RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) Long periodId,
             @RequestParam(required = false) Long coLecturerId,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
@@ -175,28 +160,28 @@ public class LecturerController {
             return "redirect:/login";
 
         try {
-            // Giảng viên chỉ được TẠO đề tài mới: bỏ qua id/status nếu form gửi kèm
-            // (chống sửa đề tài của người khác hoặc tự công bố mà không qua Trưởng khoa duyệt)
-            topic.setId(null);
-            String code = topic.getCode() != null ? topic.getCode().trim() : "";
-            if (code.isEmpty()) {
-                throw new IllegalArgumentException("Mã đề tài không được để trống");
+            if (departmentId == null || periodId == null) {
+                throw new IllegalArgumentException("Vui lòng chọn khoa và đợt còn hạn đề xuất!");
             }
-            topic.setCode(code);
-            if (topic.getTitle() == null || topic.getTitle().isBlank()) {
-                throw new IllegalArgumentException("Tên đề tài không được để trống");
+            if (topic.getId() != null) {
+                Topic existing = topicService.findById(topic.getId());
+                if (existing == null || existing.getLecturer() == null
+                        || !existing.getLecturer().getId().equals(lecturer.getId())) {
+                    throw new IllegalStateException("Bạn không có quyền sửa đề tài này!");
+                }
+                if (existing.getStatus() != TopicStatus.DRAFT && existing.getStatus() != TopicStatus.PENDING
+                        && existing.getStatus() != TopicStatus.REJECTED) {
+                    throw new IllegalStateException("Đề tài đã được duyệt hoặc đang thực hiện, không thể sửa đề xuất!");
+                }
+                topic.setCreatedAt(existing.getCreatedAt());
             }
-            if (topicService.existsByCode(code)) {
-                throw new IllegalArgumentException("Mã đề tài " + code + " đã tồn tại, vui lòng chọn mã khác");
-            }
-            // Đề bài: mỗi nhóm tối đa 03 sinh viên (trước đây chỉ chặn ở trình duyệt)
-            if (topic.getMaxStudents() < 1 || topic.getMaxStudents() > 3) {
-                throw new IllegalArgumentException("Số sinh viên tối đa của đề tài phải từ 1 đến 3");
-            }
-
             topic.setLecturer(lecturer);
             topic.setDepartment(departmentRepository.findById(departmentId).orElseThrow());
             topic.setRegistrationPeriod(periodService.findById(periodId));
+            RegistrationPeriod period = topic.getRegistrationPeriod();
+            if (!RegistrationPeriodService.isLecturerWindow(period)) {
+                throw new IllegalStateException("Ngoài thời hạn giảng viên đề xuất đề tài!");
+            }
 
             if (coLecturerId != null && coLecturerId > 0 && !coLecturerId.equals(lecturer.getId())) {
                 topic.setCoLecturer(lectureRepository.findById(coLecturerId).orElse(null));
@@ -204,11 +189,11 @@ public class LecturerController {
                 topic.setCoLecturer(null);
             }
 
-            topic.setStatus(TopicStatus.PENDING); // Luôn gửi chờ Trưởng khoa duyệt
+            topic.setStatus(TopicStatus.PENDING);
             topicService.save(topic);
             redirectAttributes.addFlashAttribute("successMessage", "Đề xuất đề tài thành công! Chờ Trưởng khoa duyệt.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/lecturer/topics";
     }
@@ -236,7 +221,7 @@ public class LecturerController {
                 redirectAttributes.addFlashAttribute("errorMessage", "Bạn không có quyền xóa đề tài này.");
             }
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi xóa đề tài: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi xóa đề tài: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/lecturer/topics";
     }
@@ -254,9 +239,8 @@ public class LecturerController {
         if (lecturer == null)
             return "redirect:/login";
 
-        Set<Long> supervisedTopicIds = scoringService.getSupervisedTopicIds(lecturer.getId());
         List<TopicRegistration> myGroupRegs = registrationService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopic(), lecturer, supervisedTopicIds))
+                .filter(r -> isSupervisorOf(r.getTopic(), lecturer))
                 .toList();
 
         model.addAttribute("registrations", myGroupRegs);
@@ -293,7 +277,7 @@ public class LecturerController {
             registrationService.updateStatus(id, status, user, rejectionReason);
             redirectAttributes.addFlashAttribute("successMessage", "Đã cập nhật trạng thái duyệt đăng ký nhóm!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi duyệt đăng ký: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi duyệt đăng ký: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/lecturer/groups";
     }
@@ -311,8 +295,17 @@ public class LecturerController {
         if (lecturer == null)
             return "redirect:/login";
 
-        List<ReviewCouncilMember> myCouncilMembers = councilService.getCouncilsForLecturer(lecturer.getId());
+        Map<Long, List<TopicAssignment>> assignmentsByCouncil = new HashMap<>();
+        List<ReviewCouncilMember> myCouncilMembers = councilService.getCouncilsForLecturer(lecturer.getId()).stream()
+                .filter(member -> {
+                    List<TopicAssignment> assignments = councilService.getAssignments(member.getCouncil().getId());
+                    if (assignments.isEmpty()) return false;
+                    assignmentsByCouncil.put(member.getCouncil().getId(), assignments);
+                    return true;
+                })
+                .toList();
         model.addAttribute("myCouncilMembers", myCouncilMembers);
+        model.addAttribute("assignmentsByCouncil", assignmentsByCouncil);
         model.addAttribute("lecturer", lecturer);
         model.addAttribute("councilService", councilService);
         model.addAttribute("scoringService", scoringService);
@@ -389,7 +382,7 @@ public class LecturerController {
             scoringService.gradeTopic(assignmentId, lecturer.getId(), score, comment);
             redirectAttributes.addFlashAttribute("successMessage", "Lưu điểm và nhận xét thành công!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi chấm điểm: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi chấm điểm: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/lecturer/councils";
     }
@@ -427,7 +420,7 @@ public class LecturerController {
                     savedScore.getUpdatedAt() != null ? savedScore.getUpdatedAt().toString() : "Vừa xong");
         } catch (Exception e) {
             resp.put("success", false);
-            resp.put("message", e.getMessage());
+            resp.put("message", ute.edu.helper.UserMessages.forException(e));
         }
         return resp;
     }
@@ -462,7 +455,7 @@ public class LecturerController {
             model.addAttribute("lecturer", lecturer);
             return "lecturer/report-detail";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", ute.edu.helper.UserMessages.forException(e));
             return "redirect:/lecturer/reports";
         }
     }
@@ -480,9 +473,8 @@ public class LecturerController {
         if (lecturer == null)
             return "redirect:/login";
 
-        Set<Long> supervisedTopicIds = scoringService.getSupervisedTopicIds(lecturer.getId());
         List<Report> myReports = reportService.getAll().stream()
-                .filter(r -> isSupervisorOf(r.getTopicRegistration().getTopic(), lecturer, supervisedTopicIds))
+                .filter(r -> isSupervisorOf(r.getTopicRegistration().getTopic(), lecturer))
                 .toList();
 
         model.addAttribute("reports", myReports);
@@ -521,7 +513,7 @@ public class LecturerController {
             reportService.approve(id);
             redirectAttributes.addFlashAttribute("successMessage", "Đã duyệt báo cáo cho nhóm.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi duyệt báo cáo: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi duyệt báo cáo: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/lecturer/reports/" + id;
     }
@@ -553,7 +545,7 @@ public class LecturerController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Đã từ chối báo cáo. Nhóm cần nộp lại báo cáo phù hợp.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi từ chối báo cáo: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi từ chối báo cáo: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/lecturer/reports/" + id;
     }
@@ -584,10 +576,14 @@ public class LecturerController {
             if (!isSupervisorOf(topic, lecturer)) {
                 throw new IllegalStateException("Bạn không phải giảng viên hướng dẫn của đề tài này");
             }
-            if (reportId != null && reportService.getById(reportId).isApproved()) {
+            if (reportId != null
+                    && !reportService.getById(reportId).getTopicRegistration().getTopic().getId().equals(topicId)) {
+                throw new IllegalStateException("Báo cáo không thuộc đề tài này!");
+            }
+            if (reportService.hasApprovedReportForTopic(topicId) || topic.getStatus() == TopicStatus.COMPLETED) {
                 throw new IllegalStateException("Báo cáo đã được duyệt, không thể chỉnh sửa điểm quá trình");
             }
-            if (score < 0 || score > 10) {
+            if (score == null || !Double.isFinite(score) || score < 0 || score > 10) {
                 throw new IllegalArgumentException("Điểm quá trình phải nằm trong khoảng 0 đến 10");
             }
             TopicEvaluation evaluation = evaluationRepository.findByTopicIdAndReviewerId(topicId, lecturer.getId())
@@ -600,7 +596,7 @@ public class LecturerController {
             evaluationRepository.save(evaluation);
             redirectAttributes.addFlashAttribute("successMessage", "Đã lưu điểm quá trình.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi lưu điểm quá trình: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi lưu điểm quá trình: " + ute.edu.helper.UserMessages.forException(e));
         }
         return reportId != null ? "redirect:/lecturer/reports/" + reportId : "redirect:/lecturer/reports";
     }
@@ -619,14 +615,12 @@ public class LecturerController {
         UserAccount user = (UserAccount) session.getAttribute("user");
         if (notificationId != null) {
             notificationService.markAsRead(notificationId, user);
+            GlobalModelAdvice.refreshNotificationModel(notificationService, user, model);
         }
         List<Notification> notifications = notificationService.getPublishedForRole("LECTURER");
         model.addAttribute("notifications", notifications);
         model.addAttribute("notificationService", notificationService);
         model.addAttribute("currentUser", user);
-        // Tập ID đã đọc (1 truy vấn) để JSP không phải gọi isRead() cho từng thông báo
-        model.addAttribute("readNotificationIds",
-                notificationService.getReadNotificationIds(user != null ? user.getId() : null));
         return "lecturer/notifications";
     }
 

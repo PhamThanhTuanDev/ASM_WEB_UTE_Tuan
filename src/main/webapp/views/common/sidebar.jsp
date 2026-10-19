@@ -23,11 +23,11 @@
                 <!-- Navigation Scroll Area -->
                 <div class="sidebar-nav">
                     <c:choose>
-                        <%-- ADMIN & DEAN ROLE --%>
+                        <%-- ADMIN và DEAN ROLE --%>
                             <c:when
                                 test="${sessionScope.userRole == 'ADMIN' || sessionScope.userRole == 'DEAN' || sessionScope.userRole == 'DEPARTMENT_HEAD'}">
                                 <div class="nav-group">
-                                    <div class="nav-section-title">Tổng quan &amp; Điều hành</div>
+                                    <div class="nav-section-title">Tổng quan và Điều hành</div>
                                     <div class="space-y-1">
                                         <a href="${ctx}/admin/dashboard"
                                             class="sidebar-link ${fn:contains(uri, '/admin/dashboard') || activeMenu == 'dashboard' ? 'is-active' : ''}"
@@ -45,7 +45,7 @@
                                 </div>
 
                                 <div class="nav-group">
-                                    <div class="nav-section-title">Quản lý Đề tài &amp; Nhóm</div>
+                                    <div class="nav-section-title">Quản lý Đề tài và Nhóm</div>
                                     <div class="space-y-1">
                                         <a href="${ctx}/admin/topics"
                                             class="sidebar-link ${fn:contains(uri, '/admin/topics') || activeMenu == 'topics' ? 'is-active' : ''}"
@@ -63,7 +63,7 @@
                                 </div>
 
                                 <div class="nav-group">
-                                    <div class="nav-section-title">Hội đồng &amp; Báo cáo</div>
+                                    <div class="nav-section-title">Hội đồng và Báo cáo</div>
                                     <div class="space-y-1">
                                         <a href="${ctx}/admin/councils"
                                             class="sidebar-link ${fn:contains(uri, '/admin/councils') || activeMenu == 'councils' ? 'is-active' : ''}"
@@ -79,9 +79,9 @@
                                         </a>
                                         <a href="${ctx}/admin/results"
                                             class="sidebar-link ${fn:contains(uri, '/admin/results') || activeMenu == 'results' ? 'is-active' : ''}"
-                                            title="Điểm số & Kết quả">
+                                            title="Điểm số và Kết quả">
                                             <i data-lucide="award"></i>
-                                            <span class="nav-label">Điểm số &amp; Kết quả</span>
+                                            <span class="nav-label">Điểm số và Kết quả</span>
                                         </a>
                                     </div>
                                 </div>
@@ -102,9 +102,9 @@
                                         </a>
                                         <a href="${ctx}/admin/users"
                                             class="sidebar-link ${fn:contains(uri, '/admin/users') || activeMenu == 'users' ? 'is-active' : ''}"
-                                            title="Tài khoản & Hồ sơ">
+                                            title="Tài khoản và Hồ sơ">
                                             <i data-lucide="contact"></i>
-                                            <span class="nav-label">Tài khoản &amp; Hồ sơ</span>
+                                            <span class="nav-label">Tài khoản và Hồ sơ</span>
                                         </a>
                                     </div>
                                 </div>
@@ -113,7 +113,7 @@
                             <%-- LECTURER ROLE --%>
                                 <c:when test="${sessionScope.userRole == 'LECTURER'}">
                                     <div class="nav-group">
-                                        <div class="nav-section-title">Nghiên cứu &amp; Hướng dẫn</div>
+                                        <div class="nav-section-title">Nghiên cứu và Hướng dẫn</div>
                                         <div class="space-y-1">
                                             <a href="${ctx}/lecturer/dashboard"
                                                 class="sidebar-link ${fn:contains(uri, '/lecturer/dashboard') || activeMenu == 'dashboard' ? 'is-active' : ''}"
@@ -137,13 +137,13 @@
                                     </div>
 
                                     <div class="nav-group">
-                                        <div class="nav-section-title">Hội đồng &amp; Báo cáo</div>
+                                        <div class="nav-section-title">Hội đồng và Báo cáo</div>
                                         <div class="space-y-1">
                                             <a href="${ctx}/lecturer/councils"
                                                 class="sidebar-link ${fn:contains(uri, '/lecturer/councils') || fn:contains(uri, '/lecturer/grading') || activeMenu == 'councils' ? 'is-active' : ''}"
-                                                title="Hội đồng & Chấm điểm">
+                                                title="Hội đồng và Chấm điểm">
                                                 <i data-lucide="scale"></i>
-                                                <span class="nav-label">Hội đồng &amp; Chấm điểm</span>
+                                                <span class="nav-label">Hội đồng và Chấm điểm</span>
                                             </a>
                                             <a href="${ctx}/lecturer/reports"
                                                 class="sidebar-link ${fn:contains(uri, '/lecturer/reports') || activeMenu == 'reports' ? 'is-active' : ''}"
@@ -185,15 +185,15 @@
                                                 </a>
                                                 <a href="${ctx}/student/group"
                                                     class="sidebar-link ${fn:contains(uri, '/student/group') || activeMenu == 'group' || activeMenu == 'project' ? 'is-active' : ''}"
-                                                    title="Đồ án & Nhóm của tôi">
+                                                    title="Đồ án và Nhóm của tôi">
                                                     <i data-lucide="users-round"></i>
-                                                    <span class="nav-label">Đồ án &amp; Nhóm của tôi</span>
+                                                    <span class="nav-label">Đồ án và Nhóm của tôi</span>
                                                 </a>
                                             </div>
                                         </div>
 
                                         <div class="nav-group">
-                                            <div class="nav-section-title">Tiến độ &amp; Kết quả</div>
+                                            <div class="nav-section-title">Tiến độ và Kết quả</div>
                                             <div class="space-y-1">
                                                 <a href="${ctx}/student/reports"
                                                     class="sidebar-link ${fn:contains(uri, '/student/reports') || activeMenu == 'reports' ? 'is-active' : ''}"
@@ -203,9 +203,9 @@
                                                 </a>
                                                 <a href="${ctx}/student/results"
                                                     class="sidebar-link ${fn:contains(uri, '/student/results') || activeMenu == 'results' ? 'is-active' : ''}"
-                                                    title="Lịch & Điểm số">
+                                                    title="Lịch và Điểm số">
                                                     <i data-lucide="trophy"></i>
-                                                    <span class="nav-label">Lịch &amp; Điểm số</span>
+                                                    <span class="nav-label">Lịch và Điểm số</span>
                                                 </a>
                                                 <a href="${ctx}/student/notifications"
                                                     class="sidebar-link justify-between ${fn:contains(uri, '/student/notifications') || activeMenu == 'notifications' ? 'is-active' : ''}"
@@ -237,11 +237,11 @@
                 <div class="sidebar-footer">
                     <div class="sidebar-user-card">
                         <div class="sidebar-user-avatar">
-                            ${fn:substring(sessionScope.user != null ? sessionScope.user.fullName : 'U', 0, 1)}
+                            <c:out value="${fn:substring(sessionScope.user != null ? sessionScope.user.fullName : 'U', 0, 1)}" />
                         </div>
                         <div class="sidebar-user-info">
                             <div class="sidebar-user-name">
-                                ${sessionScope.user != null ? sessionScope.user.fullName : 'Khách'}
+                                <c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Khách'}" />
                             </div>
                             <div>
                                 <c:choose>

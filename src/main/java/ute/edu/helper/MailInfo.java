@@ -4,21 +4,32 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@NoArgsConstructor
-@AllArgsConstructor
 public class MailInfo {
-	String from = "tranvandu19971029@gmail.com";
+	// Không chỉ định riêng thì dịch vụ gửi dùng tài khoản SMTP đã cấu hình.
+	String from;
 	String []to;
 	String[] cc;
 	String[] bcc;
 	String subject;
 	String body;
 	List<File> files=new ArrayList<>();
+
+	public MailInfo() {
+	}
+
+	public MailInfo(String from, String[] to, String[] cc, String[] bcc,
+			String subject, String body, List<File> files) {
+		this.from = from;
+		this.to = to;
+		this.cc = cc;
+		this.bcc = bcc;
+		this.subject = subject;
+		this.body = body;
+		this.files = files;
+	}
 
 	public MailInfo(String []to, String subject, String body) {
 		this.to = to;

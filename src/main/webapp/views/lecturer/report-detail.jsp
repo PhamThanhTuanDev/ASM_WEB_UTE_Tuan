@@ -1,9 +1,9 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<c:set var="pageTitle" value="Xem và duyệt báo cáo" />
-<c:set var="pageHeading" value="Chi tiết báo cáo sinh viên" />
-<c:set var="pageSubheading" value="Kiểm tra báo cáo, điểm quá trình và quyết định duyệt" />
-<c:set var="activeMenu" value="reports" />
+<c:set scope="request" var="pageTitle" value="Xem và duyệt báo cáo" />
+<c:set scope="request" var="pageHeading" value="Chi tiết báo cáo sinh viên" />
+<c:set scope="request" var="pageSubheading" value="Kiểm tra báo cáo, điểm quá trình và quyết định duyệt" />
+<c:set scope="request" var="activeMenu" value="reports" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -48,10 +48,13 @@
                                 <h2 class="text-base font-bold text-slate-900 break-words leading-snug">${report.fileName}</h2>
                             </div>
                         </div>
+                        <c:if test="${not empty report.filePath}">
                         <a href="${pageContext.request.contextPath}/reports/download/${report.id}" download target="_blank"
                            class="btn-ui btn-ui-primary text-xs py-2 px-3 shrink-0 shadow-xs">
                             <i data-lucide="download" class="w-4 h-4"></i> Tải file
                         </a>
+                        </c:if>
+                        <c:if test="${empty report.filePath}"><span class="text-xs text-slate-500">Chưa đính kèm tệp</span></c:if>
                     </div>
 
                     <div class="mt-4 rounded-2xl border border-sky-100 bg-sky-50/60 p-4">
@@ -61,7 +64,7 @@
                                 <i data-lucide="upload-cloud" class="w-4 h-4 text-sky-600 mt-0.5 shrink-0"></i>
                                 <div>
                                     <div class="text-slate-500 font-medium">Sinh viên nộp:</div>
-                                    <div class="font-bold text-slate-800 mt-0.5">${report.submittedAt}</div>
+                                    <div class="font-bold text-slate-800 mt-0.5">${dateDisplay.format(report.submittedAt)}</div>
                                 </div>
                             </div>
                             <div class="flex items-start gap-2">
@@ -70,7 +73,7 @@
                                     <div class="text-slate-500 font-medium">GVHD xử lý:</div>
                                     <c:choose>
                                         <c:when test="${report.approved}">
-                                            <div class="font-bold text-emerald-700 mt-0.5">${report.approvedAt}</div>
+                                            <div class="font-bold text-emerald-700 mt-0.5">${dateDisplay.format(report.approvedAt)}</div>
                                         </c:when>
                                         <c:otherwise>
                                             <div class="font-bold text-amber-700 mt-0.5">Đang chờ xử lý</div>
@@ -85,7 +88,7 @@
                         <div class="flex items-center gap-2 text-xs font-bold text-slate-700 mb-1.5">
                             <i data-lucide="notebook-pen" class="w-4 h-4 text-sky-600"></i> Ghi chú của nhóm
                         </div>
-                        <p class="text-xs text-slate-600 leading-relaxed">${not empty report.note ? report.note : 'Nhóm không có ghi chú.'}</p>
+                        <p class="text-xs text-slate-600 leading-relaxed"><c:out value="${not empty report.note ? report.note : 'Nhóm không có ghi chú.'}" /></p>
                     </div>
                 </div>
 
@@ -96,11 +99,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                         <div class="rounded-2xl bg-slate-50 border border-slate-200/80 p-4">
                             <div class="text-slate-500 mb-1">Tên nhóm</div>
-                            <div class="font-bold text-slate-900 text-sm">${report.topicRegistration.group.name}</div>
+                            <div class="font-bold text-slate-900 text-sm"><c:out value="${report.topicRegistration.group.name}" /></div>
                         </div>
                         <div class="rounded-2xl bg-slate-50 border border-slate-200/80 p-4">
                             <div class="text-slate-500 mb-1">Nhóm trưởng</div>
-                            <div class="font-bold text-slate-900">${report.submittedBy.user.fullName}</div>
+                            <div class="font-bold text-slate-900"><c:out value="${report.submittedBy.user.fullName}" /></div>
                             <div class="text-slate-500 mt-0.5 font-mono">MSSV: ${report.submittedBy.studentCode}</div>
                         </div>
                         <div class="sm:col-span-2 rounded-2xl bg-sky-50 border border-sky-100 p-4">
@@ -131,6 +134,7 @@
                         </c:when>
                         <c:otherwise>
                             <form method="post" action="${pageContext.request.contextPath}/lecturer/reports/evaluation" class="space-y-3.5">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                 <input type="hidden" name="topicId" value="${report.topicRegistration.topic.id}">
                                 <input type="hidden" name="reportId" value="${report.id}">
                                 <div>
@@ -143,7 +147,7 @@
                                 <div>
                                     <label class="block text-[11px] font-bold text-slate-700 mb-1.5">Nhận xét chi tiết</label>
                                     <textarea name="comment" rows="3" placeholder="Nhận xét quá trình thực hiện của nhóm..."
-                                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none">${not empty evaluation ? evaluation.comment : ''}</textarea>
+                                              class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-xs focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"><c:out value="${not empty evaluation ? evaluation.comment : ''}" /></textarea>
                                 </div>
                                 <button type="submit" class="btn-ui btn-ui-primary w-full text-xs py-2.5">
                                     <i data-lucide="save" class="w-3.5 h-3.5"></i> Lưu điểm quá trình
@@ -169,6 +173,7 @@
                                 <c:choose>
                                     <c:when test="${not empty evaluation}">
                                         <form method="post" action="${pageContext.request.contextPath}/lecturer/reports/${report.id}/approve">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                             <button type="submit" class="btn-ui bg-emerald-600 hover:bg-emerald-700 text-white w-full py-3 text-xs font-bold rounded-xl shadow-xs">
                                                 <i data-lucide="check" class="w-4 h-4"></i> Duyệt báo cáo này
                                             </button>
@@ -181,6 +186,7 @@
                                     </c:otherwise>
                                 </c:choose>
                                 <form method="post" action="${pageContext.request.contextPath}/lecturer/reports/${report.id}/reject" onsubmit="return confirmRejectReport(event);">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                     <button type="submit" class="btn-ui bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white border border-rose-200 w-full py-3 text-xs font-bold rounded-xl transition-colors">
                                         <i data-lucide="x" class="w-4 h-4"></i> Từ chối báo cáo
                                     </button>
@@ -194,7 +200,6 @@
     </main>
 
 <jsp:include page="../common/footer.jsp" />
-    <jsp:include page="../common/flash.jsp" />
 
 <script>
     function confirmRejectReport(event) {

@@ -1,56 +1,42 @@
-﻿-- =============================================================================
+-- =============================================================================
 -- CSDL QUẢN LÝ ĐỀ TÀI SINH VIÊN KHOA CÔNG NGHỆ THÔNG TIN - HCMUTE
 -- Database: asm_web_ute
 -- Character set: utf8mb4_unicode_ci
 -- =============================================================================
 
+-- Bộ dữ liệu demo cố định tại ngày 17/10/2026; UTF-8 không BOM.
 CREATE DATABASE IF NOT EXISTS asm_web_ute CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE asm_web_ute;
-
--- Tắt kiểm tra khóa ngoại tạm thời để khởi tạo lại bảng
+SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
-
-DROP TABLE IF EXISTS announcement_reads;
-DROP TABLE IF EXISTS notifications;
-DROP TABLE IF EXISTS announcements;
-DROP TABLE IF EXISTS scores;
-DROP TABLE IF EXISTS topic_assignments;
-DROP TABLE IF EXISTS council_members;
-DROP TABLE IF EXISTS councils;
-DROP TABLE IF EXISTS reports;
-DROP TABLE IF EXISTS topic_registrations;
-DROP TABLE IF EXISTS group_members;
-DROP TABLE IF EXISTS student_groups;
-DROP TABLE IF EXISTS topic_supervisors;
-DROP TABLE IF EXISTS topics;
-DROP TABLE IF EXISTS registration_periods;
-DROP TABLE IF EXISTS students;
-DROP TABLE IF EXISTS lecturers;
-DROP TABLE IF EXISTS users;
-DROP TABLE IF EXISTS departments;
+DROP TABLE IF EXISTS topic_evaluations;
 DROP TABLE IF EXISTS roles;
-
+DROP TABLE IF EXISTS departments;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS lecturers;
+DROP TABLE IF EXISTS students;
+DROP TABLE IF EXISTS registration_periods;
+DROP TABLE IF EXISTS topics;
+DROP TABLE IF EXISTS topic_supervisors;
+DROP TABLE IF EXISTS student_groups;
+DROP TABLE IF EXISTS group_members;
+DROP TABLE IF EXISTS topic_registrations;
+DROP TABLE IF EXISTS reports;
+DROP TABLE IF EXISTS councils;
+DROP TABLE IF EXISTS council_members;
+DROP TABLE IF EXISTS topic_assignments;
+DROP TABLE IF EXISTS scores;
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS announcement_reads;
+DROP TABLE IF EXISTS announcements;
 SET FOREIGN_KEY_CHECKS = 1;
 
--- -----------------------------------------------------------------------------
--- 1. BẢNG ROLES (Vai trò quyền hạn)
--- -----------------------------------------------------------------------------
 CREATE TABLE roles (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO roles (id, code, name) VALUES
-(1, 'ADMIN', 'Quản trị viên hệ thống'),
-(2, 'DEAN', 'Trưởng khoa CNTT'),
-(3, 'LECTURER', 'Giảng viên hướng dẫn / Phản biện'),
-(4, 'STUDENT', 'Sinh viên thực hiện đề tài'),
-(5, 'DEPARTMENT_HEAD', 'Phụ trách khoa');
-
--- -----------------------------------------------------------------------------
--- 2. BẢNG DEPARTMENTS (Các khoa)
--- -----------------------------------------------------------------------------
 CREATE TABLE departments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
@@ -60,18 +46,6 @@ CREATE TABLE departments (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO departments (id, code, name, description) VALUES
-(1, 'CNTT', 'Khoa Công nghệ thông tin', 'Đào tạo và nghiên cứu công nghệ phần mềm, khoa học máy tính, hệ thống thông tin và an toàn thông tin.'),
-(2, 'LCT', 'Khoa Luật và Chính trị', 'Đào tạo và nghiên cứu pháp luật, lý luận chính trị và các lĩnh vực liên quan.'),
-(3, 'XD', 'Khoa Xây dựng', 'Đào tạo và nghiên cứu kỹ thuật xây dựng, công trình và quản lý xây dựng.'),
-(4, 'ĐĐT', 'Khoa Điện - Điện tử', 'Đào tạo và nghiên cứu kỹ thuật điện, điện tử, điều khiển và tự động hóa.'),
-(5, 'CK', 'Khoa Cơ khí', 'Đào tạo và nghiên cứu cơ khí, chế tạo máy và cơ điện tử.'),
-(6, 'KT', 'Khoa Kinh tế', 'Đào tạo và nghiên cứu kinh tế, quản trị và thương mại.');
-
--- -----------------------------------------------------------------------------
--- 3. BẢNG USERS (Tài khoản người dùng)
--- Mật khẩu demo: admin123 cho admin/dean, 123456 cho giảng viên/sinh viên (BCrypt)
--- -----------------------------------------------------------------------------
 CREATE TABLE users (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     username VARCHAR(100) NOT NULL UNIQUE,
@@ -88,64 +62,6 @@ CREATE TABLE users (
     CONSTRAINT ck_users_role CHECK (role IN ('ADMIN', 'DEAN', 'LECTURER', 'STUDENT', 'DEPARTMENT_HEAD'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Hash BCrypt được tạo từ mật khẩu demo ở trên.
-INSERT INTO users (id, username, password, role_id, full_name, email, phone, role, enabled) VALUES
-(1, 'admin', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 1, 'Quản Trị Viên (Admin)', 'admin@hcmute.edu.vn', '0901111000', 'ADMIN', b'1'),
-(2, 'dean', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 2, 'PGS.TS. Trần Minh Tuấn (Trưởng khoa)', 'dean.fit@hcmute.edu.vn', '0901234567', 'DEAN', b'1'),
-(3, 'lecturer01', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Nguyễn Văn An', '25810176@teacher.hcmute.edu.vn', '0902222001', 'LECTURER', b'1'),
-(4, 'lecturer02', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Trần Thị Bích', '25810177@teacher.hcmute.edu.vn', '0902222002', 'LECTURER', b'1'),
-(5, 'lecturer03', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'PGS.TS. Lê Hoàng Cường', '25810178@teacher.hcmute.edu.vn', '0902222003', 'LECTURER', b'1'),
-(6, 'lecturer04', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Đức Dũng', '25810179@teacher.hcmute.edu.vn', '0902222004', 'LECTURER', b'1'),
-(7, 'lecturer05', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Vũ Thị Ánh Tuyết', '25810180@teacher.hcmute.edu.vn', '0902222005', 'LECTURER', b'1'),
-(8, 'student01', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Văn Minh', '25810176@student.hcmute.edu.vn', '0903333001', 'STUDENT', b'1'),
-(9, 'student02', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Thị Mai', '25810177@student.hcmute.edu.vn', '0903333002', 'STUDENT', b'1'),
-(10, 'student03', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam', '25810178@student.hcmute.edu.vn', '0903333003', 'STUDENT', b'1'),
-(11, 'student04', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Quốc Bảo', '25810179@student.hcmute.edu.vn', '0903333004', 'STUDENT', b'1'),
-(12, 'student05', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thị Cẩm Tú', '25810180@student.hcmute.edu.vn', '0903333005', 'STUDENT', b'1');
-
--- Bổ sung tài khoản cho sinh viên 06-100 và giảng viên 06-100.
--- Phần trước dấu @ của email luôn trùng với mã hồ sơ tương ứng.
-INSERT IGNORE INTO users (username, password, role_id, full_name, email, phone, role, enabled)
-WITH RECURSIVE seq AS (
-    SELECT 6 AS number
-    UNION ALL
-    SELECT number + 1 FROM seq WHERE number < 100
-)
-SELECT CONCAT('student', LPAD(number, 2, '0')), '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4,
-       CASE (number - 6) % 6
-           WHEN 0 THEN CONCAT('Nguyễn Minh Khang ', LPAD(number, 2, '0'))
-           WHEN 1 THEN CONCAT('Trần Quốc Bảo ', LPAD(number, 2, '0'))
-           WHEN 2 THEN CONCAT('Lê Hoàng Nam ', LPAD(number, 2, '0'))
-           WHEN 3 THEN CONCAT('Phạm Gia Huy ', LPAD(number, 2, '0'))
-           WHEN 4 THEN CONCAT('Võ Thành Đạt ', LPAD(number, 2, '0'))
-           ELSE CONCAT('Đặng Khánh Linh ', LPAD(number, 2, '0'))
-       END,
-    CONCAT(25810175 + number, '@student.hcmute.edu.vn'),
-       CONCAT('0903333', LPAD(number + 5, 3, '0')), 'STUDENT', b'1'
-FROM seq;
-
-INSERT IGNORE INTO users (username, password, role_id, full_name, email, phone, role, enabled)
-WITH RECURSIVE seq AS (
-    SELECT 6 AS number
-    UNION ALL
-    SELECT number + 1 FROM seq WHERE number < 100
-)
-SELECT CONCAT('lecturer', LPAD(number, 2, '0')), '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3,
-       CASE (number - 6) % 6
-           WHEN 0 THEN CONCAT('TS. Nguyễn Hoàng Long ', LPAD(number, 2, '0'))
-           WHEN 1 THEN CONCAT('TS. Trần Minh Quân ', LPAD(number, 2, '0'))
-           WHEN 2 THEN CONCAT('PGS.TS. Lê Quốc Việt ', LPAD(number, 2, '0'))
-           WHEN 3 THEN CONCAT('TS. Phạm Đức Anh ', LPAD(number, 2, '0'))
-           WHEN 4 THEN CONCAT('PGS.TS. Võ Thành Trung ', LPAD(number, 2, '0'))
-           ELSE CONCAT('TS. Đặng Thu Hà ', LPAD(number, 2, '0'))
-       END,
-    CONCAT(25810175 + number, '@teacher.hcmute.edu.vn'),
-       CONCAT('0902222', LPAD(number + 5, 3, '0')), 'LECTURER', b'1'
-FROM seq;
-
--- -----------------------------------------------------------------------------
--- 4. BẢNG LECTURERS (Hồ sơ Giảng viên)
--- -----------------------------------------------------------------------------
 CREATE TABLE lecturers (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL UNIQUE,
@@ -159,37 +75,6 @@ CREATE TABLE lecturers (
     CONSTRAINT fk_lecturers_departments FOREIGN KEY (department_id) REFERENCES departments (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO lecturers (id, user_id, department_id, lecturer_code, degree, academic_degree, academic_title, research_field) VALUES
-(1, 3, 1, '25810176', 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên chính', 'Công nghệ phần mềm & Kiến trúc vi dịch vụ'),
-(2, 4, 1, '25810177', 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Trí tuệ nhân tạo & Thị giác máy tính'),
-(3, 5, 1, '25810178', 'Tiến sĩ', 'Phó Giáo sư', 'Giảng viên', 'Hệ thống thông tin quản lý & Blockchain'),
-(4, 6, 1, '25810179', 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'An ninh mạng & Hệ thống phân tán'),
-(5, 7, 1, '25810180', 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kiểm thử phần mềm & DevOps');
-
-INSERT IGNORE INTO lecturers (user_id, department_id, lecturer_code, degree, academic_degree, academic_title, research_field)
-WITH RECURSIVE seq AS (
-    SELECT 6 AS number
-    UNION ALL
-    SELECT number + 1 FROM seq WHERE number < 100
-)
-SELECT user.id, 1 + ((seq.number - 6) % 6), CAST(25810175 + seq.number AS CHAR),
-       IF(seq.number % 2 = 0, 'Thạc sĩ', 'Tiến sĩ'),
-       IF(seq.number % 2 = 0, 'Thạc sĩ', 'Tiến sĩ'), 'Giảng viên',
-       CASE (seq.number - 6) % 6
-           WHEN 0 THEN 'Công nghệ phần mềm và hệ thống thông tin'
-           WHEN 1 THEN 'Pháp luật kinh tế và pháp chế doanh nghiệp'
-           WHEN 2 THEN 'Kỹ thuật xây dựng công trình dân dụng'
-           WHEN 3 THEN 'Điện tử, viễn thông và tự động hóa'
-           WHEN 4 THEN 'Cơ khí chế tạo máy và cơ điện tử'
-           ELSE 'Quản trị kinh doanh và thương mại điện tử'
-       END
-FROM seq
-JOIN users AS user
-    ON user.email = CONCAT(25810175 + seq.number, '@teacher.hcmute.edu.vn');
-
--- -----------------------------------------------------------------------------
--- 5. BẢNG STUDENTS (Hồ sơ Sinh viên)
--- -----------------------------------------------------------------------------
 CREATE TABLE students (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id BIGINT NOT NULL UNIQUE,
@@ -202,43 +87,6 @@ CREATE TABLE students (
     CONSTRAINT fk_students_departments FOREIGN KEY (department_id) REFERENCES departments (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO students (id, user_id, department_id, student_code, class_name, course_year, major) VALUES
-(1, 8, 1, '25810176', '21110CL1A', 'K21', 'Công nghệ thông tin'),
-(2, 9, 1, '25810177', '21110CL1A', 'K21', 'Công nghệ thông tin'),
-(3, 10, 1, '25810178', '21110CL1B', 'K21', 'Công nghệ thông tin'),
-(4, 11, 1, '25810179', '21110CL2A', 'K21', 'Khoa học máy tính'),
-(5, 12, 1, '25810180', '21110CL2A', 'K21', 'Khoa học máy tính');
-
-INSERT IGNORE INTO students (user_id, department_id, student_code, class_name, course_year, major)
-WITH RECURSIVE seq AS (
-    SELECT 6 AS number
-    UNION ALL
-    SELECT number + 1 FROM seq WHERE number < 100
-)
-SELECT user.id, 1 + ((seq.number - 6) % 6), CAST(25810175 + seq.number AS CHAR),
-       CASE (seq.number - 6) % 6
-           WHEN 0 THEN CONCAT('21110CL', 1 + (seq.number % 4), 'A')
-           WHEN 1 THEN CONCAT('21112L', 1 + (seq.number % 3), 'A')
-           WHEN 2 THEN CONCAT('21110XD', 1 + (seq.number % 3), 'A')
-           WHEN 3 THEN CONCAT('21110DD', 1 + (seq.number % 3), 'A')
-           WHEN 4 THEN CONCAT('21110CK', 1 + (seq.number % 3), 'A')
-           ELSE CONCAT('21110KT', 1 + (seq.number % 3), 'A')
-       END, 'K21',
-       CASE (seq.number - 6) % 6
-           WHEN 0 THEN IF(seq.number % 2 = 0, 'Công nghệ thông tin', 'Khoa học máy tính')
-           WHEN 1 THEN 'Luật kinh tế'
-           WHEN 2 THEN 'Kỹ thuật xây dựng'
-           WHEN 3 THEN 'Kỹ thuật điện - điện tử'
-           WHEN 4 THEN 'Cơ khí chế tạo máy'
-           ELSE 'Quản trị kinh doanh'
-       END
-FROM seq
-JOIN users AS user
-    ON user.email = CONCAT(25810175 + seq.number, '@student.hcmute.edu.vn');
-
--- -----------------------------------------------------------------------------
--- 6. BẢNG REGISTRATION_PERIODS (Đợt đăng ký đề tài)
--- -----------------------------------------------------------------------------
 CREATE TABLE registration_periods (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
@@ -257,14 +105,6 @@ CREATE TABLE registration_periods (
     CONSTRAINT ck_periods_status CHECK (status IN ('DRAFT', 'OPEN', 'CLOSED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO registration_periods (id, name, type, lecturer_start_date, lecturer_end_date, student_start_date, student_end_date, reviewer_deadline, council_report_date, status, active, created_by) VALUES
-(1, 'Khóa luận tốt nghiệp (KLTN) Học kỳ 1 2026-2027', 'THESIS', '2026-08-01', '2026-09-15', '2026-09-16', '2026-10-15', '2027-01-10', '2027-01-20', 'OPEN', b'1', 1),
-(2, 'Tiểu luận chuyên ngành (TLCN) Học kỳ 1 2026-2027', 'PROJECT', '2026-08-10', '2026-09-20', '2026-09-21', '2026-10-20', '2027-01-05', NULL, 'OPEN', b'1', 1),
-(3, 'Nghiên cứu khoa học sinh viên (NCKH) 2026', 'NCKH', '2026-03-01', '2026-04-15', '2026-04-16', '2026-05-15', NULL, NULL, 'CLOSED', b'0', 1);
-
--- -----------------------------------------------------------------------------
--- 7. BẢNG TOPICS (Đề tài nghiên cứu)
--- -----------------------------------------------------------------------------
 CREATE TABLE topics (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
@@ -286,17 +126,6 @@ CREATE TABLE topics (
     CONSTRAINT ck_topics_status CHECK (status IN ('DRAFT', 'PENDING', 'APPROVED', 'REJECTED', 'PUBLISHED', 'ASSIGNED', 'COMPLETED', 'CANCELLED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO topics (id, code, title, description, requirements, department_id, reg_period_id, lecturer_id, co_lecturer_id, max_students, status) VALUES
-(1, 'DT001', 'Cổng thông tin Quản lý Đề tài tốt nghiệp Khoa CNTT - HCMUTE', 'Xây dựng hệ thống web tự động hóa quy trình quản lý đợt, phân công GVHD, hội đồng phản biện và công bố điểm.', 'Thành thạo Spring Boot, JPA/Hibernate, MySQL, JSP/Bootstrap 5, Thiết kế CSDL quan hệ.', 1, 1, 1, 5, 3, 'PUBLISHED'),
-(2, 'DT002', 'Ứng dụng Học sâu và NLP xây dựng Trợ lý ảo AI hỗ trợ sinh viên', 'Nghiên cứu mô hình ngôn ngữ lớn (LLM) và RAG để giải đáp thắc mắc quy chế học vụ và học bổng cho sinh viên UTE.', 'Kiến thức Python, PyTorch/TensorFlow, Transformers, LangChain, Vector Database.', 1, 1, 2, NULL, 3, 'PUBLISHED'),
-(3, 'DT003', 'Hệ thống Truy xuất nguồn gốc Nông sản sử dụng Blockchain Hyperledger Fabric', 'Xây dựng mạng lưới Blockchain phân tán cho phép ghi nhận và xác thực hành trình chuỗi cung ứng thực phẩm sạch.', 'Hyperledger Fabric, Node.js, Smart Contract (Chaincode), Docker, Kiến trúc phân tán.', 1, 1, 3, 1, 3, 'PUBLISHED'),
-(4, 'DT004', 'Giải pháp Giám sát và Phát hiện Tấn công mạng trên Cụm Kubernetes', 'Ứng dụng eBPF và Machine Learning để phân tích lưu lượng mạng và phát hiện bất thường trong môi trường Cloud Native.', 'Linux Kernel, eBPF, Kubernetes, Python ML, Network Security.', 1, 1, 4, NULL, 3, 'PUBLISHED'),
-(5, 'DT005', 'Nền tảng E-Learning tương tác với Kiến trúc Microservices và Flutter', 'Xây dựng hệ sinh thái học tập trực tuyến hỗ trợ live streaming lớp học, bài tập trắc nghiệm và diễn đàn học thuật.', 'Spring Cloud, Flutter, WebSocket, Redis, Docker & CI/CD.', 1, 2, 5, NULL, 3, 'PUBLISHED'),
-(6, 'DT006', 'Hệ thống Nhận diện Khuôn mặt thông minh phục vụ Điểm danh tự động', 'Ứng dụng mạng nơ-ron tích chập (CNN) kết hợp camera IP để điểm danh sinh viên trong giảng đường.', 'OpenCV, YOLO, Face Recognition, Python, MySQL.', 1, 1, 2, NULL, 3, 'PENDING');
-
--- -----------------------------------------------------------------------------
--- 8. BẢNG TOPIC_SUPERVISORS (Quan hệ Hướng dẫn Đề tài - Tối đa 2 GV)
--- -----------------------------------------------------------------------------
 CREATE TABLE topic_supervisors (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     topic_id BIGINT NOT NULL,
@@ -308,23 +137,11 @@ CREATE TABLE topic_supervisors (
     CONSTRAINT ck_supervisors_role CHECK (role IN ('PRIMARY', 'CO_SUPERVISOR'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO topic_supervisors (id, topic_id, lecturer_id, role) VALUES
-(1, 1, 1, 'PRIMARY'),
-(2, 1, 5, 'CO_SUPERVISOR'),
-(3, 2, 2, 'PRIMARY'),
-(4, 3, 3, 'PRIMARY'),
-(5, 3, 1, 'CO_SUPERVISOR'),
-(6, 4, 4, 'PRIMARY'),
-(7, 5, 5, 'PRIMARY');
-
--- -----------------------------------------------------------------------------
--- 9. BẢNG STUDENT_GROUPS (Nhóm sinh viên thực hiện đề tài)
--- -----------------------------------------------------------------------------
 CREATE TABLE student_groups (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(150) NOT NULL,
     leader_id BIGINT NOT NULL,
-    reg_period_id BIGINT NOT NULL,
+    reg_period_id BIGINT NULL,
     topic_id BIGINT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'ASSIGNED',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -334,13 +151,6 @@ CREATE TABLE student_groups (
     CONSTRAINT ck_groups_status CHECK (status IN ('INCOMPLETE', 'READY', 'ASSIGNED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO student_groups (id, name, leader_id, reg_period_id, topic_id, status) VALUES
-(1, 'Nhóm UTE Dev Innovators', 1, 1, 1, 'ASSIGNED'),
-(2, 'Nhóm AI Titans', 4, 1, 2, 'ASSIGNED');
-
--- -----------------------------------------------------------------------------
--- 10. BẢNG GROUP_MEMBERS (Thành viên nhóm - Tối đa 3 SV, 1 Nhóm trưởng)
--- -----------------------------------------------------------------------------
 CREATE TABLE group_members (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     group_id BIGINT NOT NULL,
@@ -352,16 +162,6 @@ CREATE TABLE group_members (
     CONSTRAINT fk_members_students FOREIGN KEY (student_id) REFERENCES students (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO group_members (id, group_id, student_id, leader) VALUES
-(1, 1, 1, b'1'), -- Nguyễn Văn Minh (Nhóm trưởng)
-(2, 1, 2, b'0'), -- Trần Thị Mai (Thành viên)
-(3, 1, 3, b'0'), -- Lê Hoàng Nam (Thành viên)
-(4, 2, 4, b'1'), -- Phạm Quốc Bảo (Nhóm trưởng)
-(5, 2, 5, b'0'); -- Võ Thị Cẩm Tú (Thành viên)
-
--- -----------------------------------------------------------------------------
--- 11. BẢNG TOPIC_REGISTRATIONS (Đăng ký đề tài do Nhóm trưởng gửi)
--- -----------------------------------------------------------------------------
 CREATE TABLE topic_registrations (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     group_id BIGINT NOT NULL,
@@ -378,19 +178,12 @@ CREATE TABLE topic_registrations (
     CONSTRAINT ck_registrations_status CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO topic_registrations (id, group_id, topic_id, approved_by, status, note, approved_at) VALUES
-(1, 1, 1, 1, 'APPROVED', 'Nhóm có nền tảng vững về Java Spring Boot và thiết kế web responsive.', '2026-08-11 10:00:00'),
-(2, 2, 2, 1, 'APPROVED', 'Nhóm đã có kinh nghiệm nghiên cứu mô hình LLM và RAG.', '2026-08-13 14:30:00');
-
--- -----------------------------------------------------------------------------
--- 12. BẢNG REPORTS (Báo cáo tiến độ / cuối kỳ - Chỉ Nhóm trưởng nộp)
--- -----------------------------------------------------------------------------
 CREATE TABLE reports (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     topic_registration_id BIGINT NOT NULL,
     submitted_by BIGINT NOT NULL,
     file_name VARCHAR(255) NOT NULL,
-    file_path VARCHAR(255),
+    file_path VARCHAR(1000) NULL,
     note TEXT,
     submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     approved BOOLEAN NOT NULL DEFAULT FALSE,
@@ -401,13 +194,6 @@ CREATE TABLE reports (
     CONSTRAINT ck_reports_review_status CHECK (review_status IN ('PENDING', 'APPROVED', 'REJECTED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO reports (id, topic_registration_id, submitted_by, file_name, file_path, note, submitted_at) VALUES
-(1, 1, 1, 'BaoCao_KLTN_DT001_Nhom1_Final.pdf', '/uploads/reports/BaoCao_KLTN_DT001_Nhom1_Final.pdf', 'Báo cáo hoàn chỉnh đề tài kèm tài liệu thiết kế CSDL và kiến trúc hệ thống.', '2026-08-18 09:15:00'),
-(2, 2, 4, 'BaoCao_TienDo_DT002_Nhom2.pdf', '/uploads/reports/BaoCao_TienDo_DT002_Nhom2.pdf', 'Báo cáo tiến độ hoàn thành huấn luyện mô hình RAG và đánh giá độ chính xác.', '2026-08-19 16:45:00');
-
--- -----------------------------------------------------------------------------
--- 13. BẢNG COUNCILS (Hội đồng phản biện - 3 đến 5 Giảng viên)
--- -----------------------------------------------------------------------------
 CREATE TABLE councils (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     code VARCHAR(50) NOT NULL UNIQUE,
@@ -427,13 +213,6 @@ CREATE TABLE councils (
     CONSTRAINT ck_councils_status CHECK (status IN ('PLANNED', 'ONGOING', 'COMPLETED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO councils (id, code, name, reg_period_id, department_id, chairman_id, secretary_id, council_date, location, status) VALUES
-(1, 'HD01', 'Hội đồng Phản biện KLTN 01 - Chuyên ngành CNPM & Hệ thống', 1, 1, 3, 4, '2027-01-20', 'Phòng Hội thảo A1-302, Tòa nhà Trung tâm UTE', 'COMPLETED'),
-(2, 'HD02', 'Hội đồng Phản biện KLTN 02 - Trí tuệ nhân tạo & Dữ liệu lớn', 1, 2, 1, 5, '2027-01-21', 'Phòng Báo cáo C1-201, Khu C', 'PLANNED');
-
--- -----------------------------------------------------------------------------
--- 14. BẢNG COUNCIL_MEMBERS (Thành viên Hội đồng: CHAIRMAN, SECRETARY, MEMBER)
--- -----------------------------------------------------------------------------
 CREATE TABLE council_members (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     council_id BIGINT NOT NULL,
@@ -446,24 +225,11 @@ CREATE TABLE council_members (
     CONSTRAINT ck_council_members_role CHECK (role IN ('CHAIRMAN', 'SECRETARY', 'MEMBER'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- HD01: Chủ tịch Lê Hoàng Cường (GV003), Thư ký Phạm Đức Dũng (GV004), Ủy viên Trần Thị Bích (GV002)
--- Lưu ý: TS. Nguyễn Văn An là GVHD của DT001 nên không được tham gia chấm HD01 cho đề tài này (Đảm bảo quy tắc chống tự chấm điểm)
-INSERT INTO council_members (id, council_id, lecturer_id, role) VALUES
-(1, 1, 3, 'CHAIRMAN'),
-(2, 1, 4, 'SECRETARY'),
-(3, 1, 2, 'MEMBER'),
-(4, 2, 1, 'CHAIRMAN'),
-(5, 2, 5, 'SECRETARY'),
-(6, 2, 3, 'MEMBER');
-
--- -----------------------------------------------------------------------------
--- 15. BẢNG TOPIC_ASSIGNMENTS (Phân công đề tài cho Hội đồng)
--- -----------------------------------------------------------------------------
 CREATE TABLE topic_assignments (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     council_id BIGINT NOT NULL,
     topic_registration_id BIGINT NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'EVALUATED',
+    status VARCHAR(50) NOT NULL DEFAULT 'ASSIGNED',
     assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_council_registration (council_id, topic_registration_id),
     CONSTRAINT fk_assignments_councils FOREIGN KEY (council_id) REFERENCES councils (id) ON DELETE CASCADE,
@@ -471,18 +237,11 @@ CREATE TABLE topic_assignments (
     CONSTRAINT ck_assignments_status CHECK (status IN ('ASSIGNED', 'EVALUATED'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO topic_assignments (id, council_id, topic_registration_id, status) VALUES
-(1, 1, 1, 'EVALUATED');
-
--- -----------------------------------------------------------------------------
--- 16. BẢNG SCORES (Điểm số và Nhận xét của Thành viên Hội đồng)
--- Điểm trung bình cộng: (9.2 + 8.8 + 9.0) / 3 = 9.0 (Xuất sắc)
--- -----------------------------------------------------------------------------
 CREATE TABLE scores (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     topic_assignment_id BIGINT NOT NULL,
     council_member_id BIGINT NOT NULL,
-    score DOUBLE NOT NULL,
+    score DOUBLE NOT NULL CHECK (score BETWEEN 0 AND 10),
     comment TEXT,
     submitted_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -491,14 +250,6 @@ CREATE TABLE scores (
     CONSTRAINT fk_scores_council_members FOREIGN KEY (council_member_id) REFERENCES council_members (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO scores (id, topic_assignment_id, council_member_id, score, comment, submitted_at) VALUES
-(1, 1, 1, 9.2, 'Báo cáo xuất sắc, giải pháp kiến trúc rõ ràng, tính thực tiễn và ứng dụng cao cho Khoa CNTT.', '2026-08-20 14:00:00'),
-(2, 1, 2, 8.8, 'Giao diện trực quan, luồng nghiệp vụ chuẩn xác, các ràng buộc dữ liệu được xử lý chặt chẽ.', '2026-08-20 14:15:00'),
-(3, 1, 3, 9.0, 'Sinh viên trả lời phản biện lưu loát, nắm vững kỹ thuật lập trình web và cơ sở dữ liệu quan hệ.', '2026-08-20 14:30:00');
-
--- -----------------------------------------------------------------------------
--- 17. BẢNG NOTIFICATIONS (Thông báo từ Ban Chủ nhiệm Khoa)
--- -----------------------------------------------------------------------------
 CREATE TABLE notifications (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
@@ -512,14 +263,6 @@ CREATE TABLE notifications (
     CONSTRAINT ck_notifications_type CHECK (type IN ('ALL', 'STUDENT', 'LECTURER'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT INTO notifications (id, title, content, type, published, published_at, created_by) VALUES
-(1, 'Thông báo: Kế hoạch Đăng ký Khóa luận tốt nghiệp HK1 năm học 2026-2027', 'Khoa Công nghệ thông tin thông báo đến toàn thể Giảng viên và Sinh viên về kế hoạch triển khai đợt KLTN. Giảng viên đề xuất đề tài từ ngày 01/08/2026 đến 15/09/2026. Sinh viên tiến hành lập nhóm (tối đa 3 SV) và đăng ký đề tài từ ngày 16/09/2026 đến 15/10/2026.', 'ALL', b'1', '2026-08-15 08:00:00', 1),
-(2, 'Hướng dẫn Sinh viên: Quy định thành lập nhóm và nộp báo cáo tiến độ', 'Mỗi nhóm sinh viên gồm tối đa 03 thành viên và mỗi sinh viên chỉ được tham gia 01 nhóm duy nhất trong đợt. Việc nộp báo cáo đề tài chỉ được thực hiện bởi Nhóm trưởng. Các nhóm lưu ý nộp đúng hạn quy định trên hệ thống.', 'STUDENT', b'1', '2026-08-16 09:00:00', 1),
-(3, 'Lưu ý Giảng viên: Quy định chấm điểm và phân công hội đồng phản biện', 'Kính gửi Quý Thầy/Cô, theo quy chế đào tạo, Giảng viên hướng dẫn hoặc đồng hướng dẫn sẽ không tham gia chấm điểm phản biện cho đề tài do mình hướng dẫn. Đề nghị Quý Thầy/Cô thành viên hội đồng hoàn thành nhập điểm đúng thời hạn quy định.', 'LECTURER', b'1', '2026-08-17 10:00:00', 1);
-
--- -----------------------------------------------------------------------------
--- 18. BẢNG ANNOUNCEMENT_READS (Theo dõi trạng thái đã đọc thông báo)
--- -----------------------------------------------------------------------------
 CREATE TABLE announcement_reads (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     notification_id BIGINT NOT NULL,
@@ -530,151 +273,879 @@ CREATE TABLE announcement_reads (
     CONSTRAINT fk_reads_users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ----------------------------------------------------------------------------
--- 19. BỔ SUNG DỮ LIỆU NGHIỆP VỤ ĐỦ 20 ĐỀ TÀI
--- Roles và departments là bảng danh mục nên giữ nguyên 4 vai trò và 6 khoa.
--- ----------------------------------------------------------------------------
+CREATE TABLE topic_evaluations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    topic_id BIGINT NOT NULL,
+    reviewer_id BIGINT NOT NULL,
+    score DOUBLE NOT NULL,
+    comment VARCHAR(1000),
+    evaluated_at DATETIME NOT NULL,
+    UNIQUE KEY uk_evaluation_topic_reviewer (topic_id, reviewer_id),
+    CONSTRAINT fk_evaluations_topics FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
+    CONSTRAINT fk_evaluations_lecturers FOREIGN KEY (reviewer_id) REFERENCES lecturers(id),
+    CONSTRAINT ck_evaluation_score CHECK (score BETWEEN 0 AND 10)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO registration_periods
-    (id, name, type, lecturer_start_date, lecturer_end_date, student_start_date, student_end_date, reviewer_deadline, council_report_date, status, active, created_by)
-WITH RECURSIVE seq AS (
-    SELECT 4 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number, CONCAT(
-           CASE number % 3 
-               WHEN 0 THEN 'Đợt Khóa luận tốt nghiệp (KLTN) ' 
-               WHEN 1 THEN 'Đợt Tiểu luận chuyên ngành (TLCN) ' 
-               ELSE 'Đợt Nghiên cứu khoa học sinh viên (NCKH) ' 
-           END,
-           'HK', IF(number % 2 = 0, '2', '1'), ' Năm học ', 2023 + FLOOR(number / 2), '-', 2024 + FLOOR(number / 2)
-       ),
-       CASE number % 3 WHEN 0 THEN 'THESIS' WHEN 1 THEN 'PROJECT' ELSE 'NCKH' END,
-       DATE_ADD('2023-01-01', INTERVAL (number * 6) MONTH),
-       DATE_ADD('2023-01-15', INTERVAL (number * 6) MONTH),
-       DATE_ADD('2023-01-16', INTERVAL (number * 6) MONTH),
-       DATE_ADD('2023-02-15', INTERVAL (number * 6) MONTH),
-       DATE_ADD('2023-05-15', INTERVAL (number * 6) MONTH),
-       IF(number % 3 = 0, DATE_ADD('2023-05-25', INTERVAL (number * 6) MONTH), NULL),
-       IF(number % 3 = 0, 'CLOSED', 'OPEN'), b'1', 1
-FROM seq;
+CREATE TABLE announcements (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    created_at DATETIME NOT NULL,
+    created_by BIGINT,
+    CONSTRAINT fk_announcements_users FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO topics
-    (id, code, title, description, requirements, department_id, reg_period_id, lecturer_id, co_lecturer_id, max_students, status)
-WITH RECURSIVE seq AS (
-    SELECT 7 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number, CONCAT('DT', LPAD(number, 3, '0')),
-    CASE (number - 6) % 6
-           WHEN 0 THEN CONCAT('Xây dựng hệ thống phần mềm thông minh ', number)
-           WHEN 1 THEN CONCAT('Nghiên cứu pháp luật và quản trị doanh nghiệp ', number)
-           WHEN 2 THEN CONCAT('Mô hình BIM trong quản lý công trình ', number)
-           WHEN 3 THEN CONCAT('Thiết kế hệ thống điều khiển tự động ', number)
-           WHEN 4 THEN CONCAT('Tối ưu hóa dây chuyền cơ khí ', number)
-           ELSE CONCAT('Phân tích dữ liệu kinh doanh và thương mại điện tử ', number)
-       END,
-       CONCAT('Đề tài nghiên cứu và ứng dụng chuyên ngành số ', number),
-       'Có kiến thức chuyên ngành, kỹ năng phân tích và thực hiện báo cáo.',
-    1 + ((number - 6) % 6), number,
-       1 + ((number - 1) % 100),
-    NULL, 3,
-       IF(number % 10 = 0, 'PENDING', 'PUBLISHED')
-FROM seq;
+INSERT INTO roles (id, code, name) VALUES
+(1, 'ADMIN', 'Quản trị viên hệ thống'),
+(2, 'DEAN', 'Trưởng khoa CNTT'),
+(3, 'LECTURER', 'Giảng viên hướng dẫn / Phản biện'),
+(4, 'STUDENT', 'Sinh viên thực hiện đề tài'),
+(5, 'DEPARTMENT_HEAD', 'Phụ trách khoa');
 
-INSERT IGNORE INTO topic_supervisors (id, topic_id, lecturer_id, role)
-WITH RECURSIVE seq AS (
-    SELECT 7 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number + 1, number, 1 + ((number - 1) % 100), 'PRIMARY'
-FROM seq;
+INSERT INTO departments (id, code, name, description) VALUES
+(1, 'CNTT', 'Khoa Công nghệ thông tin', 'Đào tạo và nghiên cứu công nghệ phần mềm, khoa học máy tính, hệ thống thông tin và an toàn thông tin.'),
+(2, 'LCT', 'Khoa Luật và Chính trị', 'Đào tạo và nghiên cứu pháp luật, lý luận chính trị và các lĩnh vực liên quan.'),
+(3, 'XD', 'Khoa Xây dựng', 'Đào tạo và nghiên cứu kỹ thuật xây dựng, công trình và quản lý xây dựng.'),
+(4, 'ĐĐT', 'Khoa Điện - Điện tử', 'Đào tạo và nghiên cứu kỹ thuật điện, điện tử, điều khiển và tự động hóa.'),
+(5, 'CK', 'Khoa Cơ khí', 'Đào tạo và nghiên cứu cơ khí, chế tạo máy và cơ điện tử.'),
+(6, 'KT', 'Khoa Kinh tế', 'Đào tạo và nghiên cứu kinh tế, quản trị và thương mại.');
 
-INSERT IGNORE INTO student_groups (id, name, leader_id, reg_period_id, topic_id, status)
-WITH RECURSIVE seq AS (
-    SELECT 3 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number, CONCAT('Nhóm nghiên cứu UTE ', LPAD(number, 3, '0')), number,
-       1 + ((number - 1) % 100), number, 'ASSIGNED'
-FROM seq;
+INSERT INTO users (id, username, password, role_id, full_name, email, phone, role, enabled, created_at, updated_at) VALUES
+(1, 'admin', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 1, 'Quản Trị Viên', 'admin@hcmute.edu.vn', 901111000, 'ADMIN', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(2, 'dean', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 2, 'PGS.TS. Trần Minh Tuấn (Trưởng khoa)', 'dean.fit@hcmute.edu.vn', 901234567, 'DEAN', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(3, 'lecturer01', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Nguyễn Văn An', '25810176@teacher.hcmute.edu.vn', 902222001, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(4, 'lecturer02', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Trần Thị Bích', '25810177@teacher.hcmute.edu.vn', 902222002, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(5, 'lecturer03', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'PGS.TS. Lê Hoàng Cường', '25810178@teacher.hcmute.edu.vn', 902222003, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(6, 'lecturer04', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Đức Dũng', '25810179@teacher.hcmute.edu.vn', 902222004, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(7, 'lecturer05', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Vũ Thị Ánh Tuyết', '25810180@teacher.hcmute.edu.vn', 902222005, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(8, 'student01', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Văn Minh', '25810176@student.hcmute.edu.vn', 903333001, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(9, 'student02', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Thị Mai', '25810175@student.hcmute.edu.vn', 903333002, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(10, 'student03', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam', '25810178@student.hcmute.edu.vn', 903333003, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(11, 'student04', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Quốc Bảo', '25810179@student.hcmute.edu.vn', 903333004, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(12, 'student05', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thị Cẩm Tú', '25810180@student.hcmute.edu.vn', 903333005, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(13, 'student06', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 06', '25810181@student.hcmute.edu.vn', 903333006, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(14, 'student07', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 07', '25810182@student.hcmute.edu.vn', 903333007, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(15, 'student08', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 08', '25810183@student.hcmute.edu.vn', 903333008, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(16, 'student09', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 09', '25810184@student.hcmute.edu.vn', 903333009, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(17, 'student10', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 10', '25810185@student.hcmute.edu.vn', 903333010, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(18, 'student11', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 11', '25810186@student.hcmute.edu.vn', 903333011, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(19, 'student12', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 12', '25810187@student.hcmute.edu.vn', 903333012, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(20, 'student13', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 13', '25810188@student.hcmute.edu.vn', 903333013, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(21, 'student14', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 14', '25810189@student.hcmute.edu.vn', 903333014, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(22, 'student15', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 15', '25810190@student.hcmute.edu.vn', 903333015, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(23, 'student16', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 16', '25810191@student.hcmute.edu.vn', 903333016, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(24, 'student17', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 17', '25810192@student.hcmute.edu.vn', 903333017, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(25, 'student18', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 18', '25810193@student.hcmute.edu.vn', 903333018, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(26, 'student19', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 19', '25810194@student.hcmute.edu.vn', 903333019, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(27, 'student20', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 20', '25810195@student.hcmute.edu.vn', 903333020, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(28, 'student21', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 21', '25810196@student.hcmute.edu.vn', 903333021, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(29, 'student22', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 22', '25810197@student.hcmute.edu.vn', 903333022, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(30, 'student23', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 23', '25810198@student.hcmute.edu.vn', 903333023, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(31, 'student24', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 24', '25810199@student.hcmute.edu.vn', 903333024, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(32, 'student25', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 25', '25810200@student.hcmute.edu.vn', 903333025, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(33, 'student26', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 26', '25810201@student.hcmute.edu.vn', 903333026, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(34, 'student27', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 27', '25810202@student.hcmute.edu.vn', 903333027, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(35, 'student28', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 28', '25810203@student.hcmute.edu.vn', 903333028, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(36, 'student29', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 29', '25810204@student.hcmute.edu.vn', 903333029, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(37, 'student30', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 30', '25810205@student.hcmute.edu.vn', 903333030, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(38, 'student31', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 31', '25810206@student.hcmute.edu.vn', 903333031, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(39, 'student32', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 32', '25810207@student.hcmute.edu.vn', 903333032, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(40, 'student33', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 33', '25810208@student.hcmute.edu.vn', 903333033, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(41, 'student34', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 34', '25810209@student.hcmute.edu.vn', 903333034, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(42, 'student35', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 35', '25810210@student.hcmute.edu.vn', 903333035, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(43, 'student36', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 36', '25810211@student.hcmute.edu.vn', 903333036, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(44, 'student37', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 37', '25810212@student.hcmute.edu.vn', 903333037, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(45, 'student38', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 38', '25810213@student.hcmute.edu.vn', 903333038, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(46, 'student39', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 39', '25810214@student.hcmute.edu.vn', 903333039, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(47, 'student40', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 40', '25810215@student.hcmute.edu.vn', 903333040, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(48, 'student41', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 41', '25810216@student.hcmute.edu.vn', 903333041, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(49, 'student42', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 42', '25810217@student.hcmute.edu.vn', 903333042, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(50, 'student43', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 43', '25810218@student.hcmute.edu.vn', 903333043, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(51, 'student44', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 44', '25810219@student.hcmute.edu.vn', 903333044, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(52, 'student45', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 45', '25810220@student.hcmute.edu.vn', 903333045, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(53, 'student46', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 46', '25810221@student.hcmute.edu.vn', 903333046, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(54, 'student47', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 47', '25810222@student.hcmute.edu.vn', 903333047, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(55, 'student48', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 48', '25810223@student.hcmute.edu.vn', 903333048, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(56, 'student49', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 49', '25810224@student.hcmute.edu.vn', 903333049, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(57, 'student50', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 50', '25810225@student.hcmute.edu.vn', 903333050, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(58, 'student51', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 51', '25810226@student.hcmute.edu.vn', 903333051, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(59, 'student52', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 52', '25810227@student.hcmute.edu.vn', 903333052, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(60, 'student53', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 53', '25810228@student.hcmute.edu.vn', 903333053, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(61, 'student54', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 54', '25810229@student.hcmute.edu.vn', 903333054, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(62, 'student55', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 55', '25810230@student.hcmute.edu.vn', 903333055, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(63, 'student56', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 56', '25810231@student.hcmute.edu.vn', 903333056, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(64, 'student57', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 57', '25810232@student.hcmute.edu.vn', 903333057, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(65, 'student58', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 58', '25810233@student.hcmute.edu.vn', 903333058, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(66, 'student59', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 59', '25810234@student.hcmute.edu.vn', 903333059, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(67, 'student60', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 60', '25810235@student.hcmute.edu.vn', 903333060, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(68, 'student61', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 61', '25810236@student.hcmute.edu.vn', 903333061, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(69, 'student62', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 62', '25810237@student.hcmute.edu.vn', 903333062, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(70, 'student63', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 63', '25810238@student.hcmute.edu.vn', 903333063, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(71, 'student64', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 64', '25810239@student.hcmute.edu.vn', 903333064, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(72, 'student65', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 65', '25810240@student.hcmute.edu.vn', 903333065, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(73, 'student66', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 66', '25810241@student.hcmute.edu.vn', 903333066, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(74, 'student67', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 67', '25810242@student.hcmute.edu.vn', 903333067, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(75, 'student68', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 68', '25810243@student.hcmute.edu.vn', 903333068, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(76, 'student69', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 69', '25810244@student.hcmute.edu.vn', 903333069, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(77, 'student70', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 70', '25810245@student.hcmute.edu.vn', 903333070, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(78, 'student71', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 71', '25810246@student.hcmute.edu.vn', 903333071, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(79, 'student72', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 72', '25810247@student.hcmute.edu.vn', 903333072, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(80, 'student73', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 73', '25810248@student.hcmute.edu.vn', 903333073, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(81, 'student74', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 74', '25810249@student.hcmute.edu.vn', 903333074, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(82, 'student75', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 75', '25810250@student.hcmute.edu.vn', 903333075, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(83, 'student76', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 76', '25810251@student.hcmute.edu.vn', 903333076, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(84, 'student77', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 77', '25810252@student.hcmute.edu.vn', 903333077, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(85, 'student78', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 78', '25810253@student.hcmute.edu.vn', 903333078, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(86, 'student79', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 79', '25810254@student.hcmute.edu.vn', 903333079, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(87, 'student80', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 80', '25810255@student.hcmute.edu.vn', 903333080, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(88, 'student81', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 81', '25810256@student.hcmute.edu.vn', 903333081, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(89, 'student82', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 82', '25810257@student.hcmute.edu.vn', 903333082, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(90, 'student83', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 83', '25810258@student.hcmute.edu.vn', 903333083, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(91, 'student84', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 84', '25810259@student.hcmute.edu.vn', 903333084, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(92, 'student85', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 85', '25810260@student.hcmute.edu.vn', 903333085, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(93, 'student86', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 86', '25810261@student.hcmute.edu.vn', 903333086, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(94, 'student87', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 87', '25810262@student.hcmute.edu.vn', 903333087, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(95, 'student88', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 88', '25810263@student.hcmute.edu.vn', 903333088, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(96, 'student89', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 89', '25810264@student.hcmute.edu.vn', 903333089, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(97, 'student90', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 90', '25810265@student.hcmute.edu.vn', 903333090, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(98, 'student91', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 91', '25810266@student.hcmute.edu.vn', 903333091, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(99, 'student92', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 92', '25810267@student.hcmute.edu.vn', 903333092, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(100, 'student93', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 93', '25810268@student.hcmute.edu.vn', 903333093, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(101, 'student94', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 94', '25810269@student.hcmute.edu.vn', 903333094, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(102, 'student95', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Đặng Khánh Linh 95', '25810270@student.hcmute.edu.vn', 903333095, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(103, 'student96', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Nguyễn Minh Khang 96', '25810271@student.hcmute.edu.vn', 903333096, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(104, 'student97', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Trần Quốc Bảo 97', '25810272@student.hcmute.edu.vn', 903333097, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(105, 'student98', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Lê Hoàng Nam 98', '25810273@student.hcmute.edu.vn', 903333098, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(106, 'student99', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Phạm Gia Huy 99', '25810274@student.hcmute.edu.vn', 903333099, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(107, 'student100', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 4, 'Võ Thành Đạt 100', '25810275@student.hcmute.edu.vn', 903333100, 'STUDENT', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(108, 'lecturer06', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 06', '25810181@teacher.hcmute.edu.vn', 902222006, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(109, 'lecturer07', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 07', '25810182@teacher.hcmute.edu.vn', 902222007, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(110, 'lecturer08', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 08', '25810183@teacher.hcmute.edu.vn', 902222008, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(111, 'lecturer09', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 09', '25810184@teacher.hcmute.edu.vn', 902222009, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(112, 'lecturer10', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 10', '25810185@teacher.hcmute.edu.vn', 902222010, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(113, 'lecturer11', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 11', '25810186@teacher.hcmute.edu.vn', 902222011, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(114, 'lecturer12', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 12', '25810187@teacher.hcmute.edu.vn', 902222012, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(115, 'lecturer13', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 13', '25810188@teacher.hcmute.edu.vn', 902222013, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(116, 'lecturer14', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 14', '25810189@teacher.hcmute.edu.vn', 902222014, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(117, 'lecturer15', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 15', '25810190@teacher.hcmute.edu.vn', 902222015, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(118, 'lecturer16', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 16', '25810191@teacher.hcmute.edu.vn', 902222016, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(119, 'lecturer17', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 17', '25810192@teacher.hcmute.edu.vn', 902222017, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(120, 'lecturer18', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 18', '25810193@teacher.hcmute.edu.vn', 902222018, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(121, 'lecturer19', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 19', '25810194@teacher.hcmute.edu.vn', 902222019, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(122, 'lecturer20', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 20', '25810195@teacher.hcmute.edu.vn', 902222020, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(123, 'lecturer21', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 21', '25810196@teacher.hcmute.edu.vn', 902222021, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(124, 'lecturer22', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 22', '25810197@teacher.hcmute.edu.vn', 902222022, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(125, 'lecturer23', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 23', '25810198@teacher.hcmute.edu.vn', 902222023, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(126, 'lecturer24', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 24', '25810199@teacher.hcmute.edu.vn', 902222024, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(127, 'lecturer25', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 25', '25810200@teacher.hcmute.edu.vn', 902222025, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(128, 'lecturer26', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 26', '25810201@teacher.hcmute.edu.vn', 902222026, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(129, 'lecturer27', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 27', '25810202@teacher.hcmute.edu.vn', 902222027, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(130, 'lecturer28', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 28', '25810203@teacher.hcmute.edu.vn', 902222028, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(131, 'lecturer29', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 29', '25810204@teacher.hcmute.edu.vn', 902222029, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(132, 'lecturer30', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 30', '25810205@teacher.hcmute.edu.vn', 902222030, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(133, 'lecturer31', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 31', '25810206@teacher.hcmute.edu.vn', 902222031, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(134, 'lecturer32', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 32', '25810207@teacher.hcmute.edu.vn', 902222032, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(135, 'lecturer33', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 33', '25810208@teacher.hcmute.edu.vn', 902222033, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(136, 'lecturer34', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 34', '25810209@teacher.hcmute.edu.vn', 902222034, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(137, 'lecturer35', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 35', '25810210@teacher.hcmute.edu.vn', 902222035, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(138, 'lecturer36', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 36', '25810211@teacher.hcmute.edu.vn', 902222036, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(139, 'lecturer37', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 37', '25810212@teacher.hcmute.edu.vn', 902222037, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(140, 'lecturer38', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 38', '25810213@teacher.hcmute.edu.vn', 902222038, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(141, 'lecturer39', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 39', '25810214@teacher.hcmute.edu.vn', 902222039, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(142, 'lecturer40', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 40', '25810215@teacher.hcmute.edu.vn', 902222040, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(143, 'lecturer41', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 41', '25810216@teacher.hcmute.edu.vn', 902222041, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(144, 'lecturer42', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 42', '25810217@teacher.hcmute.edu.vn', 902222042, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(145, 'lecturer43', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 43', '25810218@teacher.hcmute.edu.vn', 902222043, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(146, 'lecturer44', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 44', '25810219@teacher.hcmute.edu.vn', 902222044, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(147, 'lecturer45', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 45', '25810220@teacher.hcmute.edu.vn', 902222045, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(148, 'lecturer46', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 46', '25810221@teacher.hcmute.edu.vn', 902222046, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(149, 'lecturer47', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 47', '25810222@teacher.hcmute.edu.vn', 902222047, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(150, 'lecturer48', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 48', '25810223@teacher.hcmute.edu.vn', 902222048, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(151, 'lecturer49', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 49', '25810224@teacher.hcmute.edu.vn', 902222049, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(152, 'lecturer50', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 50', '25810225@teacher.hcmute.edu.vn', 902222050, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(153, 'lecturer51', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 51', '25810226@teacher.hcmute.edu.vn', 902222051, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(154, 'lecturer52', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 52', '25810227@teacher.hcmute.edu.vn', 902222052, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(155, 'lecturer53', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 53', '25810228@teacher.hcmute.edu.vn', 902222053, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(156, 'lecturer54', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 54', '25810229@teacher.hcmute.edu.vn', 902222054, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(157, 'lecturer55', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 55', '25810230@teacher.hcmute.edu.vn', 902222055, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(158, 'lecturer56', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 56', '25810231@teacher.hcmute.edu.vn', 902222056, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(159, 'lecturer57', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 57', '25810232@teacher.hcmute.edu.vn', 902222057, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(160, 'lecturer58', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 58', '25810233@teacher.hcmute.edu.vn', 902222058, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(161, 'lecturer59', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 59', '25810234@teacher.hcmute.edu.vn', 902222059, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(162, 'lecturer60', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 60', '25810235@teacher.hcmute.edu.vn', 902222060, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(163, 'lecturer61', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 61', '25810236@teacher.hcmute.edu.vn', 902222061, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(164, 'lecturer62', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 62', '25810237@teacher.hcmute.edu.vn', 902222062, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(165, 'lecturer63', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 63', '25810238@teacher.hcmute.edu.vn', 902222063, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(166, 'lecturer64', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 64', '25810239@teacher.hcmute.edu.vn', 902222064, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(167, 'lecturer65', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 65', '25810240@teacher.hcmute.edu.vn', 902222065, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(168, 'lecturer66', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 66', '25810241@teacher.hcmute.edu.vn', 902222066, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(169, 'lecturer67', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 67', '25810242@teacher.hcmute.edu.vn', 902222067, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(170, 'lecturer68', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 68', '25810243@teacher.hcmute.edu.vn', 902222068, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(171, 'lecturer69', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 69', '25810244@teacher.hcmute.edu.vn', 902222069, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(172, 'lecturer70', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 70', '25810245@teacher.hcmute.edu.vn', 902222070, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(173, 'lecturer71', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 71', '25810246@teacher.hcmute.edu.vn', 902222071, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(174, 'lecturer72', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 72', '25810247@teacher.hcmute.edu.vn', 902222072, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(175, 'lecturer73', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 73', '25810248@teacher.hcmute.edu.vn', 902222073, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(176, 'lecturer74', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 74', '25810249@teacher.hcmute.edu.vn', 902222074, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(177, 'lecturer75', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 75', '25810250@teacher.hcmute.edu.vn', 902222075, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(178, 'lecturer76', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 76', '25810251@teacher.hcmute.edu.vn', 902222076, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(179, 'lecturer77', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 77', '25810252@teacher.hcmute.edu.vn', 902222077, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(180, 'lecturer78', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 78', '25810253@teacher.hcmute.edu.vn', 902222078, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(181, 'lecturer79', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 79', '25810254@teacher.hcmute.edu.vn', 902222079, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(182, 'lecturer80', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 80', '25810255@teacher.hcmute.edu.vn', 902222080, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(183, 'lecturer81', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 81', '25810256@teacher.hcmute.edu.vn', 902222081, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(184, 'lecturer82', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 82', '25810257@teacher.hcmute.edu.vn', 902222082, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(185, 'lecturer83', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 83', '25810258@teacher.hcmute.edu.vn', 902222083, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(186, 'lecturer84', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 84', '25810259@teacher.hcmute.edu.vn', 902222084, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(187, 'lecturer85', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 85', '25810260@teacher.hcmute.edu.vn', 902222085, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(188, 'lecturer86', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 86', '25810261@teacher.hcmute.edu.vn', 902222086, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(189, 'lecturer87', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 87', '25810262@teacher.hcmute.edu.vn', 902222087, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(190, 'lecturer88', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 88', '25810263@teacher.hcmute.edu.vn', 902222088, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(191, 'lecturer89', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 89', '25810264@teacher.hcmute.edu.vn', 902222089, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(192, 'lecturer90', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 90', '25810265@teacher.hcmute.edu.vn', 902222090, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(193, 'lecturer91', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 91', '25810266@teacher.hcmute.edu.vn', 902222091, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(194, 'lecturer92', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 92', '25810267@teacher.hcmute.edu.vn', 902222092, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(195, 'lecturer93', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 93', '25810268@teacher.hcmute.edu.vn', 902222093, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(196, 'lecturer94', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 94', '25810269@teacher.hcmute.edu.vn', 902222094, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(197, 'lecturer95', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Đặng Khánh Linh 95', '25810270@teacher.hcmute.edu.vn', 902222095, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(198, 'lecturer96', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Nguyễn Minh Khang 96', '25810271@teacher.hcmute.edu.vn', 902222096, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(199, 'lecturer97', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Trần Quốc Bảo 97', '25810272@teacher.hcmute.edu.vn', 902222097, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(200, 'lecturer98', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Lê Hoàng Nam 98', '25810273@teacher.hcmute.edu.vn', 902222098, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(201, 'lecturer99', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'TS. Phạm Gia Huy 99', '25810274@teacher.hcmute.edu.vn', 902222099, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(202, 'lecturer100', '$2a$10$L4wyNr3EuOK.MpAkzglrTOir1F8NDmrkdw.yQwgdJAOjYz0pk46su', 3, 'ThS. Võ Thành Đạt 100', '25810275@teacher.hcmute.edu.vn', 902222100, 'LECTURER', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(203, 'head01', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 5, 'Phụ trách khoa 1', 'head01@hcmute.edu.vn', 904444001, 'DEPARTMENT_HEAD', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(204, 'head02', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 5, 'Phụ trách khoa 2', 'head02@hcmute.edu.vn', 904444002, 'DEPARTMENT_HEAD', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(205, 'head03', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 5, 'Phụ trách khoa 3', 'head03@hcmute.edu.vn', 904444003, 'DEPARTMENT_HEAD', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(206, 'head04', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 5, 'Phụ trách khoa 4', 'head04@hcmute.edu.vn', 904444004, 'DEPARTMENT_HEAD', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(207, 'head05', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 5, 'Phụ trách khoa 5', 'head05@hcmute.edu.vn', 904444005, 'DEPARTMENT_HEAD', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00'),
+(208, 'head06', '$2a$10$EfVgSFSVuJnJl9YUl/gYg.mIR7iN//rAKamRehTDo2ypoFEAgpP12', 5, 'Phụ trách khoa 6', 'head06@hcmute.edu.vn', 904444006, 'DEPARTMENT_HEAD', b'1', '2017-08-01 08:00:00', '2017-08-01 08:00:00');
 
-INSERT IGNORE INTO group_members (id, group_id, student_id, leader)
-WITH RECURSIVE seq AS (
-    SELECT 3 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number, number, number + 3, b'1'
-FROM seq;
+INSERT INTO lecturers (id, user_id, department_id, lecturer_code, degree, academic_degree, academic_title, research_field) VALUES
+(1, 3, 1, 25810176, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên chính', 'Công nghệ phần mềm & Kiến trúc vi dịch vụ'),
+(2, 4, 1, 25810177, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Trí tuệ nhân tạo & Thị giác máy tính'),
+(3, 5, 1, 25810178, 'Tiến sĩ', 'Tiến sĩ', 'Phó Giáo sư', 'Hệ thống thông tin quản lý & Blockchain'),
+(4, 6, 1, 25810179, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'An ninh mạng & Hệ thống phân tán'),
+(5, 7, 1, 25810180, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kiểm thử phần mềm & DevOps'),
+(6, 108, 1, 25810181, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(7, 109, 2, 25810182, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(8, 110, 3, 25810183, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(9, 111, 4, 25810184, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(10, 112, 5, 25810185, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(11, 113, 6, 25810186, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(12, 114, 1, 25810187, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(13, 115, 2, 25810188, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(14, 116, 3, 25810189, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(15, 117, 4, 25810190, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(16, 118, 5, 25810191, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(17, 119, 6, 25810192, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(18, 120, 1, 25810193, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(19, 121, 2, 25810194, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(20, 122, 3, 25810195, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(21, 123, 4, 25810196, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(22, 124, 5, 25810197, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(23, 125, 6, 25810198, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(24, 126, 1, 25810199, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(25, 127, 2, 25810200, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(26, 128, 3, 25810201, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(27, 129, 4, 25810202, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(28, 130, 5, 25810203, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(29, 131, 6, 25810204, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(30, 132, 1, 25810205, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(31, 133, 2, 25810206, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(32, 134, 3, 25810207, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(33, 135, 4, 25810208, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(34, 136, 5, 25810209, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(35, 137, 6, 25810210, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(36, 138, 1, 25810211, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(37, 139, 2, 25810212, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(38, 140, 3, 25810213, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(39, 141, 4, 25810214, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(40, 142, 5, 25810215, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(41, 143, 6, 25810216, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(42, 144, 1, 25810217, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(43, 145, 2, 25810218, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(44, 146, 3, 25810219, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(45, 147, 4, 25810220, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(46, 148, 5, 25810221, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(47, 149, 6, 25810222, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(48, 150, 1, 25810223, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(49, 151, 2, 25810224, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(50, 152, 3, 25810225, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(51, 153, 4, 25810226, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(52, 154, 5, 25810227, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(53, 155, 6, 25810228, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(54, 156, 1, 25810229, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(55, 157, 2, 25810230, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(56, 158, 3, 25810231, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(57, 159, 4, 25810232, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(58, 160, 5, 25810233, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(59, 161, 6, 25810234, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(60, 162, 1, 25810235, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(61, 163, 2, 25810236, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(62, 164, 3, 25810237, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(63, 165, 4, 25810238, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(64, 166, 5, 25810239, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(65, 167, 6, 25810240, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(66, 168, 1, 25810241, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(67, 169, 2, 25810242, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(68, 170, 3, 25810243, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(69, 171, 4, 25810244, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(70, 172, 5, 25810245, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(71, 173, 6, 25810246, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(72, 174, 1, 25810247, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(73, 175, 2, 25810248, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(74, 176, 3, 25810249, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(75, 177, 4, 25810250, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(76, 178, 5, 25810251, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(77, 179, 6, 25810252, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(78, 180, 1, 25810253, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(79, 181, 2, 25810254, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(80, 182, 3, 25810255, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(81, 183, 4, 25810256, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(82, 184, 5, 25810257, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(83, 185, 6, 25810258, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(84, 186, 1, 25810259, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(85, 187, 2, 25810260, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(86, 188, 3, 25810261, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(87, 189, 4, 25810262, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(88, 190, 5, 25810263, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(89, 191, 6, 25810264, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(90, 192, 1, 25810265, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(91, 193, 2, 25810266, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(92, 194, 3, 25810267, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(93, 195, 4, 25810268, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(94, 196, 5, 25810269, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(95, 197, 6, 25810270, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Quản trị kinh doanh'),
+(96, 198, 1, 25810271, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Công nghệ phần mềm và hệ thống thông tin'),
+(97, 199, 2, 25810272, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Luật kinh tế'),
+(98, 200, 3, 25810273, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Kỹ thuật xây dựng'),
+(99, 201, 4, 25810274, 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên', 'Điện và tự động hóa'),
+(100, 202, 5, 25810275, 'Thạc sĩ', 'Thạc sĩ', 'Giảng viên', 'Cơ khí chế tạo máy'),
+(101, 2, 1, 'GVDEAN', 'Tiến sĩ', 'Tiến sĩ', 'Phó Giáo sư', 'Công nghệ phần mềm và hệ thống thông tin'),
+(102, 203, 1, 'GVHEAD01', 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên chính', 'Công nghệ phần mềm và hệ thống thông tin'),
+(103, 204, 2, 'GVHEAD02', 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên chính', 'Luật kinh tế'),
+(104, 205, 3, 'GVHEAD03', 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên chính', 'Kỹ thuật xây dựng'),
+(105, 206, 4, 'GVHEAD04', 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên chính', 'Điện và tự động hóa'),
+(106, 207, 5, 'GVHEAD05', 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên chính', 'Cơ khí chế tạo máy'),
+(107, 208, 6, 'GVHEAD06', 'Tiến sĩ', 'Tiến sĩ', 'Giảng viên chính', 'Quản trị kinh doanh');
 
-INSERT IGNORE INTO topic_registrations
-    (id, group_id, topic_id, approved_by, status, note, approved_at)
-WITH RECURSIVE seq AS (
-    SELECT 3 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number, number, number, 1, 'APPROVED',
-       CONCAT('Đăng ký đề tài số ', LPAD(number, 3, '0'), ' đã được tiếp nhận.'),
-       DATE_ADD('2023-01-15 08:00:00', INTERVAL (number * 6) MONTH)
-FROM seq;
+INSERT INTO students (id, user_id, department_id, student_code, class_name, course_year, major) VALUES
+(1, 8, 1, 25810176, '21110CL1A', 'K21', 'Công nghệ thông tin'),
+(2, 9, 1, 25810175, '21110CL1A', 'K21', 'Công nghệ thông tin'),
+(3, 10, 1, 25810178, '21110CL1B', 'K21', 'Công nghệ thông tin'),
+(4, 11, 1, 25810179, '21110CL2A', 'K21', 'Khoa học máy tính'),
+(5, 12, 1, 25810180, '21110CL2A', 'K21', 'Khoa học máy tính'),
+(6, 13, 1, 25810181, '21101A', 'K21', 'Công nghệ thông tin'),
+(7, 14, 2, 25810182, '21102A', 'K21', 'Luật kinh tế'),
+(8, 15, 3, 25810183, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(9, 16, 4, 25810184, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(10, 17, 5, 25810185, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(11, 18, 6, 25810186, '21106A', 'K21', 'Quản trị kinh doanh'),
+(12, 19, 1, 25810187, '21101A', 'K21', 'Công nghệ thông tin'),
+(13, 20, 2, 25810188, '21102A', 'K21', 'Luật kinh tế'),
+(14, 21, 3, 25810189, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(15, 22, 4, 25810190, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(16, 23, 5, 25810191, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(17, 24, 6, 25810192, '21106A', 'K21', 'Quản trị kinh doanh'),
+(18, 25, 1, 25810193, '21101A', 'K21', 'Công nghệ thông tin'),
+(19, 26, 2, 25810194, '21102A', 'K21', 'Luật kinh tế'),
+(20, 27, 3, 25810195, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(21, 28, 4, 25810196, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(22, 29, 5, 25810197, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(23, 30, 6, 25810198, '21106A', 'K21', 'Quản trị kinh doanh'),
+(24, 31, 1, 25810199, '21101A', 'K21', 'Công nghệ thông tin'),
+(25, 32, 2, 25810200, '21102A', 'K21', 'Luật kinh tế'),
+(26, 33, 3, 25810201, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(27, 34, 4, 25810202, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(28, 35, 5, 25810203, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(29, 36, 6, 25810204, '21106A', 'K21', 'Quản trị kinh doanh'),
+(30, 37, 1, 25810205, '21101A', 'K21', 'Công nghệ thông tin'),
+(31, 38, 2, 25810206, '21102A', 'K21', 'Luật kinh tế'),
+(32, 39, 3, 25810207, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(33, 40, 4, 25810208, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(34, 41, 5, 25810209, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(35, 42, 6, 25810210, '21106A', 'K21', 'Quản trị kinh doanh'),
+(36, 43, 1, 25810211, '21101A', 'K21', 'Công nghệ thông tin'),
+(37, 44, 2, 25810212, '21102A', 'K21', 'Luật kinh tế'),
+(38, 45, 3, 25810213, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(39, 46, 4, 25810214, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(40, 47, 5, 25810215, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(41, 48, 6, 25810216, '21106A', 'K21', 'Quản trị kinh doanh'),
+(42, 49, 1, 25810217, '21101A', 'K21', 'Công nghệ thông tin'),
+(43, 50, 2, 25810218, '21102A', 'K21', 'Luật kinh tế'),
+(44, 51, 3, 25810219, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(45, 52, 4, 25810220, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(46, 53, 5, 25810221, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(47, 54, 6, 25810222, '21106A', 'K21', 'Quản trị kinh doanh'),
+(48, 55, 1, 25810223, '21101A', 'K21', 'Công nghệ thông tin'),
+(49, 56, 2, 25810224, '21102A', 'K21', 'Luật kinh tế'),
+(50, 57, 3, 25810225, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(51, 58, 4, 25810226, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(52, 59, 5, 25810227, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(53, 60, 6, 25810228, '21106A', 'K21', 'Quản trị kinh doanh'),
+(54, 61, 1, 25810229, '21101A', 'K21', 'Công nghệ thông tin'),
+(55, 62, 2, 25810230, '21102A', 'K21', 'Luật kinh tế'),
+(56, 63, 3, 25810231, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(57, 64, 4, 25810232, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(58, 65, 5, 25810233, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(59, 66, 6, 25810234, '21106A', 'K21', 'Quản trị kinh doanh'),
+(60, 67, 1, 25810235, '21101A', 'K21', 'Công nghệ thông tin'),
+(61, 68, 2, 25810236, '21102A', 'K21', 'Luật kinh tế'),
+(62, 69, 3, 25810237, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(63, 70, 4, 25810238, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(64, 71, 5, 25810239, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(65, 72, 6, 25810240, '21106A', 'K21', 'Quản trị kinh doanh'),
+(66, 73, 1, 25810241, '21101A', 'K21', 'Công nghệ thông tin'),
+(67, 74, 2, 25810242, '21102A', 'K21', 'Luật kinh tế'),
+(68, 75, 3, 25810243, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(69, 76, 4, 25810244, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(70, 77, 5, 25810245, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(71, 78, 6, 25810246, '21106A', 'K21', 'Quản trị kinh doanh'),
+(72, 79, 1, 25810247, '21101A', 'K21', 'Công nghệ thông tin'),
+(73, 80, 2, 25810248, '21102A', 'K21', 'Luật kinh tế'),
+(74, 81, 3, 25810249, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(75, 82, 4, 25810250, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(76, 83, 5, 25810251, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(77, 84, 6, 25810252, '21106A', 'K21', 'Quản trị kinh doanh'),
+(78, 85, 1, 25810253, '21101A', 'K21', 'Công nghệ thông tin'),
+(79, 86, 2, 25810254, '21102A', 'K21', 'Luật kinh tế'),
+(80, 87, 3, 25810255, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(81, 88, 4, 25810256, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(82, 89, 5, 25810257, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(83, 90, 6, 25810258, '21106A', 'K21', 'Quản trị kinh doanh'),
+(84, 91, 1, 25810259, '21101A', 'K21', 'Công nghệ thông tin'),
+(85, 92, 2, 25810260, '21102A', 'K21', 'Luật kinh tế'),
+(86, 93, 3, 25810261, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(87, 94, 4, 25810262, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(88, 95, 5, 25810263, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(89, 96, 6, 25810264, '21106A', 'K21', 'Quản trị kinh doanh'),
+(90, 97, 1, 25810265, '21101A', 'K21', 'Công nghệ thông tin'),
+(91, 98, 2, 25810266, '21102A', 'K21', 'Luật kinh tế'),
+(92, 99, 3, 25810267, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(93, 100, 4, 25810268, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(94, 101, 5, 25810269, '21105A', 'K21', 'Cơ khí chế tạo máy'),
+(95, 102, 6, 25810270, '21106A', 'K21', 'Quản trị kinh doanh'),
+(96, 103, 1, 25810271, '21101A', 'K21', 'Công nghệ thông tin'),
+(97, 104, 2, 25810272, '21102A', 'K21', 'Luật kinh tế'),
+(98, 105, 3, 25810273, '21103A', 'K21', 'Kỹ thuật xây dựng'),
+(99, 106, 4, 25810274, '21104A', 'K21', 'Kỹ thuật điện - điện tử'),
+(100, 107, 5, 25810275, '21105A', 'K21', 'Cơ khí chế tạo máy');
 
-INSERT IGNORE INTO reports
-    (id, topic_registration_id, submitted_by, file_name, file_path, note, submitted_at)
-WITH RECURSIVE seq AS (
-    SELECT 3 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number, number, number, CONCAT('BaoCao_DT', LPAD(number, 3, '0'), '.pdf'),
-       CONCAT('/uploads/reports/BaoCao_DT', LPAD(number, 3, '0'), '.pdf'),
-       CONCAT('Báo cáo tiến độ đề tài số ', number),
-       DATE_ADD('2023-05-01 08:00:00', INTERVAL (number * 6) MONTH)
-FROM seq;
+INSERT INTO registration_periods (id, name, type, lecturer_start_date, lecturer_end_date, student_start_date, student_end_date, reviewer_deadline, council_report_date, status, active, created_by) VALUES
+(1, 'Khóa luận tốt nghiệp (KLTN) Học kỳ 1 2026-2027', 'THESIS', '2026-08-01', '2026-09-15', '2026-09-16', '2026-10-25', '2027-01-25', '2027-01-20', 'OPEN', b'1', 1),
+(2, 'Tiểu luận chuyên ngành (TLCN) Học kỳ 1 2026-2027', 'PROJECT', '2026-08-10', '2026-09-20', '2026-09-21', '2026-10-20', '2027-01-05', '2026-12-20', 'OPEN', b'1', 1),
+(3, 'Nghiên cứu khoa học sinh viên (NCKH) 2026', 'NCKH', '2026-03-01', '2026-04-15', '2026-04-16', '2026-05-15', NULL, NULL, 'CLOSED', b'0', 1),
+(4, 'Tiểu luận chuyên ngành (TLCN) Học kỳ 1 2018-2019', 'PROJECT', '2018-08-01', '2018-08-15', '2018-08-16', '2018-09-01', '2018-12-01', NULL, 'CLOSED', b'0', 1),
+(5, 'Nghiên cứu khoa học sinh viên (NCKH) Học kỳ 1 2018-2019', 'NCKH', '2018-08-01', '2018-08-15', '2018-08-16', '2018-09-01', NULL, NULL, 'CLOSED', b'0', 1),
+(6, 'Khóa luận tốt nghiệp (KLTN) Học kỳ 1 2018-2019', 'THESIS', '2018-08-01', '2018-08-15', '2018-08-16', '2018-09-01', '2018-12-16', '2018-12-11', 'CLOSED', b'0', 1),
+(7, 'Tiểu luận chuyên ngành (TLCN) Học kỳ 2 2023-2024', 'PROJECT', '2024-02-01', '2024-02-15', '2024-02-16', '2024-03-01', '2024-06-01', '2024-05-01', 'CLOSED', b'0', 1),
+(8, 'Nghiên cứu khoa học sinh viên (NCKH) Học kỳ 2 2023-2024', 'NCKH', '2024-02-01', '2024-02-15', '2024-02-16', '2024-03-01', NULL, '2024-05-01', 'CLOSED', b'0', 1),
+(9, 'Khóa luận tốt nghiệp (KLTN) Học kỳ 2 2023-2024', 'THESIS', '2024-02-01', '2024-02-15', '2024-02-16', '2024-03-01', '2024-06-16', '2024-06-11', 'CLOSED', b'0', 1),
+(10, 'Tiểu luận chuyên ngành (TLCN) Học kỳ 1 2024-2025', 'PROJECT', '2024-08-01', '2024-08-15', '2024-08-16', '2024-09-01', '2024-12-01', NULL, 'CLOSED', b'0', 1),
+(11, 'Nghiên cứu khoa học sinh viên (NCKH) Học kỳ 1 2024-2025', 'NCKH', '2024-08-01', '2024-08-15', '2024-08-16', '2024-09-01', NULL, NULL, 'CLOSED', b'0', 1),
+(12, 'Khóa luận tốt nghiệp (KLTN) Học kỳ 1 2024-2025', 'THESIS', '2024-08-01', '2024-08-15', '2024-08-16', '2024-09-01', '2024-12-16', '2024-12-11', 'CLOSED', b'0', 1),
+(13, 'Tiểu luận chuyên ngành (TLCN) Học kỳ 2 2024-2025', 'PROJECT', '2025-02-01', '2025-02-15', '2025-02-16', '2025-03-01', '2025-06-01', NULL, 'CLOSED', b'0', 1),
+(14, 'Nghiên cứu khoa học sinh viên (NCKH) Học kỳ 2 2024-2025', 'NCKH', '2025-02-01', '2025-02-15', '2025-02-16', '2025-03-01', NULL, NULL, 'CLOSED', b'0', 1),
+(15, 'Khóa luận tốt nghiệp (KLTN) Học kỳ 2 2024-2025', 'THESIS', '2025-02-01', '2025-02-15', '2025-02-16', '2025-03-01', '2025-06-16', '2025-06-11', 'CLOSED', b'0', 1),
+(16, 'Tiểu luận chuyên ngành (TLCN) Học kỳ 1 2025-2026', 'PROJECT', '2025-08-01', '2025-08-15', '2025-08-16', '2025-09-01', '2025-12-01', NULL, 'CLOSED', b'0', 1),
+(17, 'Nghiên cứu khoa học sinh viên (NCKH) Học kỳ 1 2025-2026', 'NCKH', '2025-08-01', '2025-08-15', '2025-08-16', '2025-09-01', NULL, NULL, 'CLOSED', b'0', 1),
+(18, 'Khóa luận tốt nghiệp (KLTN) Học kỳ 1 2025-2026', 'THESIS', '2025-08-01', '2025-08-15', '2025-08-16', '2025-09-01', '2025-12-16', '2025-12-11', 'CLOSED', b'0', 1),
+(19, 'Tiểu luận chuyên ngành (TLCN) Học kỳ 2 2025-2026', 'PROJECT', '2026-02-01', '2026-02-15', '2026-02-16', '2026-03-01', '2026-06-01', NULL, 'CLOSED', b'0', 1),
+(20, 'Nghiên cứu khoa học sinh viên (NCKH) Học kỳ 2 2025-2026', 'NCKH', '2026-02-01', '2026-02-15', '2026-02-16', '2026-03-01', NULL, NULL, 'CLOSED', b'0', 1);
 
-INSERT IGNORE INTO councils
-    (id, code, name, reg_period_id, department_id, chairman_id, secretary_id, council_date, location, status)
-WITH RECURSIVE seq AS (
-    SELECT 3 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number, CONCAT('HD', LPAD(number, 3, '0')), CONCAT('Hội đồng phản biện số ', number),
-    1 + ((number - 1) % 100),
-    CASE WHEN number < 6 THEN 1 ELSE 1 + ((number - 6) % 6) END,
-       1 + ((number - 1) % 100), 1 + (number % 100),
-       DATE_ADD('2023-05-20', INTERVAL (number * 6) MONTH), CONCAT('Phòng H', number),
-       IF(number % 3 = 0, 'PLANNED', 'ONGOING')
-FROM seq;
+INSERT INTO topics (id, code, title, description, requirements, department_id, reg_period_id, lecturer_id, co_lecturer_id, max_students, status, created_at, updated_at) VALUES
+(1, 'DT001', 'Cổng thông tin Quản lý Đề tài tốt nghiệp Khoa CNTT - HCMUTE', 'Xây dựng hệ thống web tự động hóa quy trình quản lý đợt, phân công GVHD, hội đồng phản biện và công bố điểm.', 'Thành thạo Spring Boot, JPA/Hibernate, MySQL, JSP/Bootstrap 5, Thiết kế CSDL quan hệ.', 1, 18, 1, 5, 3, 'COMPLETED', '2025-08-03 08:00:00', '2025-12-13 15:00:00'),
+(2, 'DT002', 'Ứng dụng Học sâu và NLP xây dựng Trợ lý ảo AI hỗ trợ sinh viên', 'Nghiên cứu mô hình ngôn ngữ lớn (LLM) và RAG để giải đáp thắc mắc quy chế học vụ và học bổng cho sinh viên UTE.', 'Kiến thức Python, PyTorch/TensorFlow, Transformers, LangChain, Vector Database.', 1, 1, 2, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(3, 'DT003', 'Hệ thống Truy xuất nguồn gốc Nông sản sử dụng Blockchain Hyperledger Fabric', 'Xây dựng mạng lưới Blockchain phân tán cho phép ghi nhận và xác thực hành trình chuỗi cung ứng thực phẩm sạch.', 'Hyperledger Fabric, Node.js, Smart Contract (Chaincode), Docker, Kiến trúc phân tán.', 1, 1, 3, 1, 3, 'PUBLISHED', '2026-08-03 08:00:00', '2026-10-01 08:00:00'),
+(4, 'DT004', 'Giải pháp Giám sát và Phát hiện Tấn công mạng trên Cụm Kubernetes', 'Ứng dụng eBPF và Machine Learning để phân tích lưu lượng mạng và phát hiện bất thường trong môi trường Cloud Native.', 'Linux Kernel, eBPF, Kubernetes, Python ML, Network Security.', 1, 1, 4, NULL, 3, 'PUBLISHED', '2026-08-03 08:00:00', '2026-10-01 08:00:00'),
+(5, 'DT005', 'Nền tảng E-Learning tương tác với Kiến trúc Microservices và Flutter', 'Xây dựng hệ sinh thái học tập trực tuyến hỗ trợ live streaming lớp học, bài tập trắc nghiệm và diễn đàn học thuật.', 'Spring Cloud, Flutter, WebSocket, Redis, Docker & CI/CD.', 1, 2, 5, NULL, 3, 'PUBLISHED', '2026-08-12 08:00:00', '2026-10-01 08:00:00'),
+(6, 'DT006', 'Hệ thống Nhận diện Khuôn mặt thông minh phục vụ Điểm danh tự động', 'Ứng dụng mạng nơ-ron tích chập (CNN) kết hợp camera IP để điểm danh sinh viên trong giảng đường.', 'OpenCV, YOLO, Face Recognition, Python, MySQL.', 1, 1, 2, NULL, 3, 'PENDING', '2026-08-03 08:00:00', '2026-10-01 08:00:00'),
+(7, 'DT007', 'Xây dựng hệ thống quản lý đào tạo và đăng ký đề tài - mô hình 1', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Công nghệ thông tin.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 1, 7, 6, NULL, 3, 'COMPLETED', '2024-02-03 08:00:00', '2024-05-03 15:00:00'),
+(8, 'DT008', 'Phân tích quy định pháp luật trong thương mại điện tử - mô hình 2', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Luật kinh tế.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 2, 8, 7, NULL, 3, 'COMPLETED', '2024-02-03 08:00:00', '2024-05-03 15:00:00'),
+(9, 'DT009', 'Ứng dụng BIM trong quản lý công trình dân dụng - mô hình 3', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Kỹ thuật xây dựng.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 3, 1, 8, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(10, 'DT010', 'Thiết kế hệ thống giám sát năng lượng thông minh - mô hình 4', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Kỹ thuật điện - điện tử.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 4, 2, 9, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(11, 'DT011', 'Tối ưu quy trình gia công bằng mô phỏng số - mô hình 5', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Cơ khí chế tạo máy.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 5, 2, 10, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(12, 'DT012', 'Phân tích hành vi khách hàng trong bán lẻ trực tuyến - mô hình 6', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Quản trị kinh doanh.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 6, 2, 11, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(13, 'DT013', 'Xây dựng hệ thống quản lý đào tạo và đăng ký đề tài - mô hình 7', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Công nghệ thông tin.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 1, 1, 6, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(14, 'DT014', 'Phân tích quy định pháp luật trong thương mại điện tử - mô hình 8', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Luật kinh tế.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 2, 1, 7, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(15, 'DT015', 'Ứng dụng BIM trong quản lý công trình dân dụng - mô hình 9', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Kỹ thuật xây dựng.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 3, 1, 8, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(16, 'DT016', 'Thiết kế hệ thống giám sát năng lượng thông minh - mô hình 10', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Kỹ thuật điện - điện tử.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 4, 2, 9, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(17, 'DT017', 'Tối ưu quy trình gia công bằng mô phỏng số - mô hình 11', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Cơ khí chế tạo máy.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 5, 2, 10, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(18, 'DT018', 'Phân tích hành vi khách hàng trong bán lẻ trực tuyến - mô hình 12', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Quản trị kinh doanh.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 6, 2, 11, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(19, 'DT019', 'Xây dựng hệ thống quản lý đào tạo và đăng ký đề tài - mô hình 13', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Công nghệ thông tin.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 1, 1, 6, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(20, 'DT020', 'Phân tích quy định pháp luật trong thương mại điện tử - mô hình 14', 'Nghiên cứu và xây dựng giải pháp ứng dụng trong lĩnh vực Luật kinh tế.', 'Nắm vững kiến thức chuyên ngành; có sản phẩm minh chứng và báo cáo kết quả.', 2, 1, 7, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(21, 'DT021', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 021', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 1, 5, NULL, 3, 'ASSIGNED', '2026-08-13 08:00:00', '2026-10-16 14:00:00'),
+(22, 'DT022', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 022', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 2, 7, NULL, 3, 'PUBLISHED', '2026-08-13 08:00:00', '2026-08-15 08:00:00'),
+(23, 'DT023', 'Ứng dụng BIM và giám sát công trình - chuyên đề 023', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 2, 8, NULL, 3, 'PUBLISHED', '2026-08-13 08:00:00', '2026-08-15 08:00:00'),
+(24, 'DT024', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 024', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 2, 9, NULL, 3, 'PUBLISHED', '2026-08-13 08:00:00', '2026-08-15 08:00:00'),
+(25, 'DT025', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 025', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 5, 10, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(26, 'DT026', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 026', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 6, 11, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(27, 'DT027', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 027', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 7, 1, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(28, 'DT028', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 028', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 8, 7, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(29, 'DT029', 'Ứng dụng BIM và giám sát công trình - chuyên đề 029', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 9, 8, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(30, 'DT030', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 030', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 10, 9, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(31, 'DT031', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 031', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 11, 10, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(32, 'DT032', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 032', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 12, 11, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(33, 'DT033', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 033', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 13, 1, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(34, 'DT034', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 034', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 14, 7, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(35, 'DT035', 'Ứng dụng BIM và giám sát công trình - chuyên đề 035', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 15, 8, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(36, 'DT036', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 036', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 16, 9, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(37, 'DT037', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 037', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 17, 10, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(38, 'DT038', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 038', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 18, 11, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(39, 'DT039', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 039', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 19, 1, NULL, 3, 'CANCELLED', '2026-02-04 08:00:00', '2026-02-06 08:00:00'),
+(40, 'DT040', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 040', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 20, 7, NULL, 3, 'CANCELLED', '2026-02-04 08:00:00', '2026-02-06 08:00:00'),
+(41, 'DT041', 'Ứng dụng BIM và giám sát công trình - chuyên đề 041', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 1, 8, NULL, 3, 'PUBLISHED', '2026-08-04 08:00:00', '2026-08-06 08:00:00'),
+(42, 'DT042', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 042', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 2, 9, NULL, 3, 'PUBLISHED', '2026-08-13 08:00:00', '2026-08-15 08:00:00'),
+(43, 'DT043', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 043', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 3, 10, NULL, 3, 'CANCELLED', '2026-03-04 08:00:00', '2026-03-06 08:00:00'),
+(44, 'DT044', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 044', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 4, 11, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(45, 'DT045', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 045', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 5, 1, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(46, 'DT046', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 046', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 6, 7, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(47, 'DT047', 'Ứng dụng BIM và giám sát công trình - chuyên đề 047', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 7, 8, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(48, 'DT048', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 048', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 8, 9, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(49, 'DT049', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 049', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 9, 10, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(50, 'DT050', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 050', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 10, 11, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(51, 'DT051', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 051', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 11, 1, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(52, 'DT052', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 052', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 12, 7, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(53, 'DT053', 'Ứng dụng BIM và giám sát công trình - chuyên đề 053', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 13, 8, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(54, 'DT054', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 054', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 14, 9, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(55, 'DT055', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 055', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 15, 10, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(56, 'DT056', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 056', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 16, 11, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(57, 'DT057', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 057', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 17, 1, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(58, 'DT058', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 058', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 18, 7, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(59, 'DT059', 'Ứng dụng BIM và giám sát công trình - chuyên đề 059', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 19, 8, NULL, 3, 'CANCELLED', '2026-02-04 08:00:00', '2026-02-06 08:00:00'),
+(60, 'DT060', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 060', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 20, 9, NULL, 3, 'CANCELLED', '2026-02-04 08:00:00', '2026-02-06 08:00:00'),
+(61, 'DT061', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 061', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 1, 10, NULL, 3, 'PUBLISHED', '2026-08-04 08:00:00', '2026-08-06 08:00:00'),
+(62, 'DT062', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 062', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 2, 11, NULL, 3, 'PUBLISHED', '2026-08-13 08:00:00', '2026-08-15 08:00:00'),
+(63, 'DT063', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 063', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 3, 1, NULL, 3, 'CANCELLED', '2026-03-04 08:00:00', '2026-03-06 08:00:00'),
+(64, 'DT064', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 064', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 4, 7, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(65, 'DT065', 'Ứng dụng BIM và giám sát công trình - chuyên đề 065', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 5, 8, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(66, 'DT066', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 066', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 6, 9, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(67, 'DT067', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 067', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 7, 10, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(68, 'DT068', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 068', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 8, 11, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(69, 'DT069', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 069', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 9, 1, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(70, 'DT070', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 070', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 10, 7, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(71, 'DT071', 'Ứng dụng BIM và giám sát công trình - chuyên đề 071', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 11, 8, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(72, 'DT072', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 072', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 12, 9, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(73, 'DT073', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 073', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 13, 10, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(74, 'DT074', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 074', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 14, 11, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(75, 'DT075', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 075', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 15, 1, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(76, 'DT076', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 076', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 16, 7, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(77, 'DT077', 'Ứng dụng BIM và giám sát công trình - chuyên đề 077', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 17, 8, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(78, 'DT078', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 078', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 18, 9, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(79, 'DT079', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 079', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 19, 10, NULL, 3, 'CANCELLED', '2026-02-04 08:00:00', '2026-02-06 08:00:00'),
+(80, 'DT080', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 080', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 20, 11, NULL, 3, 'CANCELLED', '2026-02-04 08:00:00', '2026-02-06 08:00:00'),
+(81, 'DT081', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 081', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 1, 1, NULL, 3, 'PUBLISHED', '2026-08-04 08:00:00', '2026-08-06 08:00:00'),
+(82, 'DT082', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 082', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 2, 7, NULL, 3, 'PUBLISHED', '2026-08-13 08:00:00', '2026-08-15 08:00:00'),
+(83, 'DT083', 'Ứng dụng BIM và giám sát công trình - chuyên đề 083', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 3, 8, NULL, 3, 'CANCELLED', '2026-03-04 08:00:00', '2026-03-06 08:00:00'),
+(84, 'DT084', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 084', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 4, 9, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(85, 'DT085', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 085', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 5, 10, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(86, 'DT086', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 086', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 6, 11, NULL, 3, 'CANCELLED', '2018-08-04 08:00:00', '2018-08-06 08:00:00'),
+(87, 'DT087', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 087', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 7, 1, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(88, 'DT088', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 088', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 8, 7, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(89, 'DT089', 'Ứng dụng BIM và giám sát công trình - chuyên đề 089', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 9, 8, NULL, 3, 'CANCELLED', '2024-02-04 08:00:00', '2024-02-06 08:00:00'),
+(90, 'DT090', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 090', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 10, 9, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(91, 'DT091', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 091', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 11, 10, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(92, 'DT092', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 092', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 12, 11, NULL, 3, 'CANCELLED', '2024-08-04 08:00:00', '2024-08-06 08:00:00'),
+(93, 'DT093', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 093', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 13, 1, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(94, 'DT094', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 094', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 14, 7, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(95, 'DT095', 'Ứng dụng BIM và giám sát công trình - chuyên đề 095', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 3, 15, 8, NULL, 3, 'CANCELLED', '2025-02-04 08:00:00', '2025-02-06 08:00:00'),
+(96, 'DT096', 'Hệ thống điều khiển và giám sát năng lượng - chuyên đề 096', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 4, 16, 9, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(97, 'DT097', 'Mô phỏng và tối ưu quy trình cơ khí - chuyên đề 097', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 5, 17, 10, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(98, 'DT098', 'Phân tích dữ liệu bán lẻ và quản trị kinh doanh - chuyên đề 098', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 6, 18, 11, NULL, 3, 'CANCELLED', '2025-08-04 08:00:00', '2025-08-06 08:00:00'),
+(99, 'DT099', 'Hệ thống quản lý học liệu và đào tạo - chuyên đề 099', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 1, 19, 1, NULL, 3, 'CANCELLED', '2026-02-04 08:00:00', '2026-02-06 08:00:00'),
+(100, 'DT100', 'Phân tích pháp luật về hợp đồng điện tử - chuyên đề 100', 'Đề tài ứng dụng chuyên ngành, có phân tích yêu cầu, sản phẩm minh chứng và báo cáo đánh giá.', 'Có kiến thức chuyên ngành và kỹ năng làm việc nhóm.', 2, 20, 7, NULL, 3, 'CANCELLED', '2026-02-04 08:00:00', '2026-02-06 08:00:00');
 
-INSERT IGNORE INTO council_members (id, council_id, lecturer_id, role)
-WITH RECURSIVE seq AS (
-    SELECT 3 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT 7 + ((number - 3) * 3), number, 1 + ((number - 1) % 100), 'CHAIRMAN'
-FROM seq
-UNION ALL
-SELECT 8 + ((number - 3) * 3), number, 1 + (number % 100), 'SECRETARY'
-FROM seq
-UNION ALL
-SELECT 9 + ((number - 3) * 3), number, 1 + ((number + 1) % 100), 'MEMBER'
-FROM seq;
+INSERT INTO topic_supervisors (id, topic_id, lecturer_id, role) VALUES
+(1, 1, 1, 'PRIMARY'),
+(2, 1, 5, 'CO_SUPERVISOR'),
+(3, 2, 2, 'PRIMARY'),
+(4, 3, 3, 'PRIMARY'),
+(5, 3, 1, 'CO_SUPERVISOR'),
+(6, 4, 4, 'PRIMARY'),
+(7, 5, 5, 'PRIMARY'),
+(8, 6, 2, 'PRIMARY'),
+(9, 7, 6, 'PRIMARY'),
+(10, 8, 7, 'PRIMARY'),
+(11, 9, 8, 'PRIMARY'),
+(12, 10, 9, 'PRIMARY'),
+(13, 11, 10, 'PRIMARY'),
+(14, 12, 11, 'PRIMARY'),
+(15, 13, 6, 'PRIMARY'),
+(16, 14, 7, 'PRIMARY'),
+(17, 15, 8, 'PRIMARY'),
+(18, 16, 9, 'PRIMARY'),
+(19, 17, 10, 'PRIMARY'),
+(20, 18, 11, 'PRIMARY'),
+(21, 19, 6, 'PRIMARY'),
+(22, 20, 7, 'PRIMARY'),
+(23, 21, 5, 'PRIMARY'),
+(24, 22, 7, 'PRIMARY'),
+(25, 23, 8, 'PRIMARY'),
+(26, 24, 9, 'PRIMARY'),
+(27, 25, 10, 'PRIMARY'),
+(28, 26, 11, 'PRIMARY'),
+(29, 27, 1, 'PRIMARY'),
+(30, 28, 7, 'PRIMARY'),
+(31, 29, 8, 'PRIMARY'),
+(32, 30, 9, 'PRIMARY'),
+(33, 31, 10, 'PRIMARY'),
+(34, 32, 11, 'PRIMARY'),
+(35, 33, 1, 'PRIMARY'),
+(36, 34, 7, 'PRIMARY'),
+(37, 35, 8, 'PRIMARY'),
+(38, 36, 9, 'PRIMARY'),
+(39, 37, 10, 'PRIMARY'),
+(40, 38, 11, 'PRIMARY'),
+(41, 39, 1, 'PRIMARY'),
+(42, 40, 7, 'PRIMARY'),
+(43, 41, 8, 'PRIMARY'),
+(44, 42, 9, 'PRIMARY'),
+(45, 43, 10, 'PRIMARY'),
+(46, 44, 11, 'PRIMARY'),
+(47, 45, 1, 'PRIMARY'),
+(48, 46, 7, 'PRIMARY'),
+(49, 47, 8, 'PRIMARY'),
+(50, 48, 9, 'PRIMARY'),
+(51, 49, 10, 'PRIMARY'),
+(52, 50, 11, 'PRIMARY'),
+(53, 51, 1, 'PRIMARY'),
+(54, 52, 7, 'PRIMARY'),
+(55, 53, 8, 'PRIMARY'),
+(56, 54, 9, 'PRIMARY'),
+(57, 55, 10, 'PRIMARY'),
+(58, 56, 11, 'PRIMARY'),
+(59, 57, 1, 'PRIMARY'),
+(60, 58, 7, 'PRIMARY'),
+(61, 59, 8, 'PRIMARY'),
+(62, 60, 9, 'PRIMARY'),
+(63, 61, 10, 'PRIMARY'),
+(64, 62, 11, 'PRIMARY'),
+(65, 63, 1, 'PRIMARY'),
+(66, 64, 7, 'PRIMARY'),
+(67, 65, 8, 'PRIMARY'),
+(68, 66, 9, 'PRIMARY'),
+(69, 67, 10, 'PRIMARY'),
+(70, 68, 11, 'PRIMARY'),
+(71, 69, 1, 'PRIMARY'),
+(72, 70, 7, 'PRIMARY'),
+(73, 71, 8, 'PRIMARY'),
+(74, 72, 9, 'PRIMARY'),
+(75, 73, 10, 'PRIMARY'),
+(76, 74, 11, 'PRIMARY'),
+(77, 75, 1, 'PRIMARY'),
+(78, 76, 7, 'PRIMARY'),
+(79, 77, 8, 'PRIMARY'),
+(80, 78, 9, 'PRIMARY'),
+(81, 79, 10, 'PRIMARY'),
+(82, 80, 11, 'PRIMARY'),
+(83, 81, 1, 'PRIMARY'),
+(84, 82, 7, 'PRIMARY'),
+(85, 83, 8, 'PRIMARY'),
+(86, 84, 9, 'PRIMARY'),
+(87, 85, 10, 'PRIMARY'),
+(88, 86, 11, 'PRIMARY'),
+(89, 87, 1, 'PRIMARY'),
+(90, 88, 7, 'PRIMARY'),
+(91, 89, 8, 'PRIMARY'),
+(92, 90, 9, 'PRIMARY'),
+(93, 91, 10, 'PRIMARY'),
+(94, 92, 11, 'PRIMARY'),
+(95, 93, 1, 'PRIMARY'),
+(96, 94, 7, 'PRIMARY'),
+(97, 95, 8, 'PRIMARY'),
+(98, 96, 9, 'PRIMARY'),
+(99, 97, 10, 'PRIMARY'),
+(100, 98, 11, 'PRIMARY'),
+(101, 99, 1, 'PRIMARY'),
+(102, 100, 7, 'PRIMARY');
 
-INSERT IGNORE INTO topic_assignments (id, council_id, topic_registration_id, status)
-WITH RECURSIVE seq AS (
-    SELECT 2 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 20
-)
-SELECT number, number, number, 'ASSIGNED'
-FROM seq;
+INSERT INTO student_groups (id, name, leader_id, reg_period_id, topic_id, status, created_at) VALUES
+(1, 'Nhóm DT001', 1, 18, 1, 'ASSIGNED', '2025-08-16 08:00:00'),
+(2, 'Nhóm DT002', 4, 1, 2, 'ASSIGNED', '2026-09-16 08:00:00'),
+(3, 'Nhóm DT007', 6, 7, 7, 'ASSIGNED', '2024-02-16 08:00:00'),
+(4, 'Nhóm DT008', 7, 8, 8, 'ASSIGNED', '2024-02-16 08:00:00'),
+(5, 'Nhóm DT009', 8, 1, 9, 'ASSIGNED', '2026-09-16 08:00:00'),
+(6, 'Nhóm DT010', 9, 2, 10, 'ASSIGNED', '2026-09-21 08:00:00'),
+(7, 'Nhóm DT011', 10, 2, 11, 'ASSIGNED', '2026-09-21 08:00:00'),
+(8, 'Nhóm DT012', 11, 2, 12, 'ASSIGNED', '2026-09-21 08:00:00'),
+(9, 'Nhóm DT013', 18, 1, 13, 'ASSIGNED', '2026-09-16 08:00:00'),
+(10, 'Nhóm DT014', 19, 1, 14, 'ASSIGNED', '2026-09-16 08:00:00'),
+(11, 'Nhóm DT015', 20, 1, 15, 'ASSIGNED', '2026-09-16 08:00:00'),
+(12, 'Nhóm DT016', 21, 2, 16, 'ASSIGNED', '2026-09-21 08:00:00'),
+(13, 'Nhóm DT017', 22, 2, 17, 'ASSIGNED', '2026-09-21 08:00:00'),
+(14, 'Nhóm DT018', 23, 2, 18, 'ASSIGNED', '2026-09-21 08:00:00'),
+(15, 'Nhóm DT019', 30, 1, 19, 'ASSIGNED', '2026-09-16 08:00:00'),
+(16, 'Nhóm DT020', 31, 1, 20, 'ASSIGNED', '2026-09-16 08:00:00'),
+(17, 'Nhom DT021 - cho hoi dong', 96, 1, 21, 'ASSIGNED', '2026-09-16 08:00:00');
 
-INSERT IGNORE INTO notifications
-    (id, title, content, type, published, published_at, created_by)
-WITH RECURSIVE seq AS (
-    SELECT 4 AS number
-    UNION ALL SELECT number + 1 FROM seq WHERE number < 100
-)
-SELECT number, CONCAT('Thông báo học vụ số ', number),
-       CONCAT('Nội dung thông báo dành cho người dùng của hệ thống UTE, số ', number),
-       CASE number % 3 WHEN 0 THEN 'ALL' WHEN 1 THEN 'STUDENT' ELSE 'LECTURER' END,
-       b'1', DATE_ADD('2026-08-01 08:00:00', INTERVAL number DAY), 1
-FROM seq;
+INSERT INTO group_members (id, group_id, student_id, leader, joined_at) VALUES
+(1, 1, 1, 1, '2025-08-16 08:00:00'),
+(2, 1, 2, 0, '2025-08-16 08:00:00'),
+(3, 1, 3, 0, '2025-08-16 08:00:00'),
+(4, 2, 4, 1, '2026-09-16 08:00:00'),
+(5, 2, 5, 0, '2026-09-16 08:00:00'),
+(6, 3, 6, 1, '2024-02-16 08:00:00'),
+(7, 3, 12, 0, '2024-02-16 08:00:00'),
+(8, 4, 7, 1, '2024-02-16 08:00:00'),
+(9, 4, 13, 0, '2024-02-16 08:00:00'),
+(10, 5, 8, 1, '2026-09-16 08:00:00'),
+(11, 5, 14, 0, '2026-09-16 08:00:00'),
+(12, 6, 9, 1, '2026-09-21 08:00:00'),
+(13, 6, 15, 0, '2026-09-21 08:00:00'),
+(14, 7, 10, 1, '2026-09-21 08:00:00'),
+(15, 7, 16, 0, '2026-09-21 08:00:00'),
+(16, 8, 11, 1, '2026-09-21 08:00:00'),
+(17, 8, 17, 0, '2026-09-21 08:00:00'),
+(18, 9, 18, 1, '2026-09-16 08:00:00'),
+(19, 9, 24, 0, '2026-09-16 08:00:00'),
+(20, 10, 19, 1, '2026-09-16 08:00:00'),
+(21, 10, 25, 0, '2026-09-16 08:00:00'),
+(22, 11, 20, 1, '2026-09-16 08:00:00'),
+(23, 11, 26, 0, '2026-09-16 08:00:00'),
+(24, 12, 21, 1, '2026-09-21 08:00:00'),
+(25, 12, 27, 0, '2026-09-21 08:00:00'),
+(26, 13, 22, 1, '2026-09-21 08:00:00'),
+(27, 13, 28, 0, '2026-09-21 08:00:00'),
+(28, 14, 23, 1, '2026-09-21 08:00:00'),
+(29, 14, 29, 0, '2026-09-21 08:00:00'),
+(30, 15, 30, 1, '2026-09-16 08:00:00'),
+(31, 15, 36, 0, '2026-09-16 08:00:00'),
+(32, 16, 31, 1, '2026-09-16 08:00:00'),
+(33, 16, 37, 0, '2026-09-16 08:00:00'),
+(34, 17, 96, 1, '2026-09-16 08:00:00'),
+(35, 17, 90, 0, '2026-09-16 08:00:00');
 
+INSERT INTO topic_registrations (id, group_id, topic_id, approved_by, status, note, approved_at, created_at) VALUES
+(1, 1, 1, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2025-08-18 08:00:00', '2025-08-18 07:00:00'),
+(2, 2, 2, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-18 08:00:00', '2026-09-18 07:00:00'),
+(3, 3, 7, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2024-02-18 08:00:00', '2024-02-18 07:00:00'),
+(4, 4, 8, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2024-02-18 08:00:00', '2024-02-18 07:00:00'),
+(5, 5, 9, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-18 08:00:00', '2026-09-18 07:00:00'),
+(6, 6, 10, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-23 08:00:00', '2026-09-23 07:00:00'),
+(7, 7, 11, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-23 08:00:00', '2026-09-23 07:00:00'),
+(8, 8, 12, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-23 08:00:00', '2026-09-23 07:00:00'),
+(9, 9, 13, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-18 08:00:00', '2026-09-18 07:00:00'),
+(10, 10, 14, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-18 08:00:00', '2026-09-18 07:00:00'),
+(11, 11, 15, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-18 08:00:00', '2026-09-18 07:00:00'),
+(12, 12, 16, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-23 08:00:00', '2026-09-23 07:00:00'),
+(13, 13, 17, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-23 08:00:00', '2026-09-23 07:00:00'),
+(14, 14, 18, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-23 08:00:00', '2026-09-23 07:00:00'),
+(15, 15, 19, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-18 08:00:00', '2026-09-18 07:00:00'),
+(16, 16, 20, 1, 'APPROVED', 'Đăng ký đã được kiểm tra thành viên và khoa.', '2026-09-18 08:00:00', '2026-09-18 07:00:00'),
+(17, 17, 21, 1, 'APPROVED', 'Demo: approved, awaiting council assignment.', '2026-09-18 08:00:00', '2026-09-18 07:00:00');
+
+INSERT INTO reports (id, topic_registration_id, submitted_by, file_name, file_path, note, submitted_at, approved, approved_at, review_status) VALUES
+(1, 1, 1, 'BaoCao_DT001_demo.pdf', '/demo-reports/BaoCao_DT001_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2025-11-20 09:00:00', 1, '2025-12-04 15:00:00', 'APPROVED'),
+(2, 2, 4, 'BaoCao_DT002_demo.pdf', '/demo-reports/BaoCao_DT002_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(3, 3, 6, 'BaoCao_DT007_demo.pdf', '/demo-reports/BaoCao_DT007_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2024-03-21 08:00:00', 1, '2024-04-24 09:00:00', 'APPROVED'),
+(4, 4, 7, 'BaoCao_DT008_demo.pdf', '/demo-reports/BaoCao_DT008_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2024-03-21 08:00:00', 1, '2024-04-24 09:00:00', 'APPROVED'),
+(5, 5, 8, 'BaoCao_DT009_demo.pdf', '/demo-reports/BaoCao_DT009_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(6, 6, 9, 'BaoCao_DT010_demo.pdf', '/demo-reports/BaoCao_DT010_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(7, 7, 10, 'BaoCao_DT011_demo.pdf', '/demo-reports/BaoCao_DT011_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(8, 8, 11, 'BaoCao_DT012_demo.pdf', '/demo-reports/BaoCao_DT012_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(9, 9, 18, 'BaoCao_DT013_demo.pdf', '/demo-reports/BaoCao_DT013_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(10, 10, 19, 'BaoCao_DT014_demo.pdf', '/demo-reports/BaoCao_DT014_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(11, 11, 20, 'BaoCao_DT015_demo.pdf', '/demo-reports/BaoCao_DT015_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(12, 12, 21, 'BaoCao_DT016_demo.pdf', '/demo-reports/BaoCao_DT016_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(13, 13, 22, 'BaoCao_DT017_demo.pdf', '/demo-reports/BaoCao_DT017_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(14, 14, 23, 'BaoCao_DT018_demo.pdf', '/demo-reports/BaoCao_DT018_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(15, 15, 30, 'BaoCao_DT019_demo.pdf', '/demo-reports/BaoCao_DT019_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(16, 16, 31, 'BaoCao_DT020_demo.pdf', '/demo-reports/BaoCao_DT020_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED'),
+(17, 17, 96, 'BaoCao_DT021_demo.pdf', '/demo-reports/BaoCao_DT021_demo.pdf', 'Báo cáo PDF mẫu để kiểm thử chức năng xem và tải tài liệu.', '2026-10-15 09:00:00', 1, '2026-10-16 09:00:00', 'APPROVED');
+
+INSERT INTO topic_evaluations (id, topic_id, reviewer_id, score, comment, evaluated_at) VALUES
+(1, 1, 1, '8.5', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2025-12-04 14:00:00'),
+(2, 1, 5, '8.5', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2025-12-04 14:00:00'),
+(3, 2, 2, '8.4', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(4, 7, 6, '8.6', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2024-04-24 08:00:00'),
+(5, 8, 7, '8.0', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2024-04-24 08:00:00'),
+(6, 9, 8, '8.2', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(7, 10, 9, '8.4', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(8, 11, 10, '8.6', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(9, 12, 11, '8.0', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(10, 13, 6, '8.2', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(11, 14, 7, '8.4', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(12, 15, 8, '8.6', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(13, 16, 9, '8.0', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(14, 17, 10, '8.2', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(15, 18, 11, '8.4', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(16, 19, 6, '8.6', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(17, 20, 7, '8.0', 'Hoàn thành yêu cầu quá trình; đủ điều kiện báo cáo hội đồng.', '2026-10-14 14:00:00'),
+(18, 21, 5, '8.0', 'Eligible for council assignment.', '2026-10-14 14:00:00');
+
+INSERT INTO councils (id, code, name, reg_period_id, department_id, chairman_id, secretary_id, council_date, location, status, created_at) VALUES
+(1, 'HD001', 'Hội đồng DT001', 18, 1, 2, 3, '2025-12-11', 'Phòng H1-101', 'COMPLETED', '2025-12-04 15:00:00'),
+(2, 'HD002', 'Hội đồng KLTN CNTT - chờ phân công', 1, 1, 1, 3, '2027-01-20', 'Phòng H1-102', 'PLANNED', '2026-10-16 15:00:00'),
+(3, 'HD003', 'Hội đồng DT007', 7, 1, 1, 2, '2024-05-01', 'Phòng H1-103', 'COMPLETED', '2024-04-24 09:00:00'),
+(4, 'HD004', 'Hội đồng DT008', 8, 2, 13, 19, '2024-05-01', 'Phòng H2-104', 'COMPLETED', '2024-04-24 09:00:00'),
+(5, 'HD005', 'Hội đồng KLTN Xây dựng - chờ phân công', 1, 3, 14, 20, '2027-01-20', 'Phòng H3-105', 'PLANNED', '2026-10-16 15:00:00'),
+(6, 'HD006', 'Hội đồng TLCN Điện - Điện tử - chờ phân công', 2, 4, 15, 21, '2026-12-20', 'Phòng H4-106', 'PLANNED', '2026-10-16 15:00:00');
+
+INSERT INTO council_members (id, council_id, lecturer_id, role, joined_at) VALUES
+(1, 1, 2, 'CHAIRMAN', '2025-12-04 15:00:00'),
+(2, 1, 3, 'SECRETARY', '2025-12-04 15:00:00'),
+(3, 1, 4, 'MEMBER', '2025-12-04 15:00:00'),
+(4, 2, 1, 'CHAIRMAN', '2026-10-16 15:00:00'),
+(5, 2, 3, 'SECRETARY', '2026-10-16 15:00:00'),
+(6, 2, 4, 'MEMBER', '2026-10-16 15:00:00'),
+(7, 3, 1, 'CHAIRMAN', '2024-04-24 09:00:00'),
+(8, 3, 2, 'SECRETARY', '2024-04-24 09:00:00'),
+(9, 3, 3, 'MEMBER', '2024-04-24 09:00:00'),
+(10, 4, 13, 'CHAIRMAN', '2024-04-24 09:00:00'),
+(11, 4, 19, 'SECRETARY', '2024-04-24 09:00:00'),
+(12, 4, 25, 'MEMBER', '2024-04-24 09:00:00'),
+(13, 5, 14, 'CHAIRMAN', '2026-10-16 15:00:00'),
+(14, 5, 20, 'SECRETARY', '2026-10-16 15:00:00'),
+(15, 5, 26, 'MEMBER', '2026-10-16 15:00:00'),
+(16, 6, 15, 'CHAIRMAN', '2026-10-16 15:00:00'),
+(17, 6, 21, 'SECRETARY', '2026-10-16 15:00:00'),
+(18, 6, 27, 'MEMBER', '2026-10-16 15:00:00');
+
+INSERT INTO topic_assignments (id, council_id, topic_registration_id, status, assigned_at) VALUES
+(1, 1, 1, 'EVALUATED', '2025-12-04 16:00:00'),
+(3, 3, 3, 'EVALUATED', '2024-04-24 10:00:00'),
+(4, 4, 4, 'EVALUATED', '2024-04-24 10:00:00');
+
+INSERT INTO scores (id, topic_assignment_id, council_member_id, score, comment, submitted_at, updated_at) VALUES
+(1, 3, 7, '8.5', 'Đã báo cáo, trả lời phản biện và hoàn thành yêu cầu hội đồng.', '2024-05-03 14:00:00', '2024-05-03 14:00:00'),
+(2, 3, 8, '8.6', 'Đã báo cáo, trả lời phản biện và hoàn thành yêu cầu hội đồng.', '2024-05-03 14:00:00', '2024-05-03 14:00:00'),
+(3, 3, 9, '8.4', 'Đã báo cáo, trả lời phản biện và hoàn thành yêu cầu hội đồng.', '2024-05-03 14:00:00', '2024-05-03 14:00:00'),
+(4, 4, 10, '7.6', 'Đã báo cáo, trả lời phản biện và hoàn thành yêu cầu hội đồng.', '2024-05-03 14:00:00', '2024-05-03 14:00:00'),
+(5, 4, 11, '7.7', 'Đã báo cáo, trả lời phản biện và hoàn thành yêu cầu hội đồng.', '2024-05-03 14:00:00', '2024-05-03 14:00:00'),
+(6, 4, 12, '7.5', 'Đã báo cáo, trả lời phản biện và hoàn thành yêu cầu hội đồng.', '2024-05-03 14:00:00', '2024-05-03 14:00:00'),
+(43, 1, 1, '9.2', 'Điểm hội đồng mẫu đã hoàn tất.', '2025-12-13 14:00:00', '2025-12-13 14:00:00'),
+(44, 1, 2, '8.8', 'Điểm hội đồng mẫu đã hoàn tất.', '2025-12-13 14:00:00', '2025-12-13 14:00:00'),
+(45, 1, 3, '9.0', 'Điểm hội đồng mẫu đã hoàn tất.', '2025-12-13 14:00:00', '2025-12-13 14:00:00');
+
+INSERT INTO notifications (id, title, content, type, published, published_at, created_by, created_at) VALUES
+(1, 'Thông báo: Kế hoạch Đăng ký Khóa luận tốt nghiệp HK1 năm học 2026-2027', 'Khoa Công nghệ thông tin thông báo đến toàn thể Giảng viên và Sinh viên về kế hoạch triển khai đợt KLTN. Giảng viên đề xuất đề tài từ ngày 01/08/2026 đến 15/09/2026. Sinh viên tiến hành lập nhóm (tối đa 3 SV) và đăng ký đề tài từ ngày 16/09/2026 đến 15/10/2026.', 'ALL', b'1', '2026-08-15 08:00:00', 1, '2026-08-15 08:00:00'),
+(2, 'Hướng dẫn Sinh viên: Quy định thành lập nhóm và nộp báo cáo tiến độ', 'Mỗi nhóm sinh viên gồm tối đa 03 thành viên và mỗi sinh viên chỉ được tham gia 01 nhóm duy nhất trong đợt. Việc nộp báo cáo đề tài chỉ được thực hiện bởi Nhóm trưởng. Các nhóm lưu ý nộp đúng hạn quy định trên hệ thống.', 'STUDENT', b'1', '2026-08-16 09:00:00', 1, '2026-08-16 09:00:00'),
+(3, 'Lưu ý Giảng viên: Quy định chấm điểm và phân công hội đồng phản biện', 'Kính gửi Quý Thầy/Cô, theo quy chế đào tạo, Giảng viên hướng dẫn hoặc đồng hướng dẫn sẽ không tham gia chấm điểm phản biện cho đề tài do mình hướng dẫn. Đề nghị Quý Thầy/Cô thành viên hội đồng hoàn thành nhập điểm đúng thời hạn quy định.', 'LECTURER', b'1', '2026-08-17 10:00:00', 1, '2026-08-17 10:00:00'),
+(4, 'Hướng dẫn chung: Các bước thực hiện đề tài', 'Quy trình gồm đề xuất đề tài, lập nhóm và đăng ký, nộp báo cáo, đánh giá quá trình, phân công hội đồng và công bố kết quả. Mỗi bước phải hoàn tất điều kiện của bước trước.', 'ALL', b'1', '2026-08-18 08:00:00', 1, '2026-08-18 08:00:00'),
+(5, 'Sinh viên: Trách nhiệm của nhóm trưởng', 'Nhóm trưởng quản lý thành viên, gửi đăng ký và nộp báo cáo thay mặt nhóm. Kiểm tra khoa, đợt đăng ký và số thành viên trước khi gửi yêu cầu.', 'STUDENT', b'1', '2026-08-21 08:00:00', 1, '2026-08-21 08:00:00'),
+(6, 'Giảng viên: Kiểm tra thông tin đề xuất', 'Đề xuất cần có tên, mô tả, yêu cầu, giới hạn sinh viên và khoa quản lý phù hợp. Đề xuất mới hoặc chỉnh sửa cần được duyệt trước khi công bố.', 'LECTURER', b'1', '2026-08-24 08:00:00', 1, '2026-08-24 08:00:00'),
+(7, 'Bảo vệ tài khoản và thông tin học tập', 'Không chia sẻ mật khẩu hoặc phiên đăng nhập. Khi sử dụng máy tính chung, đăng xuất sau khi hoàn thành thao tác và kiểm tra đúng tài khoản trước khi nộp dữ liệu.', 'ALL', b'1', '2026-08-27 08:00:00', 1, '2026-08-27 08:00:00'),
+(8, 'Quy định lưu trữ tài liệu của nhóm', 'Lưu bản sao báo cáo và sản phẩm ở nơi an toàn. Đặt tên tài liệu theo mã đề tài và phiên bản; không thay thế nhầm file của nhóm hoặc đợt khác.', 'ALL', b'1', '2026-08-30 08:00:00', 1, '2026-08-30 08:00:00'),
+(9, 'Sinh viên: Định dạng và dung lượng báo cáo', 'Chuẩn bị tài liệu PDF, DOCX hoặc ZIP theo hướng dẫn. Giới hạn tải lên của hệ thống là 10 MB mỗi tệp. Kiểm tra nội dung và thử tải lại sau khi nộp.', 'STUDENT', b'1', '2026-09-02 08:00:00', 1, '2026-09-02 08:00:00'),
+(10, 'Hướng dẫn đọc thông báo trên hệ thống', 'Nhấn thông báo trên thanh điều hướng để mở nội dung và đánh dấu đã đọc. Số chưa đọc trên biểu tượng chuông và thanh bên được cập nhật ngay khi mở thông báo.', 'ALL', b'1', '2026-09-05 08:00:00', 1, '2026-09-05 08:00:00'),
+(11, 'Giảng viên: Nhập điểm quá trình', 'GVHD kiểm tra báo cáo và nhập điểm quá trình từ 0 đến 10. Cần có đánh giá quá trình trước khi duyệt báo cáo; GVHD chính phải chấm trên 5 để đề tài đủ điều kiện vào hội đồng.', 'LECTURER', b'1', '2026-09-08 08:00:00', 1, '2026-09-08 08:00:00'),
+(12, 'Điều kiện phân công đề tài vào hội đồng', 'Đăng ký phải được duyệt, đủ điểm quá trình và chưa thuộc hội đồng nào. Hội đồng và đề tài phải cùng khoa, cùng đợt. GVHD hoặc đồng hướng dẫn không được tự chấm đề tài.', 'ALL', b'1', '2026-09-11 08:00:00', 1, '2026-09-11 08:00:00'),
+(13, 'Quy định thành viên và phạm vi của nhóm', 'Mỗi sinh viên chỉ thuộc một nhóm trong cùng đợt. Nhóm có tối đa 3 thành viên và không vượt giới hạn của đề tài. Sau khi được gán đề tài, danh sách thành viên được khóa.', 'ALL', b'1', '2026-09-14 08:00:00', 1, '2026-09-14 08:00:00'),
+(14, 'Theo dõi thời hạn theo từng đợt đăng ký', 'Mốc đề xuất của giảng viên và mốc đăng ký của sinh viên được quản lý riêng. Xem lịch của đợt trước khi thao tác; hệ thống không nhận đăng ký mới ngoài thời hạn.', 'ALL', b'1', '2026-09-17 08:00:00', 1, '2026-09-17 08:00:00'),
+(15, 'Sinh viên: Tra cứu kết quả sau bảo vệ', 'Mở mục Kết quả để xem điểm quá trình, lịch báo cáo và kết quả đã công bố. Điểm tổng kết gồm 50% quá trình và 50% hội đồng; điểm hội đồng chỉ hiển thị sau khi chốt.', 'STUDENT', b'1', '2026-09-20 08:00:00', 1, '2026-09-20 08:00:00'),
+(16, 'Giảng viên: Thời điểm nhập điểm hội đồng', 'Chỉ thành viên hội đồng được phân công mới có quyền nhập điểm. Nhập sau khi báo cáo, trong hạn nộp điểm của đợt; hội đồng đã chốt sẽ không cho chỉnh sửa.', 'LECTURER', b'1', '2026-09-23 08:00:00', 1, '2026-09-23 08:00:00'),
+(17, 'Bộ mẫu kiểm thử phân công nhiều đề tài', 'Bộ dữ liệu mẫu có các hội đồng HD002, HD005 và HD006 đang dự kiến để thực hành phân công. Một hội đồng có thể nhận nhiều đề tài nếu đáp ứng đầy đủ điều kiện.', 'ALL', b'1', '2026-09-26 08:00:00', 1, '2026-09-26 08:00:00'),
+(18, 'Hướng dẫn xử lý khi không tải được tài liệu', 'Kiểm tra quyền xem và xác nhận báo cáo đã có tệp đính kèm. Tài liệu mẫu PDF được đóng gói cùng project. Khi báo lỗi, cung cấp mã đề tài và mã báo cáo cho người quản lý.', 'ALL', b'1', '2026-09-29 08:00:00', 1, '2026-09-29 08:00:00'),
+(19, 'Kiểm tra dữ liệu trước khi công bố điểm', 'Đối chiếu điểm của đủ các thành viên, điểm quá trình và thông tin nhóm. Chỉ công bố khi dữ liệu đã đầy đủ và ngày báo cáo đã đến; không chốt hội đồng chưa có đề tài.', 'ALL', b'1', '2026-10-05 08:00:00', 1, '2026-10-05 08:00:00'),
+(20, 'Liên hệ hỗ trợ khi dữ liệu hồ sơ chưa đúng', 'Nếu MSSV, khoa hoặc hồ sơ giảng viên chưa đúng, liên hệ quản trị viên để kiểm tra. Không dùng tài khoản hoặc báo cáo của người khác; giữ lại mã đề tài và mô tả lỗi khi cần hỗ trợ.', 'ALL', b'1', '2026-10-16 08:00:00', 1, '2026-10-16 08:00:00');
+
+INSERT INTO announcements (id, title, content, created_at, created_by) VALUES
+(1, 'Dữ liệu minh họa hệ thống quản lý đề tài', 'Dữ liệu mẫu tại ngày 17/10/2026; các tệp báo cáo chưa được đính kèm.', '2026-08-01 08:00:00', 1);
+
+INSERT INTO announcement_reads (id, notification_id, user_id, read_at) VALUES
+(1, 1, 8, '2026-08-16 08:00:00'),
+(2, 2, 8, '2026-08-17 08:00:00'),
+(3, 3, 3, '2026-08-18 08:00:00');
+
+-- 20 đợt; 100 đề tài; 100 sinh viên; 100 giảng viên + trưởng khoa/phụ trách khoa.
+-- 17 nhóm/đăng ký; 6 hội đồng: 3 hoàn tất, 3 dự kiến; 14 đăng ký chưa phân công.

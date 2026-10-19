@@ -24,10 +24,10 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf -> csrf.disable())
+                // Giữ bảo vệ CSRF mặc định; các form JSP và AJAX gửi token theo phiên.
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/api/**").authenticated()
+                        .requestMatchers("/api/**", "/reports/**").authenticated()
                         .requestMatchers("/admin/**", "/lecturer/**", "/student/**").authenticated()
                         .anyRequest().permitAll())
                 .oauth2Login(oauth2 -> oauth2

@@ -2,13 +2,13 @@ package ute.edu.service;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Queue;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,16 +30,15 @@ public class MailerServiceImp implements MailerService {
 	record PendingMail(MailInfo mail, int attempt) {
 	}
 
-	/**
-	 * Hàng đợi email chờ gửi.
-	 * Dùng ConcurrentLinkedQueue (an toàn đa luồng) thay cho ArrayList: các request
-	 * (luồng của Tomcat) gọi queue() trong khi luồng @Scheduled gọi run() cùng lúc,
-	 * ArrayList không đồng bộ nên có thể làm mất hoặc hỏng email.
-	 */
+	/** Hàng đợi an toàn đa luồng: luồng request gọi queue() trong khi luồng @Scheduled gọi run(). */
 	final Queue<PendingMail> listEmails = new ConcurrentLinkedQueue<>();
+	private final JavaMailSender sender;
+	private final String defaultFrom;
 
-	@Autowired
-	JavaMailSender sender;
+	public MailerServiceImp(JavaMailSender sender, @Value("${spring.mail.username}") String defaultFrom) {
+		this.sender = sender;
+		this.defaultFrom = defaultFrom;
+	}
 
 	@Override
 	/** Tạo MIME email, thêm người nhận/tệp đính kèm và gửi qua SMTP. */
@@ -48,11 +47,12 @@ public class MailerServiceImp implements MailerService {
 		// Sử dụng Helper để thiết lập các thông tin cần thiết cho message
 		MimeMessageHelper helper = new MimeMessageHelper(message, true, "utf-8");
 
-		helper.setFrom(mail.getFrom());
+		String from = mail.getFrom() == null || mail.getFrom().isBlank() ? defaultFrom : mail.getFrom();
+		helper.setFrom(from);
 		helper.setTo(mail.getTo());
 		helper.setSubject(mail.getSubject());
 		helper.setText(mail.getBody(), true);
-		helper.setReplyTo(mail.getFrom());
+		helper.setReplyTo(from);
 
 		String[] cc = mail.getCc();
 		// Kiểm tra mảng cc có tồn tại hay không
@@ -99,8 +99,8 @@ public class MailerServiceImp implements MailerService {
 	@Scheduled(fixedDelay = 5000)
 	/**
 	 * Cứ 5 giây lấy email trong hàng đợi để gửi.
-	 * Gửi lỗi (mất mạng, SMTP từ chối...) thì không bỏ ngay mà đưa lại vào hàng đợi
-	 * để thử ở lượt sau, tối đa MAX_ATTEMPTS lần.
+	 * Gửi lỗi (mất mạng, SMTP từ chối...) thì đưa lại vào hàng đợi để thử ở lượt sau,
+	 * tối đa MAX_ATTEMPTS lần rồi mới bỏ và ghi nhật ký.
 	 */
 	public void run() {
 		List<PendingMail> retry = new ArrayList<>();
@@ -110,7 +110,7 @@ public class MailerServiceImp implements MailerService {
 				this.send(item.mail());
 			} catch (Exception e) {
 				if (item.attempt() < MAX_ATTEMPTS) {
-					log.warn("Gửi mail '{}' lỗi lần {}/{}: {} → sẽ thử lại", item.mail().getSubject(),
+					log.warn("Gửi mail '{}' lỗi lần {}/{}: {} -> sẽ thử lại", item.mail().getSubject(),
 							item.attempt(), MAX_ATTEMPTS, e.getMessage());
 					retry.add(new PendingMail(item.mail(), item.attempt() + 1));
 				} else {

@@ -19,7 +19,7 @@ import ute.edu.enums.ReportReviewStatus;
 @Service
 /** Service nộp, lưu trữ và xét duyệt báo cáo của nhóm sinh viên. */
 public class ReportService {
-    private static final Path REPORT_STORAGE = Paths.get("uploads", "reports");
+    private static final Path REPORT_STORAGE = Paths.get("uploads", "reports").toAbsolutePath().normalize();
     private final ReportRepository reportRepository;
     private final TopicRegistrationRepository registrationRepository;
     private final StudentRepository studentRepository;
@@ -34,12 +34,17 @@ public class ReportService {
 
     /** Lấy toàn bộ báo cáo. */
     public List<Report> getAll() {
-        return reportRepository.findAll();
+        return reportRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "submittedAt", "id"));
+    }
+
+    public boolean hasApprovedReportForTopic(Long topicId) {
+        return reportRepository.existsByTopicRegistrationTopicIdAndApprovedTrue(topicId);
     }
 
     /** Lấy báo cáo của một đăng ký theo thứ tự mới nhất. */
     public List<Report> getReportsForRegistration(Long registrationId) {
-        return reportRepository.findByTopicRegistrationIdOrderBySubmittedAtDesc(registrationId);
+        return reportRepository.findByTopicRegistrationIdOrderBySubmittedAtDescIdDesc(registrationId);
     }
 
     /** Tìm báo cáo theo mã, báo lỗi nếu không tồn tại. */
@@ -74,6 +79,12 @@ public class ReportService {
             return null;
         }
         String originalName = file.getOriginalFilename() == null ? "report" : file.getOriginalFilename();
+        if (file.getSize() > 10L * 1024 * 1024) {
+            throw new IllegalArgumentException("Tệp báo cáo không được vượt quá 10 MB!");
+        }
+        if (!originalName.toLowerCase(java.util.Locale.ROOT).matches(".*\\.(pdf|doc|docx|zip|rar)$")) {
+            throw new IllegalArgumentException("Chỉ hỗ trợ tệp PDF, DOC, DOCX, ZIP hoặc RAR!");
+        }
         String safeName = Paths.get(originalName).getFileName().toString().replaceAll("[^a-zA-Z0-9._-]", "_");
         Files.createDirectories(REPORT_STORAGE);
         String storedName = UUID.randomUUID() + "_" + safeName;
@@ -84,6 +95,9 @@ public class ReportService {
     @Transactional
     /** Kiểm tra quyền nhóm trưởng và lưu báo cáo mới. */
     public Report submitReport(Long registrationId, Long studentId, String fileName, String filePath, String note) {
+        if (filePath == null || filePath.isBlank()) {
+            throw new IllegalArgumentException("Vui lòng chọn tệp báo cáo hoặc nhập liên kết tài liệu!");
+        }
         TopicRegistration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin đăng ký đề tài"));
         if (registration.getStatus() != ute.edu.enums.RegistrationStatus.APPROVED) {
@@ -100,17 +114,22 @@ public class ReportService {
         if (fileName == null || fileName.isBlank()) {
             fileName = "BaoCao_DeTai_" + registration.getTopic().getCode() + ".pdf";
         }
-        if (filePath == null || filePath.isBlank()) {
-            // Keep consistent with download resolver
-            filePath = "/uploads/reports/" + Paths.get(fileName).getFileName().toString()
-                    .replaceAll("[^a-zA-Z0-9._-]", "_");
+        if (registration.getTopic().getStatus() == ute.edu.enums.TopicStatus.COMPLETED) {
+            throw new IllegalStateException("Đề tài đã hoàn tất, không thể nộp thêm báo cáo!");
+        }
+        if (filePath != null && !filePath.isBlank()
+                && !filePath.startsWith("/reports/files/") && !filePath.startsWith("/uploads/reports/")) {
+            java.net.URI uri = java.net.URI.create(filePath.trim());
+            if (!("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme())) || uri.getHost() == null) {
+                throw new IllegalArgumentException("Đường dẫn tài liệu phải là liên kết HTTP/HTTPS hợp lệ!");
+            }
         }
 
         Report report = new Report();
         report.setTopicRegistration(registration);
         report.setSubmittedBy(student);
         report.setFileName(fileName.trim());
-        report.setFilePath(filePath.trim());
+        report.setFilePath(filePath == null || filePath.isBlank() ? null : filePath.trim());
         report.setNote(note);
 
         return reportRepository.save(report);

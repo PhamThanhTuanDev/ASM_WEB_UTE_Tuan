@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Chấm điểm đề tài" />
-<c:set var="pageHeading" value="Phiếu đánh giá &amp; chấm điểm đề tài" />
-<c:set var="pageSubheading" value="Hội đồng: ${assignment.council.name} &bull; Đề tài: ${assignment.topicRegistration.topic.title}" />
-<c:set var="activeMenu" value="councils" />
+<c:set scope="request" var="pageTitle" value="Chấm điểm đề tài" />
+<c:set scope="request" var="pageHeading" value="Phiếu đánh giá và chấm điểm đề tài" />
+<c:set scope="request" var="pageSubheading" value="Hội đồng: ${assignment.council.name} &bull; Đề tài: ${assignment.topicRegistration.topic.title}" />
+<c:set scope="request" var="activeMenu" value="councils" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -31,30 +31,30 @@
         </c:if>
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <!-- Left Column: Topic Details & Submitted Reports (5 cols) -->
+            <!-- Left Column: Topic Details và Submitted Reports (5 cols) -->
             <div class="lg:col-span-5 space-y-6">
                 <!-- Topic Overview Card -->
                 <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
                     <div class="flex items-center justify-between">
                         <span class="code-tag">${assignment.topicRegistration.topic.code}</span>
                         <span class="status-badge status-neutral">
-                            ${assignment.topicRegistration.topic.department.name}
+                            <c:out value="${assignment.topicRegistration.topic.department.name}" />
                         </span>
                     </div>
 
                     <h3 class="text-base font-extrabold text-slate-900 leading-snug">
-                        ${assignment.topicRegistration.topic.title}
+                        <c:out value="${assignment.topicRegistration.topic.title}" />
                     </h3>
 
                     <p class="text-xs text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-2xl border border-slate-200/80">
-                        ${assignment.topicRegistration.topic.description}
+                        <c:out value="${assignment.topicRegistration.topic.description}" />
                     </p>
 
-                    <!-- Group & Supervisors Info -->
+                    <!-- Group và Supervisors Info -->
                     <div class="bg-slate-50 p-4 rounded-2xl border border-slate-200/80 space-y-2 text-xs">
                         <div class="flex items-center justify-between pb-2 border-b border-slate-200">
                             <span class="text-slate-500 font-medium">Nhóm thực hiện:</span>
-                            <span class="font-bold text-slate-900">${assignment.topicRegistration.group.name}</span>
+                            <span class="font-bold text-slate-900"><c:out value="${assignment.topicRegistration.group.name}" /></span>
                         </div>
                         <div class="flex items-center justify-between pb-2 border-b border-slate-200">
                             <span class="text-slate-500 font-medium">Trưởng nhóm:</span>
@@ -62,18 +62,18 @@
                         </div>
                         <div class="flex items-center justify-between pb-2 border-b border-slate-200">
                             <span class="text-slate-500 font-medium">GVHD chính:</span>
-                            <span class="font-bold text-sky-700">${assignment.topicRegistration.topic.lecturer != null ? assignment.topicRegistration.topic.lecturer.user.fullName : 'N/A'}</span>
+                            <span class="font-bold text-sky-700"><c:out value="${assignment.topicRegistration.topic.lecturer != null ? assignment.topicRegistration.topic.lecturer.user.fullName : 'N/A'}" /></span>
                         </div>
                         <c:if test="${not empty assignment.topicRegistration.topic.coLecturer}">
                             <div class="flex items-center justify-between">
                                 <span class="text-slate-500 font-medium">Đồng GVHD:</span>
-                                <span class="font-bold text-indigo-700">${assignment.topicRegistration.topic.coLecturer.user.fullName}</span>
+                                <span class="font-bold text-indigo-700"><c:out value="${assignment.topicRegistration.topic.coLecturer.user.fullName}" /></span>
                             </div>
                         </c:if>
                     </div>
                 </div>
 
-                <!-- Submitted Reports & Files -->
+                <!-- Submitted Reports và Files -->
                 <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
                     <div class="flex items-center justify-between">
                         <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -101,14 +101,16 @@
                                             </div>
                                             <div class="truncate">
                                                 <div class="font-bold text-slate-800 truncate">${rep.fileName}</div>
-                                                <div class="text-[10px] text-slate-500 mt-0.5">${rep.submittedAt}</div>
+                                                <div class="text-[10px] text-slate-500 mt-0.5">${dateDisplay.format(rep.submittedAt)}</div>
                                             </div>
                                         </div>
+                                        <c:if test="${not empty rep.filePath}">
                                         <a href="${pageContext.request.contextPath}/reports/download/${rep.id}" download
                                            class="btn-ui btn-ui-outline p-2 text-sky-600 shrink-0" 
                                            title="Tải về file">
                                             <i data-lucide="download" class="w-4 h-4"></i>
                                         </a>
+                                        </c:if>
                                     </div>
                                 </c:forEach>
                             </div>
@@ -127,7 +129,7 @@
                             </div>
                             <div>
                                 <h4 class="text-base font-bold text-slate-900 leading-tight">Phiếu điểm của giảng viên</h4>
-                                <p class="text-xs text-slate-500">Giảng viên: <strong>${lecturer.user.fullName}</strong></p>
+                                <p class="text-xs text-slate-500">Giảng viên: <strong><c:out value="${lecturer.user.fullName}" /></strong></p>
                             </div>
                         </div>
                         <c:if test="${myScore != null}">
@@ -160,12 +162,12 @@
                             <!-- Comment Input -->
                             <div>
                                 <label class="block text-xs font-bold text-slate-800 mb-1.5">
-                                    Nhận xét chi tiết đề tài &amp; phần trả lời phản biện <span class="text-rose-500">*</span>
+                                    Nhận xét chi tiết đề tài và phần trả lời phản biện <span class="text-rose-500">*</span>
                                 </label>
                                 <textarea name="comment" id="commentInput" rows="6" 
                                           placeholder="Nhận xét cụ thể về: Tính ứng dụng, cấu trúc mã nguồn, thái độ báo cáo và mức độ làm chủ công nghệ..."
                                           ${isSupervisor ? 'disabled' : 'required'}
-                                          class="w-full px-4 py-3 rounded-xl border text-xs text-slate-800 leading-relaxed focus:outline-none transition-all ${isSupervisor ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-slate-50 focus:bg-white border-slate-200 focus:ring-2 focus:ring-sky-500'}">${myScore != null ? myScore.comment : ''}</textarea>
+                                          class="w-full px-4 py-3 rounded-xl border text-xs text-slate-800 leading-relaxed focus:outline-none transition-all ${isSupervisor ? 'bg-slate-100 text-slate-400 cursor-not-allowed border-slate-200' : 'bg-slate-50 focus:bg-white border-slate-200 focus:ring-2 focus:ring-sky-500'}"><c:out value="${myScore != null ? myScore.comment : ''}" /></textarea>
                             </div>
 
                             <!-- Actions -->
@@ -184,7 +186,7 @@
                                     <c:otherwise>
                                         <button type="submit" id="saveGradeBtn" 
                                                 class="btn-ui btn-ui-primary text-xs py-2.5 px-6 shadow-sm">
-                                            <i data-lucide="save" class="w-4 h-4"></i> Lưu điểm &amp; Nhận xét
+                                            <i data-lucide="save" class="w-4 h-4"></i> Lưu điểm và Nhận xét
                                         </button>
                                     </c:otherwise>
                                 </c:choose>
@@ -195,7 +197,7 @@
                     <!-- Scores from other council members -->
                     <c:if test="${not empty allScores}">
                         <div class="pt-5 border-t border-slate-200 space-y-3">
-                            <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <h5 class="text-xs font-bold  tracking-wider text-slate-500 flex items-center gap-2">
                                 <i data-lucide="users" class="w-4 h-4 text-sky-600"></i> Điểm Từ Các Thành Viên Hội Đồng:
                             </h5>
                             <div class="space-y-2">
@@ -203,7 +205,7 @@
                                     <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 text-xs space-y-1">
                                         <div class="flex items-center justify-between">
                                             <div class="font-bold text-slate-800">
-                                                ${sc.councilMember.lecturer.user.fullName}
+                                                <c:out value="${sc.councilMember.lecturer.user.fullName}" />
                                                 <span class="status-badge status-neutral ml-1">${enumLabel.label(sc.councilMember.role)}</span>
                                             </div>
                                             <span class="status-badge status-approved">
@@ -222,7 +224,6 @@
     </main>
 
 <jsp:include page="../common/footer.jsp" />
-    <jsp:include page="../common/flash.jsp" />
 
 <script>
     async function submitGradeFetch(event) {
@@ -267,9 +268,9 @@
 
             const response = await fetch('${pageContext.request.contextPath}/lecturer/grading/${assignment.id}/save-ajax', {
                 method: 'POST',
-                headers: {
+                headers: EnterpriseUI.csrfHeaders({
                     'Content-Type': 'application/x-www-form-urlencoded',
-                },
+                }),
                 body: formData.toString()
             });
 
@@ -301,7 +302,7 @@
             });
         } finally {
             btn.disabled = false;
-            btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Lưu Điểm &amp; Nhận Xét';
+            btn.innerHTML = '<i data-lucide="save" class="w-4 h-4"></i> Lưu Điểm và Nhận Xét';
             if (typeof lucide !== 'undefined') lucide.createIcons();
         }
     }

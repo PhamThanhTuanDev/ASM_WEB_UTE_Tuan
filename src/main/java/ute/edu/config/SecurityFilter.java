@@ -35,6 +35,13 @@ public class SecurityFilter extends OncePerRequestFilter {
             UserAccount user = authTokenService.authenticate(token);
             if (user != null) {
                 UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+                if (!userDetails.isEnabled()) {
+                    authTokenService.revoke(token);
+                    SecurityContextHolder.clearContext();
+                    if (request.getSession(false) != null) request.getSession(false).invalidate();
+                    filterChain.doFilter(request, response);
+                    return;
+                }
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 SecurityContextHolder.getContext().setAuthentication(authentication);

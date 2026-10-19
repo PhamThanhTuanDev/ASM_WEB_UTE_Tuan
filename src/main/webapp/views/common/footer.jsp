@@ -9,7 +9,7 @@
                 <span class="text-sky-700 font-medium">Khoa Công nghệ Thông tin - HCMUTE</span>
             </div>
             <div class="text-[11px] text-slate-400 font-mono">
-                HCMUTE Academic Platform &bull; Spring Boot + JSP MVC
+                Cổng thông tin học thuật HCMUTE
             </div>
         </footer>
         </div> <!-- end app-main -->
@@ -19,7 +19,10 @@
 
         <!-- Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-        <script src="${pageContext.request.contextPath}/assets/js/enterprise-ui.js?v=5.0.0"></script>
+        <script src="${pageContext.request.contextPath}/assets/js/enterprise-ui.js?v=5.2.0"></script>
+        <c:if test="${not empty errorMessage or not empty successMessage}">
+            <div id="sharedFlashMessage" hidden data-type="${not empty errorMessage ? 'error' : 'success'}"><c:out value="${not empty errorMessage ? errorMessage : successMessage}" /></div>
+        </c:if>
 
         <style>
             .notification-target {
@@ -32,6 +35,16 @@
 
         <script>
             document.addEventListener('DOMContentLoaded', function () {
+                const flash = document.getElementById('sharedFlashMessage');
+                // These pages already present their feedback with a specific title.
+                const pageFeedback = document.querySelector('[data-message-type], [data-report-feedback], #successMessage, #errorMessage');
+                if (flash && !pageFeedback && typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: flash.dataset.type,
+                        title: flash.dataset.type === 'error' ? 'Không thể thực hiện' : 'Thực hiện thành công',
+                        text: flash.textContent.trim()
+                    });
+                }
                 const notificationId = new URLSearchParams(window.location.search).get('notificationId');
                 if (!notificationId) return;
 

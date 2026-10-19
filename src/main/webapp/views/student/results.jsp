@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Lịch & điểm số phản biện" />
-<c:set var="pageHeading" value="Lịch báo cáo hội đồng & kết quả điểm số" />
-<c:set var="pageSubheading" value="Theo dõi phòng báo cáo, thời gian và tra cứu điểm số chi tiết từ Hội đồng phản biện" />
-<c:set var="activeMenu" value="results" />
+<c:set scope="request" var="pageTitle" value="Lịch và điểm số phản biện" />
+<c:set scope="request" var="pageHeading" value="Lịch báo cáo hội đồng và kết quả điểm số" />
+<c:set scope="request" var="pageSubheading" value="Theo dõi phòng báo cáo, thời gian và tra cứu điểm số chi tiết từ Hội đồng phản biện" />
+<c:set scope="request" var="activeMenu" value="results" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -52,12 +52,12 @@
                                             </span>
                                         </div>
 
-                                        <h5 class="text-sm font-bold text-slate-900 leading-snug">${assignment.council.name}</h5>
+                                        <h5 class="text-sm font-bold text-slate-900 leading-snug"><c:out value="${assignment.council.name}" /></h5>
 
                                         <div class="space-y-2.5 pt-3 border-t border-slate-200/60">
                                             <div class="flex items-center justify-between">
                                                 <span class="text-slate-500 flex items-center gap-2"><i data-lucide="calendar" class="w-3.5 h-3.5 text-sky-600"></i> Ngày báo cáo:</span>
-                                                <span class="font-bold text-slate-800">${assignment.council.councilDate != null ? assignment.council.councilDate : 'Chưa định'}</span>
+                                                <span class="font-bold text-slate-800">${assignment.council.councilDate != null ? dateDisplay.format(assignment.council.councilDate) : 'Chưa định'}</span>
                                             </div>
                                             <div class="flex items-center justify-between">
                                                 <span class="text-slate-500 flex items-center gap-2"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-500"></i> Phòng báo cáo:</span>
@@ -65,7 +65,7 @@
                                             </div>
                                             <div class="flex items-center justify-between">
                                                 <span class="text-slate-500 flex items-center gap-2"><i data-lucide="crown" class="w-3.5 h-3.5 text-amber-500"></i> Chủ tịch Hội đồng:</span>
-                                                <span class="font-bold text-slate-800">${assignment.council.chairman.user.fullName}</span>
+                                                <span class="font-bold text-slate-800"><c:out value="${assignment.council.chairman.user.fullName}" /></span>
                                             </div>
                                         </div>
                                     </div>
@@ -87,16 +87,16 @@
                         </div>
                     </div>
 
-                    <!-- Right: Score Card Overview & Detailed Council Comments (7 cols) -->
+                    <!-- Right: Score Card Overview và Detailed Council Comments (7 cols) -->
                     <div class="lg:col-span-7 space-y-6">
                         <div class="bg-white rounded-3xl border border-slate-200/90 p-6 shadow-xs space-y-5">
                             <div class="flex items-center justify-between pb-3 border-b border-slate-100">
                                 <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
-                                    <i data-lucide="award" class="w-4 h-4 text-emerald-600"></i> Bảng điểm & Nhận xét chi tiết
+                                    <i data-lucide="award" class="w-4 h-4 text-emerald-600"></i> Bảng điểm và Nhận xét chi tiết
                                 </h4>
                                 <c:if test="${not empty avgScore}">
                                     <span class="status-badge ${avgScore >= 8.5 ? 'status-success' : avgScore >= 7.0 ? 'status-info' : 'status-pending'} text-xs">
-                                        ${avgScore >= 8.5 ? 'XUẤT SẮC / GIỎI' : avgScore >= 7.0 ? 'KHÁ' : 'ĐẠT YÊU CẦU'}
+                                        ${avgScore >= 8.5 ? 'XUẤT SẮC / GIỎI' : avgScore >= 7.0 ? 'KHÁ' : avgScore >= 5.0 ? 'ĐẠT YÊU CẦU' : 'CHƯA ĐẠT'}
                                     </span>
                                 </c:if>
                             </div>
@@ -131,11 +131,11 @@
 
                                     <c:if test="${not empty processEvaluations}">
                                         <div class="space-y-2 pt-2">
-                                            <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500">Điểm quá trình từ giảng viên hướng dẫn:</h5>
+                                            <h5 class="text-xs font-bold  tracking-wider text-slate-500">Điểm quá trình từ giảng viên hướng dẫn:</h5>
                                             <c:forEach var="evaluation" items="${processEvaluations}">
                                                 <div class="p-3.5 bg-sky-50/50 rounded-2xl border border-sky-100 text-xs space-y-1">
                                                     <div class="flex items-center justify-between">
-                                                        <span class="font-bold text-slate-800">${evaluation.reviewer.user.fullName}</span>
+                                                        <span class="font-bold text-slate-800"><c:out value="${evaluation.reviewer.user.fullName}" /></span>
                                                         <span class="font-black text-sky-700">${evaluation.score} / 10</span>
                                                     </div>
                                                     <div class="text-slate-600 italic text-[11px] leading-relaxed">"${evaluation.comment}"</div>
@@ -146,7 +146,7 @@
 
                                     <!-- Detailed Feedback Accordion from each Council Member -->
                                     <div class="space-y-3 pt-2" data-accordion>
-                                        <h5 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                                        <h5 class="text-xs font-bold  tracking-wider text-slate-500 flex items-center gap-1.5">
                                             <i data-lucide="message-square" class="w-3.5 h-3.5 text-sky-600"></i> Nhận xét chi tiết từ từng Giảng viên Hội đồng:
                                         </h5>
 
@@ -157,10 +157,10 @@
                                                             class="w-full p-4 flex items-center justify-between gap-3 text-left hover:bg-sky-50/40 transition-colors">
                                                         <div class="flex items-center gap-3 min-w-0">
                                                             <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-sky-600 to-blue-700 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
-                                                                ${fn:substring(sc.councilMember.lecturer.user.fullName, 0, 1)}
+                                                                <c:out value="${fn:substring(sc.councilMember.lecturer.user.fullName, 0, 1)}" />
                                                             </div>
                                                             <div class="min-w-0">
-                                                                <span class="font-bold text-slate-900 text-xs block truncate">${sc.councilMember.lecturer.user.fullName}</span>
+                                                                <span class="font-bold text-slate-900 text-xs block truncate"><c:out value="${sc.councilMember.lecturer.user.fullName}" /></span>
                                                                 <span class="text-[10px] font-semibold text-slate-500">${enumLabel.label(sc.councilMember.role)}</span>
                                                             </div>
                                                         </div>

@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Quản lý nhóm sinh viên" />
-<c:set var="pageHeading" value="Quản lý nhóm sinh viên thực hiện đề tài" />
-<c:set var="pageSubheading" value="Mỗi nhóm có tối đa 03 thành viên, một nhóm trưởng và mỗi SV chỉ tham gia 01 nhóm duy nhất" />
-<c:set var="activeMenu" value="group" />
+<c:set scope="request" var="pageTitle" value="Quản lý nhóm sinh viên" />
+<c:set scope="request" var="pageHeading" value="Quản lý nhóm sinh viên thực hiện đề tài" />
+<c:set scope="request" var="pageSubheading" value="Mỗi nhóm tối đa 3 sinh viên cùng khoa, có thể khác lớp; mỗi sinh viên chỉ tham gia một nhóm trong một đợt" />
+<c:set scope="request" var="activeMenu" value="group" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -14,10 +14,10 @@
 
     <main class="app-content workspace-page space-y-6">
         <c:if test="${not empty successMessage}">
-            <span id="successMessage" class="hidden">${successMessage}</span>
+            <span id="successMessage" class="hidden"><c:out value="${successMessage}" /></span>
         </c:if>
         <c:if test="${not empty errorMessage}">
-            <span id="errorMessage" class="hidden">${errorMessage}</span>
+            <span id="errorMessage" class="hidden"><c:out value="${errorMessage}" /></span>
         </c:if>
 
         <c:choose>
@@ -34,28 +34,32 @@
                         <div class="relative z-10">
                             <h3 class="text-xl font-extrabold text-slate-900 tracking-tight">Thành lập nhóm sinh viên mới</h3>
                             <p class="text-xs text-slate-500 max-w-md mx-auto mt-2 leading-relaxed">
-                                Bạn hiện chưa thuộc nhóm nào trong đợt đăng ký này. Hãy tạo nhóm và mời thêm tối đa 02 thành viên khác để cùng phối hợp thực hiện đề tài tốt nghiệp.
+                                Chọn đợt đăng ký khi tạo nhóm, sau đó thêm tối đa 2 thành viên cùng khoa. Hệ thống kiểm tra trùng nhóm trong đợt ngay khi thêm.
                             </p>
                         </div>
 
                         <form method="post" action="${pageContext.request.contextPath}/student/group/create" class="text-left space-y-4 max-w-md mx-auto pt-2 relative z-10">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                            <div>
+                                <label for="createGroupPeriod" class="block text-xs font-bold text-slate-700 mb-1.5">Đợt đăng ký <span class="text-rose-500">*</span></label>
+                                <select id="createGroupPeriod" name="periodId" required class="w-full px-4 py-3 border border-slate-200 rounded-2xl text-xs">
+                                    <option value="">Chọn đợt còn hạn sinh viên đăng ký</option>
+                                    <c:forEach var="p" items="${openPeriods}"><option value="${p.id}"><c:out value="${p.name}" /></option></c:forEach>
+                                </select>
+                            </div>
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1.5">Tên nhóm sinh viên <span class="text-rose-500">*</span></label>
                                 <input type="text" name="name" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-semibold focus:bg-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:outline-none transition-all" placeholder="Ví dụ: Nhóm UTE Cloud Innovators..." required>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-700 mb-1.5">Đợt đăng ký áp dụng</label>
-                                <input type="text" class="w-full px-4 py-3 bg-slate-100/80 border border-slate-200 rounded-2xl text-xs font-bold text-slate-600 cursor-not-allowed" value="${activePeriod != null ? activePeriod.name : 'Đang mở'}" readonly>
-                            </div>
-                            <button type="submit" class="btn-ui btn-ui-primary w-full justify-center py-3 text-xs shadow-md shadow-sky-500/20">
-                                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i> Tạo nhóm & Trở thành nhóm trưởng
+                            <button type="submit"  class="btn-ui btn-ui-primary w-full justify-center py-3 text-xs shadow-md shadow-sky-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <i data-lucide="sparkles" class="w-4 h-4 text-amber-300"></i> Tạo nhóm và Trở thành nhóm trưởng
                             </button>
                         </form>
                     </div>
                 </div>
             </c:when>
 
-            <%-- Case 2: Student already in a group -> Show Group Details & Member Cards --%>
+            <%-- Case 2: Student already in a group -> Show Group Details và Member Cards --%>
             <c:otherwise>
                 <!-- Group Header 3D Banner -->
                 <div class="glass-card rounded-3xl border border-slate-200/90 p-6 sm:p-7 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-5 relative overflow-hidden">
@@ -67,20 +71,20 @@
                         </div>
                         <div>
                             <div class="flex items-center gap-2.5 flex-wrap">
-                                <h3 class="text-xl font-extrabold text-slate-900 tracking-tight">${myGroup.name}</h3>
+                                <h3 class="text-xl font-extrabold text-slate-900 tracking-tight"><c:out value="${myGroup.name}" /></h3>
                                 <span class="status-badge status-info text-[10px]">
                                     ${enumLabel.label(myGroup.status)}
                                 </span>
                             </div>
                             <p class="text-xs text-slate-500 mt-1 flex items-center gap-2 flex-wrap">
-                                <span>Đợt: <strong class="text-slate-700">${myGroup.registrationPeriod.name}</strong></span>
+                                <span>Đợt: <strong class="text-slate-700"><c:out value="${not empty myGroup.registrationPeriod ? myGroup.registrationPeriod.name : 'Chưa chọn đợt — vui lòng chọn đợt cho nhóm'}" /></strong></span>
                                 <span class="text-slate-300">&bull;</span>
-                                <span>Khởi tạo: <strong class="text-slate-700">${myGroup.createdAt}</strong></span>
+                                <span>Khởi tạo: <strong class="text-slate-700">${dateDisplay.format(myGroup.createdAt)}</strong></span>
                             </p>
                         </div>
                     </div>
 
-                    <!-- Quota & Action Button -->
+                    <!-- Quota và Action Button -->
                     <div class="flex items-center gap-3 self-end lg:self-center relative z-10">
                         <div class="bg-slate-50/80 px-4 py-2.5 rounded-2xl border border-slate-200/80 text-right shrink-0">
                             <div class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Sĩ số nhóm</div>
@@ -89,15 +93,28 @@
                             </div>
                         </div>
 
-                        <c:if test="${myGroup.leader.id == student.id && fn:length(members) < 3}">
+                        <c:if test="${myGroup.leader.id == student.id && canChangeMembers && not empty myGroup.registrationPeriod}">
                             <button type="button" class="btn-ui btn-ui-primary text-xs py-2.5 px-4 shadow-sm shrink-0" 
                                     data-bs-toggle="modal" data-bs-target="#inviteMemberModal">
-                                <i data-lucide="user-plus" class="w-4 h-4"></i> Mời Thành Viên
+                                <i data-lucide="user-plus" class="w-4 h-4"></i> Thêm thành viên
                             </button>
                         </c:if>
                     </div>
                 </div>
 
+                <c:if test="${empty myGroup.registrationPeriod && myGroup.leader.id == student.id}">
+                    <form method="post" action="${pageContext.request.contextPath}/student/group/select-period" class="bg-white p-5 rounded-2xl border border-slate-200 space-y-3">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                        <input type="hidden" name="groupId" value="${myGroup.id}">
+                        <label for="legacyGroupPeriod" class="block font-semibold">Chọn đợt đăng ký cho nhóm</label>
+                        <p class="text-sm text-slate-600">Cần chọn đợt trước khi thêm thành viên hoặc đăng ký đề tài. Hệ thống sẽ kiểm tra toàn bộ thành viên hiện có.</p>
+                        <select id="legacyGroupPeriod" name="periodId" required class="w-full p-3 border rounded-xl">
+                            <option value="">Chọn đợt còn hạn sinh viên đăng ký</option>
+                            <c:forEach var="p" items="${openPeriods}"><option value="${p.id}"><c:out value="${p.name}" /></option></c:forEach>
+                        </select>
+                        <button class="btn-ui btn-ui-primary" type="submit">Lưu đợt đăng ký</button>
+                    </form>
+                </c:if>
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                     <!-- Left: Registered Topic Card (5 cols) -->
                     <div class="lg:col-span-5 space-y-6">
@@ -119,9 +136,9 @@
                                                 </c:choose>
                                             </span>
                                         </div>
-                                        <h5 class="text-sm font-bold text-slate-900 leading-snug break-words">${registration.topic.title}</h5>
+                                        <h5 class="text-sm font-bold text-slate-900 leading-snug break-words"><c:out value="${registration.topic.title}" /></h5>
                                         <div class="text-xs text-slate-600 pt-2 border-t border-slate-200/60 space-y-1">
-                                            <div>Giảng viên HD: <strong class="text-slate-800">${registration.topic.lecturer != null ? registration.topic.lecturer.user.fullName : 'N/A'}</strong></div>
+                                            <div>Giảng viên HD: <strong class="text-slate-800"><c:out value="${registration.topic.lecturer != null ? registration.topic.lecturer.user.fullName : 'N/A'}" /></strong></div>
                                             <c:if test="${not empty registration.topic.coLecturer}">
                                                 <div class="text-slate-500">Đồng hướng dẫn: ${registration.topic.coLecturer.user.fullName}</div>
                                             </c:if>
@@ -135,7 +152,7 @@
                                         </div>
                                         <p class="text-slate-500 font-medium">Nhóm chưa thực hiện đăng ký đề tài nào.</p>
                                         <a href="${pageContext.request.contextPath}/student/topics" class="btn-ui btn-ui-outline text-xs py-1.5 px-3 mx-auto">
-                                            Tra cứu & Đăng ký đề tài <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                                            Tra cứu và Đăng ký đề tài <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
                                         </a>
                                     </div>
                                 </c:otherwise>
@@ -158,10 +175,10 @@
                             <c:forEach var="m" items="${members}">
                                 <div class="bg-white rounded-3xl border border-slate-200/90 p-5 shadow-xs hover:shadow-lg transition-all duration-300 flex flex-col justify-between group relative">
                                     <div>
-                                        <!-- Card Top: Avatar & Badges -->
+                                        <!-- Card Top: Avatar và Badges -->
                                         <div class="flex items-start justify-between gap-2 mb-3">
                                             <div class="w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-base text-white shrink-0 shadow-md ${m.leader ? 'bg-gradient-to-tr from-amber-500 to-amber-600 shadow-amber-500/20' : 'bg-gradient-to-tr from-sky-600 to-blue-700 shadow-sky-500/20'}">
-                                                ${fn:substring(m.student.user.fullName, 0, 1)}
+                                                <c:out value="${fn:substring(m.student.user.fullName, 0, 1)}" />
                                             </div>
                                             <div class="flex flex-col items-end gap-1">
                                                 <c:if test="${m.leader}">
@@ -179,7 +196,7 @@
 
                                         <!-- Student Info -->
                                         <h5 class="text-sm font-bold text-slate-900 group-hover:text-sky-600 transition-colors truncate">
-                                            ${m.student.user.fullName}
+                                            <c:out value="${m.student.user.fullName}" />
                                         </h5>
 
                                         <div class="space-y-1.5 mt-3 text-xs text-slate-500">
@@ -200,9 +217,10 @@
 
                                     <!-- Card Footer / Delete Member -->
                                     <div class="pt-3 mt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-                                        <span>Tham gia: ${m.joinedAt != null ? m.joinedAt : 'Khởi tạo'}</span>
-                                        <c:if test="${myGroup.leader.id == student.id && !m.leader}">
+                                        <span>Tham gia: ${m.joinedAt != null ? dateDisplay.format(m.joinedAt) : 'Khởi tạo'}</span>
+                                        <c:if test="${myGroup.leader.id == student.id && !m.leader && canChangeMembers}">
                                             <form method="post" action="${pageContext.request.contextPath}/student/group/remove-member" onsubmit="return confirmRemoveMember(event, '${m.student.user.fullName}');">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                                 <input type="hidden" name="groupId" value="${myGroup.id}">
                                                 <input type="hidden" name="studentId" value="${m.student.id}">
                                                 <button type="submit" class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors" title="Xóa khỏi nhóm">
@@ -218,16 +236,17 @@
                 </div>
 
                 <!-- Modal Mời Thành Viên với Live MSSV Preview -->
-                <div class="modal fade" id="inviteMemberModal" tabindex="-1" aria-hidden="true">
+                <div class="modal fade" id="inviteMemberModal" tabindex="-1" aria-labelledby="inviteMemberTitle" aria-hidden="true">
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content rounded-3xl border-0 shadow-2xl overflow-hidden backdrop-blur-md">
                             <form method="post" action="${pageContext.request.contextPath}/student/group/add-member">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                 <input type="hidden" name="groupId" value="${myGroup.id}">
                                 <div class="modal-header-hero px-6 py-4 text-white flex justify-between items-center">
-                                    <h5 class="text-base font-bold flex items-center gap-2">
-                                        <i data-lucide="user-plus" class="w-5 h-5 text-sky-200"></i> Mời Thành Viên Vào Nhóm
+                                    <h5 id="inviteMemberTitle" class="text-base font-bold flex items-center gap-2 mb-0">
+                                        <i data-lucide="user-plus" class="w-5 h-5 text-sky-200"></i> Thêm thành viên vào nhóm
                                     </h5>
-                                    <button type="button" class="text-white/80 hover:text-white p-1 rounded-lg transition-colors" data-bs-dismiss="modal">
+                                    <button type="button" class="text-white/80 hover:text-white p-1 rounded-lg transition-colors" data-bs-dismiss="modal" aria-label="Đóng">
                                         <i data-lucide="x" class="w-5 h-5"></i>
                                     </button>
                                 </div>
@@ -236,12 +255,12 @@
                                     <div class="bg-sky-500/10 border border-sky-300/80 text-sky-950 rounded-2xl p-3.5 text-xs flex items-start gap-2.5">
                                         <i data-lucide="info" class="w-4 h-4 text-sky-600 shrink-0 mt-0.5"></i>
                                         <div class="leading-relaxed">
-                                            Nhập chính xác <strong>Mã số sinh viên (MSSV)</strong> của bạn cùng lớp để tìm kiếm và thêm vào nhóm. Mỗi nhóm chứa tối đa 03 sinh viên.
+                                            Nhập <strong>Mã số sinh viên (MSSV)</strong> để thêm trực tiếp vào nhóm, không cần xác nhận lời mời. Thành viên phải cùng khoa, có thể khác lớp và chưa thuộc nhóm khác trong cùng đợt. Nhóm đủ 3 người hoặc đã gửi đăng ký đề tài sẽ khóa thêm và xóa thành viên.
                                         </div>
                                     </div>
 
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-700 mb-1.5">Mã số Sinh viên (MSSV) <span class="text-rose-500">*</span></label>
+                                        <label for="studentCodeInput" class="block text-xs font-bold text-slate-700 mb-1.5">Mã số sinh viên (MSSV) <span class="text-rose-500">*</span></label>
                                         <input type="text" name="studentCode" id="studentCodeInput" oninput="lookupStudentInfo(this.value)" 
                                                class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono font-bold text-sky-600 focus:bg-white focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 focus:outline-none transition-all" 
                                                placeholder="Ví dụ: 25810167..." required>
@@ -268,7 +287,7 @@
                                 <div class="bg-slate-50/80 px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
                                     <button type="button" class="btn-ui btn-ui-outline text-xs py-2 px-4" data-bs-dismiss="modal">Hủy</button>
                                     <button type="submit" class="btn-ui btn-ui-primary text-xs py-2 px-5 shadow-sm">
-                                        <i data-lucide="check" class="w-4 h-4"></i> Xác Nhận Thêm
+                                        <i data-lucide="check" class="w-4 h-4"></i> Thêm thành viên
                                     </button>
                                 </div>
                             </form>

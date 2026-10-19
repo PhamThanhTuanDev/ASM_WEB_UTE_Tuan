@@ -8,7 +8,7 @@ import ute.edu.entity.TopicAssignment;
 /** Truy vấn bảng topic_assignments (phân công đề tài vào hội đồng). */
 public interface TopicAssignmentRepository extends JpaRepository<TopicAssignment, Long> {
     /** Lấy các đề tài thuộc một hội đồng. */
-    List<TopicAssignment> findByCouncilId(Long councilId);
+    List<TopicAssignment> findByCouncilIdOrderByAssignedAtDescIdDesc(Long councilId);
     /** Lấy phân công của một đăng ký đề tài. */
     List<TopicAssignment> findByTopicRegistrationId(Long topicRegistrationId);
     /** Kiểm tra một đăng ký đã được gán vào hội đồng cụ thể chưa. */

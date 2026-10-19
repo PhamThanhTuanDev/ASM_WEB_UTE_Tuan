@@ -6,6 +6,9 @@ import ute.edu.entity.Student;
 
 /** Truy vấn bảng students (hồ sơ sinh viên). */
 public interface StudentRepository extends JpaRepository<Student, Long> {
+    /** Khóa dòng sinh viên đến hết giao dịch (SELECT ... FOR UPDATE chạy được trên cả MySQL và MariaDB). */
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM students WHERE id = :id FOR UPDATE", nativeQuery = true)
+    Optional<Student> findForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
     /** Tìm hồ sơ sinh viên theo tài khoản. */
     Student findByUserId(Long userId);
     /** Tìm sinh viên theo mã số sinh viên. */

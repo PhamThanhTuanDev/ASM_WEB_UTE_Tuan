@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Duyệt đăng ký SV" />
-<c:set var="pageHeading" value="Duyệt đăng ký nhóm sinh viên" />
-<c:set var="pageSubheading" value="Nhóm SV đăng ký đề tài của bạn — GVHD chấp nhận hoặc từ chối" />
-<c:set var="activeMenu" value="groups" />
+<c:set scope="request" var="pageTitle" value="Duyệt đăng ký SV" />
+<c:set scope="request" var="pageHeading" value="Duyệt đăng ký nhóm sinh viên" />
+<c:set scope="request" var="pageSubheading" value="Nhóm SV đăng ký đề tài của bạn — GVHD chấp nhận hoặc từ chối" />
+<c:set scope="request" var="activeMenu" value="groups" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -39,10 +39,10 @@
                         <table class="w-full text-left border-collapse datatable-pagination" id="lecturerGroupsTable" data-page-size="10">
                             <thead>
                                 <tr>
-                                    <th class="w-[18%]">Tên nhóm &amp; Đợt</th>
+                                    <th class="w-[18%]">Tên nhóm và Đợt</th>
                                     <th class="w-[24%]">Đề tài Đăng ký</th>
                                     <th class="w-[22%]">Thành viên nhóm</th>
-                                    <th class="w-[18%]">Ghi chú &amp; Lý do</th>
+                                    <th class="w-[18%]">Ghi chú và Lý do</th>
                                     <th class="w-[8%] text-center whitespace-nowrap">Trạng thái</th>
                                     <th class="w-[10%] text-center whitespace-nowrap">Thao tác</th>
                                 </tr>
@@ -51,17 +51,17 @@
                                 <c:forEach var="reg" items="${registrations}">
                                     <tr class="hover:bg-slate-50/80 transition-colors">
                                         <td class="align-top">
-                                            <div class="font-extrabold text-slate-900 leading-snug">${reg.group.name}</div>
+                                            <div class="font-extrabold text-slate-900 leading-snug"><c:out value="${reg.group.name}" /></div>
                                             <div class="text-[10px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
                                                 <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
-                                                <span>${reg.group.registrationPeriod != null ? reg.group.registrationPeriod.name : (reg.topic.registrationPeriod != null ? reg.topic.registrationPeriod.name : 'Chung')}</span>
+                                                <span><c:out value="${reg.group.registrationPeriod != null ? reg.group.registrationPeriod.name : (reg.topic.registrationPeriod != null ? reg.topic.registrationPeriod.name : 'Chung')}" /></span>
                                             </div>
                                         </td>
 
                                         <td class="align-top">
                                             <span class="code-tag">${reg.topic.code}</span>
                                             <div class="font-bold text-slate-900 leading-snug mt-1">
-                                                ${reg.topic.title}
+                                                <c:out value="${reg.topic.title}" />
                                             </div>
                                         </td>
 
@@ -79,7 +79,7 @@
                                                         </c:choose>
                                                         <div class="min-w-0 leading-tight">
                                                             <div class="text-[11px] font-bold ${m.leader ? 'text-amber-900' : 'text-slate-800'}">
-                                                                ${m.student.user.fullName} 
+                                                                <c:out value="${m.student.user.fullName}" /> 
                                                                 <c:if test="${m.leader}">
                                                                     <span class="text-amber-600 font-medium text-[10px]">(Trưởng nhóm)</span>
                                                                 </c:if>
@@ -95,7 +95,7 @@
 
                                         <td class="align-top">
                                             <div class="text-slate-600 italic leading-snug">
-                                                ${reg.note != null ? reg.note : 'Không có'}
+                                                <c:out value="${reg.note != null ? reg.note : 'Không có'}" />
                                             </div>
                                             <c:if test="${not empty reg.rejectionReason}">
                                                 <div class="mt-1.5 p-2 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-[10px] leading-relaxed">
@@ -126,6 +126,7 @@
                                                 <c:when test="${reg.status == 'PENDING'}">
                                                     <div class="flex flex-col gap-1.5 items-center">
                                                         <form method="post" action="${pageContext.request.contextPath}/lecturer/groups/${reg.id}/status" class="w-full">
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                                             <input type="hidden" name="status" value="APPROVED">
                                                             <button type="submit" class="btn-ui bg-emerald-600 hover:bg-emerald-700 text-white w-full py-1 text-[11px] rounded-lg shadow-xs" title="Chấp nhận">
                                                                 <i data-lucide="check" class="w-3.5 h-3.5"></i> Duyệt
@@ -153,7 +154,6 @@
     </main>
 
     <jsp:include page="../common/footer.jsp" />
-    <jsp:include page="../common/flash.jsp" />
 
 <script>
     function rejectGroupSweetAlert(regId, groupName) {

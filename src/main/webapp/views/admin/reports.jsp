@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Báo cáo đề tài" />
-<c:set var="pageHeading" value="Báo cáo đề tài sinh viên" />
-<c:set var="pageSubheading" value="Danh sách file báo cáo tiến độ / hoàn chỉnh do nhóm trưởng nộp" />
-<c:set var="activeMenu" value="reports" />
+<c:set scope="request" var="pageTitle" value="Báo cáo đề tài" />
+<c:set scope="request" var="pageHeading" value="Báo cáo đề tài sinh viên" />
+<c:set scope="request" var="pageSubheading" value="Danh sách file báo cáo tiến độ / hoàn chỉnh do nhóm trưởng nộp" />
+<c:set scope="request" var="activeMenu" value="reports" />
 
 <jsp:include page="../common/header.jsp" />
 <jsp:include page="../common/sidebar.jsp" />
@@ -13,7 +13,7 @@
     <jsp:include page="../common/navbar.jsp" />
 
     <main class="app-content workspace-page admin-page space-y-6">
-        <!-- Toolbar & Search -->
+        <!-- Toolbar và Search -->
         <div class="table-shell admin-data-surface">
             <div class="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white">
                 <div class="flex items-center gap-3">
@@ -48,8 +48,8 @@
                         <table class="w-full min-w-[1080px] text-left border-collapse" id="reportsTable">
                             <thead>
                                 <tr>
-                                    <th class="w-[20%]">Mã &amp; Đề tài</th>
-                                    <th class="w-[22%]">Nhóm &amp; Người nộp</th>
+                                    <th class="w-[20%]">Mã và Đề tài</th>
+                                    <th class="w-[22%]">Nhóm và Người nộp</th>
                                     <th class="w-[22%]">Tên file báo cáo</th>
                                     <th class="w-[12%] whitespace-nowrap">Thời gian nộp</th>
                                     <th class="w-[16%]">Ghi chú</th>
@@ -62,17 +62,17 @@
                                         <td class="align-top">
                                             <span class="code-tag">${r.topicRegistration.topic.code}</span>
                                             <div class="font-bold text-slate-900 mt-1 leading-snug line-clamp-2" title="${r.topicRegistration.topic.title}">
-                                                ${r.topicRegistration.topic.title}
+                                                <c:out value="${r.topicRegistration.topic.title}" />
                                             </div>
                                         </td>
                                         <td class="align-top">
                                             <div class="font-bold text-slate-800 text-xs leading-snug">
-                                                ${r.topicRegistration.group.name}
+                                                <c:out value="${r.topicRegistration.group.name}" />
                                             </div>
                                             <c:set var="isSubmitterLeader" value="${r.topicRegistration.group.leader != null && r.topicRegistration.group.leader.id == r.submittedBy.id}" />
                                             <div class="font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
                                                 <i data-lucide="user" class="w-3.5 h-3.5 text-sky-600"></i>
-                                                <span>${r.submittedBy.user.fullName}<c:if test="${isSubmitterLeader}"> (Nhóm trưởng)</c:if></span>
+                                                <span><c:out value="${r.submittedBy.user.fullName}" /><c:if test="${isSubmitterLeader}"> (Nhóm trưởng)</c:if></span>
                                             </div>
                                             <div class="text-[11px] text-slate-500 mt-0.5">
                                                 MSSV: <strong>${r.submittedBy.studentCode}</strong>
@@ -86,13 +86,13 @@
                                             </div>
                                         </td>
                                         <td class="align-top text-slate-500 font-medium whitespace-nowrap">
-                                            ${r.submittedAt}
+                                            ${dateDisplay.format(r.submittedAt)}
                                         </td>
                                         <td class="align-top">
                                             <c:choose>
                                                 <c:when test="${not empty r.note}">
                                                     <p class="text-slate-600 italic leading-relaxed break-words whitespace-normal">
-                                                        ${r.note}
+                                                        <c:out value="${r.note}" />
                                                     </p>
                                                 </c:when>
                                                 <c:otherwise>
@@ -101,10 +101,13 @@
                                             </c:choose>
                                         </td>
                                         <td class="align-top text-center whitespace-nowrap">
+                                            <c:if test="${not empty r.filePath}">
                                             <a href="${pageContext.request.contextPath}/reports/download/${r.id}" target="_blank"
                                                class="btn-ui btn-ui-outline text-xs py-1.5 px-3">
                                                 <i data-lucide="download" class="w-3.5 h-3.5 text-sky-600"></i> Tải file
                                             </a>
+                                            </c:if>
+                                            <c:if test="${empty r.filePath}"><span class="text-xs text-slate-400">Chưa đính kèm</span></c:if>
                                         </td>
                                     </tr>
                                 </c:forEach>

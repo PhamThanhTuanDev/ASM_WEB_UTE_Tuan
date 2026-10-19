@@ -6,8 +6,9 @@ import ute.edu.entity.Report;
 
 /** Truy vấn bảng reports (báo cáo của nhóm sinh viên). */
 public interface ReportRepository extends JpaRepository<Report, Long> {
+    boolean existsByTopicRegistrationTopicIdAndApprovedTrue(Long topicId);
     /** Lấy báo cáo của đăng ký, mới nhất trước. */
-    List<Report> findByTopicRegistrationIdOrderBySubmittedAtDesc(Long registrationId);
+    List<Report> findByTopicRegistrationIdOrderBySubmittedAtDescIdDesc(Long registrationId);
 
     /** Kiểm tra đăng ký đã có báo cáo được duyệt chưa. */
     boolean existsByTopicRegistrationIdAndApprovedTrue(Long registrationId);

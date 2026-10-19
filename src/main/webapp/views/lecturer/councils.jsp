@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
     <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-            <c:set var="pageTitle" value="Hội đồng phản biện giảng viên" />
-            <c:set var="pageHeading" value="Hội đồng phản biện &amp; chấm điểm đề tài" />
-            <c:set var="pageSubheading" value="Danh sách hội đồng tham gia và các đề tài được phân công chấm điểm" />
-            <c:set var="activeMenu" value="councils" />
+            <c:set scope="request" var="pageTitle" value="Hội đồng phản biện giảng viên" />
+            <c:set scope="request" var="pageHeading" value="Hội đồng phản biện và chấm điểm đề tài" />
+            <c:set scope="request" var="pageSubheading" value="Danh sách hội đồng tham gia và các đề tài được phân công chấm điểm" />
+            <c:set scope="request" var="activeMenu" value="councils" />
 
             <jsp:include page="../common/header.jsp" />
             <jsp:include page="../common/sidebar.jsp" />
@@ -38,8 +38,8 @@
                                 </div>
                                 <h4 class="empty-state-title">Chưa có hội đồng được phân công</h4>
                                 <p class="empty-state-desc max-w-md mx-auto">
-                                    Thầy/Cô hiện chưa được phân công vào hội đồng phản biện nào trong đợt này. Khi
-                                    Trưởng khoa phân công, thông tin hội đồng và danh sách đề tài sẽ xuất hiện tại đây.
+                                    Chưa có đề tài được phân công cho các hội đồng Thầy/Cô tham gia.
+                                    Khi Trưởng khoa phân công đề tài, hội đồng sẽ xuất hiện tại đây.
                                 </p>
                             </div>
                         </c:when>
@@ -55,7 +55,7 @@
                                                     class="code-tag font-bold text-xs bg-slate-900 text-white border-slate-900">
                                                     ${mc.council.code}
                                                 </span>
-                                                <h3 class="text-base font-extrabold text-slate-900">${mc.council.name}
+                                                <h3 class="text-base font-extrabold text-slate-900"><c:out value="${mc.council.name}" />
                                                 </h3>
                                                 <c:choose>
                                                     <c:when test="${mc.role == 'CHAIRMAN'}">
@@ -83,7 +83,7 @@
                                                 <span
                                                     class="flex items-center gap-1.5 font-bold text-slate-700 whitespace-nowrap">
                                                     <i data-lucide="calendar" class="w-4 h-4 text-sky-600"></i>
-                                                    ${mc.council.councilDate != null ? mc.council.councilDate : 'Chưa
+                                                    ${mc.council.councilDate != null ? dateDisplay.format(mc.council.councilDate) : 'Chưa
                                                     định'}
                                                 </span>
                                                 <span
@@ -97,7 +97,7 @@
                                         <!-- Topic Assignments Table -->
                                         <div>
                                             <c:set var="assignments"
-                                                value="${councilService.getAssignments(mc.council.id)}" />
+                                                value="${assignmentsByCouncil[mc.council.id]}" />
                                             <c:choose>
                                                 <c:when test="${empty assignments}">
                                                     <div class="empty-state py-8">
@@ -113,7 +113,7 @@
                                                         <table class="w-full text-left border-collapse">
                                                             <thead>
                                                                 <tr>
-                                                                    <th class="w-[34%]">Mã &amp; Tên Đề tài</th>
+                                                                    <th class="w-[34%]">Mã và Tên Đề tài</th>
                                                                     <th class="w-[24%]">Nhóm Sinh viên</th>
                                                                     <th class="w-[18%]">Giảng viên Hướng dẫn</th>
                                                                     <th class="w-[12%] text-center">Tình trạng</th>
@@ -130,18 +130,18 @@
                                                                                 class="code-tag">${assign.topicRegistration.topic.code}</span>
                                                                             <div
                                                                                 class="font-bold text-slate-900 leading-snug mt-1">
-                                                                                ${assign.topicRegistration.topic.title}
+                                                                                <c:out value="${assign.topicRegistration.topic.title}" />
                                                                             </div>
                                                                             <div
                                                                                 class="text-[11px] text-slate-500 mt-1">
-                                                                                ${assign.topicRegistration.topic.department.name}
+                                                                                <c:out value="${assign.topicRegistration.topic.department.name}" />
                                                                             </div>
                                                                         </td>
 
                                                                         <td class="align-top">
                                                                             <div
                                                                                 class="font-bold text-slate-800 leading-snug mb-1">
-                                                                                ${assign.topicRegistration.group.name}
+                                                                                <c:out value="${assign.topicRegistration.group.name}" />
                                                                             </div>
                                                                             <div
                                                                                 class="font-bold text-slate-800 leading-snug whitespace-nowrap">
@@ -165,10 +165,10 @@
                                                                         <td class="align-top">
                                                                             <div
                                                                                 class="font-bold text-slate-800 leading-snug">
-                                                                                ${assign.topicRegistration.topic.lecturer
+                                                                                <c:out value="${assign.topicRegistration.topic.lecturer
                                                                                 != null ?
                                                                                 assign.topicRegistration.topic.lecturer.user.fullName
-                                                                                : 'N/A'}
+                                                                                : 'N/A'}" />
                                                                             </div>
                                                                             <c:if
                                                                                 test="${not empty assign.topicRegistration.topic.coLecturer}">
@@ -238,4 +238,3 @@
                 </main>
 
                 <jsp:include page="../common/footer.jsp" />
-    <jsp:include page="../common/flash.jsp" />

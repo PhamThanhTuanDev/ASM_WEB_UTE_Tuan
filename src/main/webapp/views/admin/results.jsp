@@ -1,10 +1,10 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<c:set var="pageTitle" value="Điểm số &amp; kết quả phản biện" />
-<c:set var="pageHeading" value="Tổng hợp điểm số &amp; công bố kết quả" />
-<c:set var="pageSubheading" value="Tính điểm trung bình cộng từ các thành viên hội đồng và chốt công bố kết quả chính thức" />
-<c:set var="activeMenu" value="results" />
+<c:set scope="request" var="pageTitle" value="Điểm số và kết quả phản biện" />
+<c:set scope="request" var="pageHeading" value="Tổng hợp điểm số và công bố kết quả" />
+<c:set scope="request" var="pageSubheading" value="Tính điểm trung bình cộng từ các thành viên hội đồng và chốt công bố kết quả chính thức" />
+<c:set scope="request" var="activeMenu" value="results" />
 <c:set var="suppressFlashMessage" value="true" />
 
 <jsp:include page="../common/header.jsp" />
@@ -15,30 +15,37 @@
 
     <main class="app-content workspace-page admin-page space-y-6">
         <c:if test="${not empty successMessage or not empty errorMessage}">
-            <div id="scoreFlashMessage" class="hidden" data-message-type="${not empty successMessage ? 'success' : 'error'}">${not empty successMessage ? successMessage : errorMessage}</div>
+            <div id="scoreFlashMessage" class="hidden" data-message-type="${not empty successMessage ? 'success' : 'error'}"><c:out value="${not empty successMessage ? successMessage : errorMessage}" /></div>
         </c:if>
 
         <div class="space-y-6" data-pagination-list>
+            <c:if test="${empty councils}">
+                <div class="empty-state p-8 bg-white rounded-xl border border-slate-200">
+                    <div class="empty-state-title">Chưa có hội đồng đủ điều kiện hiển thị</div>
+                    <p class="empty-state-desc">Danh sách chỉ gồm hội đồng đã được phân công đề tài hoặc đã hoàn tất.</p>
+                </div>
+            </c:if>
             <c:forEach var="c" items="${councils}">
+                <c:set var="assignments" value="${councilService.getAssignments(c.id)}" />
                 <div data-pagination-item class="table-shell">
                     <!-- Council Header -->
                     <div class="bg-white px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div class="flex items-center gap-3 flex-wrap">
                             <span class="code-tag font-bold text-xs bg-slate-900 text-white border-slate-900">${c.code}</span>
-                            <h3 class="text-sm font-extrabold text-slate-900">${c.name}</h3>
+                            <h3 class="text-sm font-extrabold text-slate-900"><c:out value="${c.name}" /></h3>
                             <span class="status-badge ${c.status == 'COMPLETED' ? 'status-approved' : 'status-pending'}">
                                 ${enumLabel.label(c.status)}
                             </span>
                         </div>
                         <form method="post" action="${pageContext.request.contextPath}/admin/results/${c.id}/finalize" onsubmit="return confirmFinalize(event, '${c.name}');">
-                            <button type="submit" class="btn-ui btn-ui-primary text-xs py-2 px-3.5 shadow-sm">
-                                <i data-lucide="lock" class="w-3.5 h-3.5"></i> Chốt &amp; Công Bố Điểm
+                                <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
+                            <button type="submit" class="btn-ui btn-ui-primary text-xs py-2 px-3.5 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed" ${c.status == 'COMPLETED' || empty assignments ? 'disabled' : ''}>
+                                <i data-lucide="lock" class="w-3.5 h-3.5"></i> ${c.status == 'COMPLETED' ? 'Đã công bố điểm' : 'Chốt và Công Bố Điểm'}
                             </button>
                         </form>
                     </div>
 
                     <div>
-                        <c:set var="assignments" value="${councilService.getAssignments(c.id)}" />
                         <c:choose>
                             <c:when test="${empty assignments}">
                                 <div class="empty-state py-8">
@@ -67,11 +74,11 @@
                                                 <tr class="hover:bg-slate-50/60 transition-colors">
                                                     <td class="align-top">
                                                         <span class="code-tag">${assign.topicRegistration.topic.code}</span>
-                                                        <div class="font-bold text-slate-800 line-clamp-2 mt-1 leading-snug">${assign.topicRegistration.topic.title}</div>
+                                                        <div class="font-bold text-slate-800 line-clamp-2 mt-1 leading-snug"><c:out value="${assign.topicRegistration.topic.title}" /></div>
                                                         <div class="text-[11px] text-slate-500 mt-0.5">GVHD: ${assign.topicRegistration.topic.lecturer.user.fullName}</div>
                                                     </td>
                                                     <td class="align-top">
-                                                        <div class="font-bold text-slate-900">${assign.topicRegistration.group.name}</div>
+                                                        <div class="font-bold text-slate-900"><c:out value="${assign.topicRegistration.group.name}" /></div>
                                                         <div class="text-[11px] text-slate-500 mt-0.5">Trưởng nhóm: ${assign.topicRegistration.group.leader.user.fullName}</div>
                                                     </td>
                                                     <td class="align-top">
@@ -138,7 +145,7 @@
         event.preventDefault();
         const form = event.target;
         Swal.fire({
-            title: 'Chốt & Công bố điểm?',
+            title: 'Chốt và Công bố điểm?',
             text: 'Bạn có chắc chắn muốn chốt điểm và công bố kết quả cho ' + councilName + '?',
             icon: 'question',
             showCancelButton: true,

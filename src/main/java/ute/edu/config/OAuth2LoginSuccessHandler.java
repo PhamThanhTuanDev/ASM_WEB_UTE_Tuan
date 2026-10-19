@@ -8,7 +8,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.core.context.SecurityContextHolder;
 import ute.edu.entity.UserAccount;
 import ute.edu.enums.UserRole;
 import ute.edu.repository.LectureRepository;
@@ -25,18 +25,15 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
     private final AuthTokenService authTokenService;
     private final StudentRepository studentRepository;
     private final LectureRepository lectureRepository;
-    private final ute.edu.repository.DepartmentRepository departmentRepository;
 
     public OAuth2LoginSuccessHandler(UserAccountRepository userAccountRepository,
             AuthTokenService authTokenService,
             StudentRepository studentRepository,
-            LectureRepository lectureRepository,
-            ute.edu.repository.DepartmentRepository departmentRepository) {
+            LectureRepository lectureRepository) {
         this.userAccountRepository = userAccountRepository;
         this.authTokenService = authTokenService;
         this.studentRepository = studentRepository;
         this.lectureRepository = lectureRepository;
-        this.departmentRepository = departmentRepository;
     }
 
     @Override
@@ -44,51 +41,42 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             Authentication authentication) throws IOException, ServletException {
         OAuth2User oauthUser = (OAuth2User) authentication.getPrincipal();
         String email = oauthUser.getAttribute("email");
-        String name = oauthUser.getAttribute("name");
-
-        if (email == null || !(email.endsWith("@hcmute.edu.vn") || email.endsWith("@student.hcmute.edu.vn")
-                || email.endsWith("@teacher.hcmute.edu.vn"))) {
-            response.sendRedirect(request.getContextPath() + "/login?error=invalid_domain");
+        if (email != null) email = email.trim().toLowerCase(java.util.Locale.ROOT);
+        if (!Boolean.TRUE.equals(oauthUser.getAttribute("email_verified"))) {
+            reject(request, response, "unverified_email");
             return;
         }
 
-        UserAccount user = userAccountRepository.findByEmail(email);
-        if (user == null) {
-            String studentCode = email.split("@")[0];
-            ute.edu.entity.Student existingStudent = studentRepository.findByStudentCode(studentCode).orElse(null);
+        if (email == null || !(email.endsWith("@hcmute.edu.vn") || email.endsWith("@student.hcmute.edu.vn")
+                || email.endsWith("@teacher.hcmute.edu.vn"))) {
+            reject(request, response, "invalid_domain");
+            return;
+        }
 
-            // Auto create account if not exists
-            user = new UserAccount();
-            user.setEmail(email);
-            user.setUsername(studentCode);
-            user.setFullName(name != null ? name : studentCode);
-            user.setRole(UserRole.STUDENT); // Default role
-            user.setEnabled(true);
-            user.setPassword(new BCryptPasswordEncoder().encode("123456")); // Mật khẩu mặc định là 123456 đã được mã hoá
-            user.setPhone(""); // Tránh lỗi not-null property cho trường phone
-            userAccountRepository.save(user);
-
-            if (existingStudent != null) {
-                existingStudent.setUser(user);
-                studentRepository.save(existingStudent);
-            } else {
-                // Auto create student profile to prevent redirect loop in StudentController
-                ute.edu.entity.Student studentProfile = new ute.edu.entity.Student();
-                studentProfile.setUser(user);
-                studentProfile.setStudentCode(studentCode);
-                studentProfile.setClassName("Chưa cập nhật");
-                studentProfile.setMajor("Chưa cập nhật");
-
-                // Assign a default department to avoid not-null constraint
-                java.util.List<ute.edu.entity.Department> depts = departmentRepository.findAll();
-                if (!depts.isEmpty()) {
-                    studentProfile.setDepartment(depts.get(0));
-                }
-
-                studentRepository.save(studentProfile);
-            }
-        } else if (!user.isEnabled()) {
-            response.sendRedirect(request.getContextPath() + "/login?error=account_disabled");
+        UserAccount user = userAccountRepository.findByEmailIgnoreCase(email);
+        if (user == null && email.matches("[0-9]+@(student\\.)?hcmute\\.edu\\.vn")) {
+            HttpSession pending = request.getSession(true);
+            request.changeSessionId();
+            pending.removeAttribute("user");
+            pending.removeAttribute("userRole");
+            pending.removeAttribute("studentProfile");
+            pending.removeAttribute("lecturerProfile");
+            pending.setAttribute("googleRegistrationEmail", email);
+            pending.setAttribute("googleRegistrationName", oauthUser.getAttribute("name"));
+            pending.setAttribute("googleRegistrationToken", java.util.UUID.randomUUID().toString());
+            SecurityContextHolder.clearContext();
+            pending.removeAttribute("SPRING_SECURITY_CONTEXT");
+            response.sendRedirect(request.getContextPath() + "/google/complete-profile");
+            return;
+        }
+        if (user == null || !user.isEnabled()) {
+            reject(request, response, user == null ? "account_not_found" : "account_disabled");
+            return;
+        }
+        if ((user.getRole() == UserRole.STUDENT && studentRepository.findByUserId(user.getId()) == null)
+                || (user.getRole() != UserRole.STUDENT && user.getRole() != UserRole.ADMIN
+                && lectureRepository.findByUserId(user.getId()) == null)) {
+            reject(request, response, "missing_profile");
             return;
         }
 
@@ -96,6 +84,11 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
         request.changeSessionId();
 
         // Setup session
+        session.removeAttribute("studentProfile");
+        session.removeAttribute("lecturerProfile");
+        session.removeAttribute("googleRegistrationEmail");
+        session.removeAttribute("googleRegistrationName");
+        session.removeAttribute("googleRegistrationToken");
         session.setAttribute("user", user);
         session.setAttribute("userRole", user.getRole());
         if (user.getRole() == UserRole.STUDENT) {
@@ -124,4 +117,10 @@ public class OAuth2LoginSuccessHandler implements AuthenticationSuccessHandler {
             response.sendRedirect(request.getContextPath() + "/student/dashboard");
         }
     }
+    private void reject(HttpServletRequest request, HttpServletResponse response, String reason) throws IOException {
+        SecurityContextHolder.clearContext();
+        if (request.getSession(false) != null) request.getSession(false).invalidate();
+        response.sendRedirect(request.getContextPath() + "/login?error=" + reason);
+    }
+
 }

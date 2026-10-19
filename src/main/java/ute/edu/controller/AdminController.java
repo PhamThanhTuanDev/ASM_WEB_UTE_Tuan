@@ -79,7 +79,7 @@ public class AdminController {
         List<RegistrationPeriod> periods = periodService.getAll();
         model.addAttribute("periods", periods);
         model.addAttribute("dashboardPeriods", periods.stream()
-                .sorted(Comparator.comparing(RegistrationPeriod::getId).reversed())
+                .sorted(Comparator.comparing((RegistrationPeriod period) -> period.getId()).reversed())
                 .limit(3)
                 .toList());
         model.addAttribute("groupCount", groupRepository.count());
@@ -99,11 +99,11 @@ public class AdminController {
         model.addAttribute("rejectedTopicCount", rejectedCount);
 
         model.addAttribute("recentRegistrations", registrationService.getAll().stream()
-                .sorted(Comparator.comparing(TopicRegistration::getId).reversed())
+                .sorted(Comparator.comparing((TopicRegistration registration) -> registration.getId()).reversed())
                 .limit(5)
                 .toList());
         model.addAttribute("recentCouncils", councilService.getAll().stream()
-                .sorted(Comparator.comparing(ReviewCouncil::getId).reversed())
+                .sorted(Comparator.comparing((ReviewCouncil council) -> council.getId()).reversed())
                 .limit(5)
                 .toList());
         model.addAttribute("notifications", notificationService.getAll());
@@ -136,7 +136,7 @@ public class AdminController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Lưu đợt đăng ký '" + period.getName() + "' thành công!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi lưu đợt đăng ký: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi lưu đợt đăng ký: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/periods";
     }
@@ -175,7 +175,8 @@ public class AdminController {
         model.addAttribute("topic", new Topic());
         model.addAttribute("departments", departmentRepository.findAll());
         model.addAttribute("periods", periodService.getAll());
-        model.addAttribute("lecturers", lectureRepository.findAll());
+        model.addAttribute("lecturers", lectureRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "user.createdAt", "id")));
         model.addAttribute("statuses", TopicStatus.values());
         model.addAttribute("selectedDept", departmentId);
         model.addAttribute("selectedPeriod", periodId);
@@ -202,7 +203,7 @@ public class AdminController {
             topicService.save(topic);
             redirectAttributes.addFlashAttribute("successMessage", "Lưu thông tin đề tài thành công!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi lưu đề tài: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi lưu đề tài: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/topics";
     }
@@ -216,7 +217,7 @@ public class AdminController {
             topicService.updateStatus(id, status);
             redirectAttributes.addFlashAttribute("successMessage", "Cập nhật trạng thái đề tài thành công!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/topics";
     }
@@ -239,7 +240,7 @@ public class AdminController {
                     : "Cập nhật trạng thái đề tài thành công!");
         } catch (Exception e) {
             resp.put("success", false);
-            resp.put("message", e.getMessage());
+            resp.put("message", ute.edu.helper.UserMessages.forException(e));
         }
         return resp;
     }
@@ -284,8 +285,10 @@ public class AdminController {
         model.addAttribute("councils", councils);
         model.addAttribute("periods", periodService.getAll());
         model.addAttribute("departments", departmentRepository.findAll());
-        model.addAttribute("lecturers", lectureRepository.findAll());
+        model.addAttribute("lecturers", lectureRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "user.createdAt", "id")));
         model.addAttribute("eligibleRegistrationsByCouncil", eligibleRegistrationsByCouncil);
+        model.addAttribute("councilCreationPeriods", periodService.getCouncilCreationPeriods());
         return "admin/councils";
     }
 
@@ -303,8 +306,11 @@ public class AdminController {
             council.setDepartment(departmentRepository.findById(departmentId).orElse(null));
             councilService.createCouncil(council, chairmanId, secretaryId, memberIds);
             redirectAttributes.addFlashAttribute("successMessage", "Thành lập Hội đồng phản biện thành công!");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi tạo hội đồng: " + e.getMessage());
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Không thể lưu hội đồng. Mã hội đồng có thể đã tồn tại; vui lòng kiểm tra mã và thông tin đã nhập.");
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi tạo hội đồng: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/councils";
     }
@@ -318,7 +324,7 @@ public class AdminController {
             councilService.assignTopic(id, registrationId);
             redirectAttributes.addFlashAttribute("successMessage", "Đã phân công đề tài vào Hội đồng!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi phân công: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi phân công: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/councils";
     }
@@ -330,7 +336,7 @@ public class AdminController {
             councilService.deleteCouncil(id);
             redirectAttributes.addFlashAttribute("successMessage", "Đã xóa hội đồng thành công.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/councils";
     }
@@ -339,7 +345,10 @@ public class AdminController {
     @GetMapping("/results")
     /** Hiển thị kết quả chấm điểm của các hội đồng. */
     public String results(Model model) {
-        List<ReviewCouncil> councils = councilService.getAll();
+        List<ReviewCouncil> councils = councilService.getAll().stream()
+                .filter(c -> c.getStatus() == CouncilStatus.COMPLETED
+                        || !councilService.getAssignments(c.getId()).isEmpty())
+                .toList();
         model.addAttribute("councils", councils);
         model.addAttribute("scoringService", scoringService);
         model.addAttribute("councilService", councilService);
@@ -354,7 +363,7 @@ public class AdminController {
             scoringService.finalizeCouncil(councilId);
             redirectAttributes.addFlashAttribute("successMessage", "Đã chốt và công bố kết quả đánh giá cho Hội đồng!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/results";
     }
@@ -376,6 +385,8 @@ public class AdminController {
             HttpSession session, Model model) {
         if (notificationId != null) {
             notificationService.markAsRead(notificationId, (UserAccount) session.getAttribute("user"));
+            GlobalModelAdvice.refreshNotificationModel(notificationService, (UserAccount) session.getAttribute("user"),
+                    model);
         }
         model.addAttribute("notifications", notificationService.getAll());
         model.addAttribute("types", NotificationType.values());
@@ -395,7 +406,7 @@ public class AdminController {
             notificationService.create(title, content, type, published, creator);
             redirectAttributes.addFlashAttribute("successMessage", "Đăng thông báo thành công!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi đăng thông báo: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi đăng thông báo: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/notifications";
     }
@@ -419,54 +430,12 @@ public class AdminController {
     // 10. User Management
     @GetMapping("/users")
     public String users(Model model) {
-        model.addAttribute("users", userRepository.findAll());
-        model.addAttribute("lecturers", lectureRepository.findAll());
-        model.addAttribute("students", studentRepository.findAll());
+        model.addAttribute("users", userRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt", "id")));
+        model.addAttribute("lecturers", lectureRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "user.createdAt", "id")));
+        model.addAttribute("students", studentRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "user.createdAt", "id")));
         return "admin/users";
-    }
-
-    // 11. Export Excel
-    @GetMapping("/councils/{id}/export")
-    public void exportCouncilScoresToExcel(@PathVariable Long id, HttpServletResponse response) throws IOException {
-        ReviewCouncil council = councilService.findById(id);
-        if (council == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Council not found");
-            return;
-        }
-
-        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-        response.setHeader("Content-Disposition", "attachment; filename=council_scores_" + id + ".xlsx");
-
-        try (Workbook workbook = new XSSFWorkbook()) {
-            Sheet sheet = workbook.createSheet("Điểm Hội Đồng");
-            Row headerRow = sheet.createRow(0);
-            headerRow.createCell(0).setCellValue("Mã Nhóm");
-            headerRow.createCell(1).setCellValue("Tên Đề Tài");
-            headerRow.createCell(2).setCellValue("Điểm Quá Trình");
-            headerRow.createCell(3).setCellValue("Điểm Hội Đồng");
-            headerRow.createCell(4).setCellValue("Điểm Tổng Kết");
-
-            List<TopicAssignment> assignments = councilService.getAssignments(id);
-            int rowNum = 1;
-            for (TopicAssignment assignment : assignments) {
-                Row row = sheet.createRow(rowNum++);
-                row.createCell(0).setCellValue(assignment.getTopicRegistration().getGroup().getName());
-                row.createCell(1).setCellValue(assignment.getTopicRegistration().getTopic().getTitle());
-
-                Double processScore = scoringService.calculateProcessAverageScore(assignment.getId());
-                if (processScore != null)
-                    row.createCell(2).setCellValue(processScore);
-
-                Double councilScore = scoringService.calculateAverageScore(assignment.getId());
-                if (councilScore != null)
-                    row.createCell(3).setCellValue(councilScore);
-
-                Double finalScore = scoringService.calculateFinalScore(assignment.getId());
-                if (finalScore != null)
-                    row.createCell(4).setCellValue(finalScore);
-            }
-
-            workbook.write(response.getOutputStream());
-        }
     }
 }

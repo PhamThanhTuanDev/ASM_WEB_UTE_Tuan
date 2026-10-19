@@ -1,15 +1,11 @@
 package ute.edu.service;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.time.LocalDateTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ute.edu.entity.Notification;
 import ute.edu.entity.UserAccount;
-import ute.edu.entity.AnnouncementRead;
 import ute.edu.enums.NotificationType;
 import ute.edu.repository.NotificationRepository;
 import ute.edu.repository.AnnouncementReadRepository;
@@ -28,27 +24,40 @@ public class NotificationService {
 
     /** Lấy tất cả thông báo cho khu vực quản trị. */
     public List<Notification> getAll() {
-        return notificationRepository.findAll();
+        return notificationRepository.findAll(org.springframework.data.domain.Sort.by(
+                org.springframework.data.domain.Sort.Direction.DESC, "createdAt", "id"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<Notification> getUnreadForUser(UserAccount user) {
+        var readIds = readRepository.findByUserId(user.getId()).stream()
+                .map(r -> r.getNotification().getId()).collect(java.util.stream.Collectors.toSet());
+        return getPublishedForRole(user.getRole().name()).stream().filter(n -> !readIds.contains(n.getId())).toList();
     }
 
     /** Lấy thông báo đã công bố phù hợp với vai trò người dùng. */
     public List<Notification> getPublishedForRole(String role) {
+        if ("ALL".equalsIgnoreCase(role)) {
+            return notificationRepository.findByPublishedTrueOrderByCreatedAtDescIdDesc().stream()
+                    .filter(n -> n.getType() == NotificationType.ALL).toList();
+        }
         if ("STUDENT".equalsIgnoreCase(role)) {
-            return notificationRepository.findByPublishedTrueOrderByCreatedAtDesc().stream()
+            return notificationRepository.findByPublishedTrueOrderByCreatedAtDescIdDesc().stream()
                     .filter(n -> n.getType() == NotificationType.ALL || n.getType() == NotificationType.STUDENT)
                     .toList();
         } else if ("LECTURER".equalsIgnoreCase(role)) {
-            return notificationRepository.findByPublishedTrueOrderByCreatedAtDesc().stream()
+            return notificationRepository.findByPublishedTrueOrderByCreatedAtDescIdDesc().stream()
                     .filter(n -> n.getType() == NotificationType.ALL || n.getType() == NotificationType.LECTURER)
                     .toList();
         }
-        return notificationRepository.findByPublishedTrueOrderByCreatedAtDesc();
+        return notificationRepository.findByPublishedTrueOrderByCreatedAtDescIdDesc();
     }
 
     @Transactional
     /** Tạo và tùy chọn công bố một thông báo mới. */
     public Notification create(String title, String content, NotificationType type, boolean published,
             UserAccount creator) {
+        if (title == null || title.isBlank() || type == null) throw new IllegalArgumentException("Tiêu đề và đối tượng thông báo là bắt buộc!");
         Notification notification = new Notification();
         notification.setTitle(title);
         notification.setContent(content);
@@ -66,25 +75,14 @@ public class NotificationService {
     public void markAsRead(Long notificationId, UserAccount user) {
         if (user == null || notificationId == null)
             return;
-        if (!readRepository.existsByNotificationIdAndUserId(notificationId, user.getId())) {
-            Notification n = notificationRepository.findById(notificationId).orElse(null);
-            if (n != null) {
-                AnnouncementRead read = new AnnouncementRead();
-                read.setNotification(n);
-                read.setUser(user);
-                readRepository.save(read);
-            }
+        Notification n = notificationRepository.findById(notificationId).orElse(null);
+        if (n != null && n.isPublished() && (n.getType() == NotificationType.ALL
+                    || (user.getRole() == ute.edu.enums.UserRole.STUDENT && n.getType() == NotificationType.STUDENT)
+                    || (user.getRole() == ute.edu.enums.UserRole.LECTURER && n.getType() == NotificationType.LECTURER)
+                    || user.getRole() == ute.edu.enums.UserRole.ADMIN || user.getRole() == ute.edu.enums.UserRole.DEAN
+                    || user.getRole() == ute.edu.enums.UserRole.DEPARTMENT_HEAD)) {
+            readRepository.markReadIfAbsent(notificationId, user.getId());
         }
-    }
-
-    /**
-     * Lấy tập ID các thông báo người dùng đã đọc bằng 1 truy vấn.
-     * Dùng thay cho việc gọi isRead() lặp lại cho từng thông báo (lỗi N+1).
-     */
-    public Set<Long> getReadNotificationIds(Long userId) {
-        if (userId == null)
-            return Collections.emptySet();
-        return new HashSet<>(readRepository.findNotificationIdsByUserId(userId));
     }
 
     /** Kiểm tra người dùng đã đọc thông báo chưa. */

@@ -1,11 +1,11 @@
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
     <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
         <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-            <c:set var="pageTitle" value="Bảng điều khiển quản trị" />
-            <c:set var="pageHeading" value="Bảng điều hành &amp; Quản trị hệ thống" />
-            <c:set var="pageSubheading"
+            <c:set scope="request" var="pageTitle" value="Bảng điều khiển quản trị" />
+            <c:set scope="request" var="pageHeading" value="Bảng điều hành và Quản trị hệ thống" />
+            <c:set scope="request" var="pageSubheading"
                 value="Tổng quan toàn diện quy trình đề tài, đợt đăng ký và hội đồng phản biện" />
-            <c:set var="activeMenu" value="dashboard" />
+            <c:set scope="request" var="activeMenu" value="dashboard" />
 
             <jsp:include page="../common/header.jsp" />
             <jsp:include page="../common/sidebar.jsp" />
@@ -21,7 +21,7 @@
                         <div class="academic-badge-float top-4 right-16 hidden md:inline-flex"
                             style="animation-delay: -1.8s;">
                             <i data-lucide="shield-check" class="w-3.5 h-3.5 text-sky-300"></i>
-                            <span>Admin Operations</span>
+                            <span>Điều hành hệ thống</span>
                         </div>
                         <div class="floating-particle w-2 h-2 top-8 right-32 hidden md:block"
                             style="animation-delay: -1s;"></div>
@@ -149,7 +149,7 @@
                         </div>
                     </div>
 
-                    <!-- Middle Section: Timeline & Status Distribution -->
+                    <!-- Middle Section: Timeline và Status Distribution -->
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <!-- Timeline of Registration Periods (2 Cols) -->
                         <div
@@ -186,7 +186,7 @@
                                                     class="status-badge ${p.status == 'OPEN' ? 'status-approved' : 'status-neutral'}">
                                                     ${enumLabel.label(p.status)}
                                                 </span>
-                                                <h4 class="font-bold text-xs text-slate-900">${p.name}</h4>
+                                                <h4 class="font-bold text-xs text-slate-900"><c:out value="${p.name}" /></h4>
                                                 <span
                                                     class="text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200">
                                                     ${enumLabel.label(p.type)}
@@ -194,7 +194,7 @@
                                             </div>
                                             <span class="text-xs text-slate-500 font-medium">
                                                 Báo cáo HĐ: <strong class="text-slate-800">${p.councilReportDate != null
-                                                    ? p.councilReportDate : 'Chưa định'}</strong>
+                                                    ? dateDisplay.format(p.councilReportDate) : 'Chưa định'}</strong>
                                             </span>
                                         </div>
 
@@ -204,21 +204,21 @@
                                                 <div class="font-bold text-[10px] uppercase text-sky-700">1. GV Đề xuất
                                                 </div>
                                                 <div class="text-slate-500 text-[10px] mt-0.5 font-medium">
-                                                    ${p.lecturerStartDate}</div>
+                                                    ${dateDisplay.format(p.lecturerStartDate)}</div>
                                             </div>
                                             <div
                                                 class="p-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900">
                                                 <div class="font-bold text-[10px] uppercase text-emerald-700">2. SV Đăng
                                                     ký</div>
                                                 <div class="text-slate-500 text-[10px] mt-0.5 font-medium">
-                                                    ${p.studentStartDate}</div>
+                                                    ${dateDisplay.format(p.studentStartDate)}</div>
                                             </div>
                                             <div
                                                 class="p-2.5 rounded-xl bg-amber-50 border border-amber-100 text-amber-900">
                                                 <div class="font-bold text-[10px] uppercase text-amber-700">3. Hạn GVPB
                                                 </div>
                                                 <div class="text-slate-500 text-[10px] mt-0.5 font-medium">
-                                                    ${p.reviewerDeadline != null ? p.reviewerDeadline : 'Chưa định'}
+                                                    ${p.reviewerDeadline != null ? dateDisplay.format(p.reviewerDeadline) : 'Chưa định'}
                                                 </div>
                                             </div>
                                             <div
@@ -226,7 +226,7 @@
                                                 <div class="font-bold text-[10px] uppercase text-purple-700">4. Báo cáo
                                                     HĐ</div>
                                                 <div class="text-slate-500 text-[10px] mt-0.5 font-medium">
-                                                    ${p.councilReportDate != null ? p.councilReportDate : 'Chưa định'}
+                                                    ${p.councilReportDate != null ? dateDisplay.format(p.councilReportDate) : 'Chưa định'}
                                                 </div>
                                             </div>
                                         </div>
@@ -270,7 +270,7 @@
                         </div>
                     </div>
 
-                    <!-- Bottom Tables: Recent Registrations & Councils -->
+                    <!-- Bottom Tables: Recent Registrations và Councils -->
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <!-- Recent Registrations -->
                         <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
@@ -294,11 +294,11 @@
                                     <div
                                         class="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                                         <div class="min-w-0 pr-3">
-                                            <div class="font-bold text-slate-900 truncate">${reg.group.name}</div>
+                                            <div class="font-bold text-slate-900 truncate"><c:out value="${reg.group.name}" /></div>
                                             <div class="text-[11px] text-slate-500 mt-0.5 truncate">
                                                 <span
                                                     class="font-mono text-slate-700 font-semibold">[${reg.topic.code}]</span>
-                                                ${reg.topic.title}
+                                                <c:out value="${reg.topic.title}" />
                                             </div>
                                         </div>
                                         <span
@@ -338,11 +338,11 @@
                                             <div class="flex items-center gap-2">
                                                 <span
                                                     class="px-1.5 py-0.5 bg-slate-900 text-white rounded font-mono font-bold text-[10px]">${c.code}</span>
-                                                <span class="font-bold text-slate-900 truncate">${c.name}</span>
+                                                <span class="font-bold text-slate-900 truncate"><c:out value="${c.name}" /></span>
                                             </div>
                                             <div class="text-[11px] text-slate-500 mt-1 truncate">
                                                 Chủ tịch: <strong
-                                                    class="text-slate-700">${c.chairman.user.fullName}</strong> &bull;
+                                                    class="text-slate-700"><c:out value="${c.chairman.user.fullName}" /></strong> &bull;
                                                 Phòng: ${c.location}
                                             </div>
                                         </div>
@@ -383,8 +383,8 @@
                                         legend: { display: false },
                                         tooltip: {
                                             backgroundColor: '#0f233a',
-                                            titleFont: { family: 'Plus Jakarta Sans', size: 12, weight: 'bold' },
-                                            bodyFont: { family: 'Plus Jakarta Sans', size: 12 },
+                                            titleFont: { family: 'Be Vietnam Pro', size: 12, weight: 'bold' },
+                                            bodyFont: { family: 'Be Vietnam Pro', size: 12 },
                                             padding: 10,
                                             cornerRadius: 10
                                         }

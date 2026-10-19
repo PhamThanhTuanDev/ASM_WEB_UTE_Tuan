@@ -8,7 +8,8 @@ import ute.edu.entity.Notification;
 /** Truy vấn bảng notifications (thông báo). */
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     /** Lấy thông báo đã công bố, mới nhất trước. */
-    List<Notification> findByPublishedTrueOrderByCreatedAtDesc();
+    List<Notification> findByPublishedTrueOrderByCreatedAtDescIdDesc();
+
     /** Lấy thông báo đã công bố theo nhóm người nhận. */
-    List<Notification> findByTypeAndPublishedTrueOrderByCreatedAtDesc(NotificationType type);
+    List<Notification> findByTypeAndPublishedTrueOrderByCreatedAtDescIdDesc(NotificationType type);
 }

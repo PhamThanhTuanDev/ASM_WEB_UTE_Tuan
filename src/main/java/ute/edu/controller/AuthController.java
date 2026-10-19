@@ -10,12 +10,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import ute.edu.dto.RegisterRequest;
 import ute.edu.enums.UserRole;
 import ute.edu.entity.UserAccount;
 import ute.edu.service.AuthService;
 import ute.edu.service.AuthTokenService;
-import ute.edu.repository.UserAccountRepository;
 import ute.edu.repository.StudentRepository;
 import ute.edu.repository.LectureRepository;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,7 +22,6 @@ import org.springframework.beans.factory.annotation.Value;
 /** Controller xử lý đăng nhập, đăng ký và đăng xuất tài khoản. */
 public class AuthController {
     private final AuthService authService;
-    private final UserAccountRepository userRepository;
     private final StudentRepository studentRepository;
     private final LectureRepository lectureRepository;
     private final AuthTokenService authTokenService;
@@ -33,12 +30,10 @@ public class AuthController {
     private boolean quickLoginEnabled;
 
     public AuthController(AuthService authService,
-            UserAccountRepository userRepository,
             StudentRepository studentRepository,
             LectureRepository lectureRepository,
             AuthTokenService authTokenService) {
         this.authService = authService;
-        this.userRepository = userRepository;
         this.studentRepository = studentRepository;
         this.lectureRepository = lectureRepository;
         this.authTokenService = authTokenService;
@@ -98,7 +93,7 @@ public class AuthController {
             return "redirect:/login";
         }
         UserAccount user = authService.findByUsernameOrEmail(username);
-        if (user != null) {
+        if (user != null && user.isEnabled()) {
             request.changeSessionId();
             setupSession(session, user);
             writeTokenCookie(response, request, authTokenService.issue(user));
@@ -116,6 +111,7 @@ public class AuthController {
             RedirectAttributes redirectAttributes) {
         authTokenService.revoke(getToken(request));
         deleteTokenCookie(response, request);
+        org.springframework.security.core.context.SecurityContextHolder.clearContext();
         session.invalidate();
         redirectAttributes.addFlashAttribute("infoMessage", "Bạn đã đăng xuất khỏi hệ thống.");
         return "redirect:/login";
@@ -148,6 +144,11 @@ public class AuthController {
     }
 
     private void setupSession(HttpSession session, UserAccount user) {
+        session.removeAttribute("studentProfile");
+        session.removeAttribute("lecturerProfile");
+        session.removeAttribute("googleRegistrationEmail");
+        session.removeAttribute("googleRegistrationName");
+        session.removeAttribute("googleRegistrationToken");
         session.setAttribute("user", user);
         session.setAttribute("userRole", user.getRole());
         if (user.getRole() == UserRole.STUDENT) {

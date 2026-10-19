@@ -18,8 +18,8 @@
 	</parent>
 	<groupId>ute.edu</groupId>
 	<artifactId>ASM_WEB.UTE</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
 	<packaging>war</packaging>
+	<version>0.0.1-SNAPSHOT</version>
 	<name>ASM_WEB_UTE</name>
 	<description>Demo project for Spring Boot</description>
 	<url />
@@ -135,6 +135,16 @@
 		</dependency>
 	</dependencies>
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+			</resource>
+			<resource>
+				<directory>database</directory>
+				<targetPath>database</targetPath>
+				<includes><include>asm_web_ute_data.sql</include></includes>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

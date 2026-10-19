@@ -3,6 +3,7 @@
         <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 
             <!-- 1-Click Demo Role Switcher Toolbar -->
+            <c:if test="${quickLoginEnabled}">
             <div class="demo-role-bar hidden md:flex">
                 <div class="demo-title">
                     <span class="flex h-2 w-2 relative">
@@ -17,7 +18,7 @@
                     <a href="${pageContext.request.contextPath}/quick-login?username=admin@hcmute.edu.vn"
                         class="demo-pill ${sessionScope.user.role == 'ADMIN' ? 'is-active' : ''}"
                         title="Quản trị hệ thống">
-                        <i data-lucide="shield-check" class="w-3 h-3 text-rose-400"></i> Admin
+                        <i data-lucide="shield-check" class="w-3 h-3 text-rose-400"></i> Quản trị viên
                     </a>
                     <a href="${pageContext.request.contextPath}/quick-login?username=dean.fit@hcmute.edu.vn"
                         class="demo-pill ${sessionScope.user.role == 'DEAN' ? 'is-active' : ''}"
@@ -42,6 +43,7 @@
                 </div>
             </div>
 
+            </c:if>
             <!-- Sticky Main Navbar -->
             <header class="app-topbar">
                 <div class="flex items-center gap-3.5 min-w-0">
@@ -63,7 +65,7 @@
                                 <c:choose>
                                     <c:when test="${sessionScope.userRole == 'ADMIN'}">
                                         <a href="${pageContext.request.contextPath}/admin/dashboard"
-                                            class="font-medium text-slate-500 hover:text-sky-700">Admin</a>
+                                            class="font-medium text-slate-500 hover:text-sky-700">Quản trị viên</a>
                                     </c:when>
                                     <c:when test="${sessionScope.userRole == 'DEAN'}">
                                         <a href="${pageContext.request.contextPath}/admin/dashboard"
@@ -142,10 +144,10 @@
                                                 <div class="flex justify-between items-start gap-2">
                                                     <div
                                                         class="notif-item-title group-hover:text-sky-600 transition-colors">
-                                                        ${notif.title}
+                                                        <c:out value="${notif.title}" />
                                                     </div>
                                                     <span class="badge badge--info shrink-0 text-[9px] py-0 px-1.5">
-                                                        ${notif.type}
+                                                        ${enumLabel.label(notif.type)}
                                                     </span>
                                                 </div>
                                                 <div class="notif-item-body">
@@ -172,22 +174,22 @@
                     <div class="dropdown relative">
                         <button class="topbar-user-btn" type="button" data-bs-toggle="dropdown">
                             <div class="topbar-user-avatar">
-                                ${fn:substring(sessionScope.user != null ? sessionScope.user.fullName : 'U', 0, 1)}
+                                <c:out value="${fn:substring(sessionScope.user != null ? sessionScope.user.fullName : 'U', 0, 1)}" />
                             </div>
                             <div class="text-left hidden sm:block">
                                 <div class="topbar-user-name">
-                                    ${sessionScope.user != null ? sessionScope.user.fullName : 'Tài khoản'}
+                                    <c:out value="${sessionScope.user != null ? sessionScope.user.fullName : 'Tài khoản'}" />
                                 </div>
                                 <div class="topbar-user-role">
-                                    ${sessionScope.userRole}
+                                    ${enumLabel.label(sessionScope.userRole)}
                                 </div>
                             </div>
                             <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-slate-400 ml-0.5"></i>
                         </button>
                         <div class="dropdown-menu dropdown-menu-end user-dropdown mt-2 z-50">
                             <div class="user-dropdown-profile">
-                                <div class="font-bold text-xs text-slate-800">${sessionScope.user != null ?
-                                    sessionScope.user.fullName : ''}</div>
+                                <div class="font-bold text-xs text-slate-800"><c:out value="${sessionScope.user != null ?
+                                    sessionScope.user.fullName : ''}" /></div>
                                 <div class="text-[11px] text-slate-500 truncate">${sessionScope.user != null ?
                                     sessionScope.user.email : ''}</div>
                                 <div class="mt-2">
@@ -241,7 +243,7 @@
                                 </a>
                                 <a href="${pageContext.request.contextPath}/admin/topics" class="command-item">
                                     <i data-lucide="book-open-check" class="w-4 h-4 text-emerald-600"></i>
-                                    <span>Quản lý đề tài &amp; Phê duyệt</span>
+                                    <span>Quản lý đề tài và Phê duyệt</span>
                                 </a>
                                 <a href="${pageContext.request.contextPath}/admin/groups" class="command-item">
                                     <i data-lucide="users-round" class="w-4 h-4 text-indigo-600"></i>
@@ -271,7 +273,7 @@
                                 </a>
                                 <a href="${pageContext.request.contextPath}/lecturer/councils" class="command-item">
                                     <i data-lucide="scale" class="w-4 h-4 text-purple-600"></i>
-                                    <span>Hội đồng phản biện &amp; Chấm điểm</span>
+                                    <span>Hội đồng phản biện và Chấm điểm</span>
                                 </a>
                                 <a href="${pageContext.request.contextPath}/lecturer/reports" class="command-item">
                                     <i data-lucide="file-check" class="w-4 h-4 text-indigo-600"></i>
@@ -285,7 +287,7 @@
                                 </a>
                                 <a href="${pageContext.request.contextPath}/student/topics" class="command-item">
                                     <i data-lucide="search" class="w-4 h-4 text-emerald-600"></i>
-                                    <span>Tra cứu &amp; Đăng ký đề tài</span>
+                                    <span>Tra cứu và Đăng ký đề tài</span>
                                 </a>
                                 <a href="${pageContext.request.contextPath}/student/group" class="command-item">
                                     <i data-lucide="users" class="w-4 h-4 text-amber-600"></i>
@@ -297,7 +299,7 @@
                                 </a>
                                 <a href="${pageContext.request.contextPath}/student/results" class="command-item">
                                     <i data-lucide="award" class="w-4 h-4 text-purple-600"></i>
-                                    <span>Xem kết quả &amp; Lịch hội đồng</span>
+                                    <span>Xem kết quả và Lịch hội đồng</span>
                                 </a>
                             </c:otherwise>
                         </c:choose>

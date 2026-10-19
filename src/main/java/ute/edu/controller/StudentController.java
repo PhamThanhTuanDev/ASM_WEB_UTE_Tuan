@@ -7,6 +7,13 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import ute.edu.config.OAuth2LoginSuccessHandler;
 import ute.edu.entity.*;
 import ute.edu.enums.*;
 import ute.edu.repository.*;
@@ -14,7 +21,6 @@ import ute.edu.service.*;
 import java.util.*;
 
 @Controller
-@RequestMapping("/student")
 @PreAuthorize("hasAnyRole('STUDENT', 'ADMIN')")
 /** Controller sinh viên: quản lý nhóm, đăng ký đề tài, báo cáo và xem điểm. */
 public class StudentController {
@@ -31,6 +37,9 @@ public class StudentController {
     private final DepartmentRepository departmentRepository;
     private final TopicAssignmentRepository assignmentRepository;
     private final ScoreRepository scoreRepository;
+    private final StudentProfileService profileService;
+    private final AuthService authService;
+    private final OAuth2LoginSuccessHandler googleLoginHandler;
 
     public StudentController(TopicService topicService,
             StudentRepository studentRepository,
@@ -44,7 +53,8 @@ public class StudentController {
             NotificationService notificationService,
             DepartmentRepository departmentRepository,
             TopicAssignmentRepository assignmentRepository,
-            ScoreRepository scoreRepository) {
+            ScoreRepository scoreRepository, StudentProfileService profileService,
+            AuthService authService, OAuth2LoginSuccessHandler googleLoginHandler) {
         this.topicService = topicService;
         this.studentRepository = studentRepository;
         this.periodService = periodService;
@@ -58,6 +68,9 @@ public class StudentController {
         this.departmentRepository = departmentRepository;
         this.assignmentRepository = assignmentRepository;
         this.scoreRepository = scoreRepository;
+        this.profileService = profileService;
+        this.authService = authService;
+        this.googleLoginHandler = googleLoginHandler;
     }
 
     /**
@@ -78,7 +91,7 @@ public class StudentController {
      * @param model   Model Spring MVC
      * @return view dashboard hoặc chuyển hướng đến trang đăng nhập
      */
-    @GetMapping({ "", "/", "/dashboard" })
+    @GetMapping({ "/student", "/student/", "/student/dashboard" })
     public String dashboard(HttpSession session, Model model) {
         Student student = getCurrentStudent(session);
         if (student == null)
@@ -89,8 +102,10 @@ public class StudentController {
             return "redirect:/student/profile";
         }
 
-        RegistrationPeriod activePeriod = periodService.getActivePeriod();
         StudentGroup myGroup = groupService.findGroupByStudent(student.getId());
+        RegistrationPeriod activePeriod = myGroup != null
+                ? myGroup.getRegistrationPeriod()
+                : periodService.getActivePeriod();
         TopicRegistration myRegistration = null;
         TopicAssignment myAssignment = null;
         List<Score> myScores = Collections.emptyList();
@@ -103,7 +118,7 @@ public class StudentController {
                     myAssignment = assignmentRepository.findFirstByTopicRegistrationId(myRegistration.getId())
                             .orElse(null);
                 }
-                if (myAssignment != null) {
+                if (myAssignment != null && myAssignment.getCouncil().getStatus() == CouncilStatus.COMPLETED) {
                     myScores = scoreRepository.findByTopicAssignmentId(myAssignment.getId());
                     avgScore = scoringService.calculateFinalScore(myAssignment.getId());
                 }
@@ -117,6 +132,15 @@ public class StudentController {
         model.addAttribute("myAssignment", myAssignment);
         model.addAttribute("myScores", myScores);
         model.addAttribute("avgScore", avgScore);
+        List<Report> submittedReports = myRegistration != null
+                ? reportService.getReportsForRegistration(myRegistration.getId())
+                : Collections.emptyList();
+        int currentStep = progressStep(myRegistration, myAssignment, submittedReports);
+        if (currentStep == 2 && myGroup == null && activePeriod != null && activePeriod.getLecturerEndDate() != null
+                && !RegistrationPeriodService.today().isAfter(activePeriod.getLecturerEndDate()))
+            currentStep = 1;
+        model.addAttribute("currentStep", currentStep);
+        model.addAttribute("workflowCompleted", currentStep == 5);
         model.addAttribute("notifications", notificationService.getPublishedForRole("STUDENT"));
 
         return "student/dashboard";
@@ -125,8 +149,24 @@ public class StudentController {
     /**
      * Hiển thị trang cập nhật hồ sơ sinh viên (cho lần đầu đăng nhập bằng Google).
      */
-    @GetMapping("/profile")
+    @PreAuthorize("permitAll()")
+    @GetMapping({ "/student/profile", "/google/complete-profile" })
     public String profile(HttpSession session, Model model) {
+        if (session.getAttribute("googleRegistrationEmail") != null) {
+            String email = (String) session.getAttribute("googleRegistrationEmail");
+            Student student = new Student();
+            UserAccount user = new UserAccount();
+            user.setEmail(email);
+            user.setFullName((String) session.getAttribute("googleRegistrationName"));
+            student.setUser(user);
+            student.setStudentCode(email.substring(0, email.indexOf('@')));
+            student.setCourseYear("");
+            model.addAttribute("student", student);
+            model.addAttribute("googleRegistration", true);
+            model.addAttribute("departments",
+                    departmentRepository.findAll().stream().filter(d -> d.isActive()).toList());
+            return "student/profile";
+        }
         Student student = getCurrentStudent(session);
         if (student == null)
             return "redirect:/login";
@@ -139,37 +179,33 @@ public class StudentController {
     /**
      * Xử lý cập nhật hồ sơ sinh viên.
      */
-    @PostMapping("/profile/update")
-    public String updateProfile(@RequestParam String studentCode,
+    @PreAuthorize("permitAll()")
+    @PostMapping({ "/student/profile/update", "/google/complete-profile" })
+    public String updateProfile(@RequestParam(required = false) String studentCode,
+            @RequestParam(required = false) String registrationToken,
+            @RequestParam(required = false) String fullName,
             @RequestParam String courseYear,
             @RequestParam String className,
             @RequestParam String major,
             @RequestParam Long departmentId,
             @RequestParam String phone,
             HttpSession session,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes redirectAttributes, HttpServletRequest request,
+            HttpServletResponse response, Model model) throws Exception {
+        if (session.getAttribute("googleRegistrationEmail") != null) {
+            return registerGoogleProfile(registrationToken, fullName, phone, courseYear, className,
+                    major, departmentId, request, response, session, model);
+        }
         Student student = getCurrentStudent(session);
         if (student == null)
             return "redirect:/login";
-
+        if (student.getUser().getRole() != UserRole.STUDENT && student.getUser().getRole() != UserRole.ADMIN) {
+            response.sendError(403);
+            return null;
+        }
         try {
-            Department dept = departmentRepository.findById(departmentId)
-                    .orElseThrow(() -> new IllegalArgumentException("Khoa không tồn tại"));
-            student.setStudentCode(studentCode);
-            student.setCourseYear(courseYear);
-            student.setClassName(className);
-            student.setMajor(major);
-            student.setDepartment(dept);
-            studentRepository.save(student);
-
-            UserAccount user = student.getUser();
-            if (phone != null && !phone.trim().isEmpty()) {
-                user.setPhone(phone.trim());
-                // userAccountRepository.save(user) will be cascaded or done via
-                // studentRepository if mapped correctly
-                // We should probably save it explicitly but let's assume it's attached or we
-                // can save it via service
-            }
+            student = profileService.update(student.getUser().getId(), studentCode, courseYear, className, major,
+                    departmentId, phone);
 
             // Update session
             session.setAttribute("studentProfile", student);
@@ -177,7 +213,7 @@ public class StudentController {
             redirectAttributes.addFlashAttribute("successMessage", "Cập nhật hồ sơ thành công!");
             return "redirect:/student/dashboard";
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi cập nhật hồ sơ: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi cập nhật hồ sơ: " + ute.edu.helper.UserMessages.forException(e));
             return "redirect:/student/profile";
         }
     }
@@ -191,8 +227,9 @@ public class StudentController {
      * @param model        Model Spring MVC
      * @return view topics
      */
-    @GetMapping("/topics")
+    @GetMapping("/student/topics")
     public String topics(@RequestParam(required = false) Long departmentId,
+            @RequestParam(required = false) Long periodId,
             @RequestParam(required = false) String keyword,
             HttpSession session,
             Model model) {
@@ -203,10 +240,20 @@ public class StudentController {
         Long studentDepartmentId = student.getDepartment() != null
                 ? student.getDepartment().getId()
                 : null;
-        List<Topic> topics = studentDepartmentId == null
+        StudentGroup myGroup = groupService.findGroupByStudent(student.getId());
+        List<RegistrationPeriod> openPeriods = periodService.getOpenStudentPeriods();
+        RegistrationPeriod groupPeriod = myGroup != null ? myGroup.getRegistrationPeriod() : null;
+        Long requestedPeriodId = groupPeriod != null ? groupPeriod.getId() : periodId;
+        RegistrationPeriod selectedPeriod = groupPeriod != null ? groupPeriod : openPeriods.stream()
+                .filter(p -> Objects.equals(p.getId(), requestedPeriodId)).findFirst()
+                .orElse(periodId == null && !openPeriods.isEmpty() ? openPeriods.get(0) : null);
+        Long selectedPeriodId = selectedPeriod != null ? selectedPeriod.getId() : null;
+        List<Topic> topics = studentDepartmentId == null || !RegistrationPeriodService.isStudentWindow(selectedPeriod)
                 ? Collections.emptyList()
-                : topicService.getTopicsByDepartment(studentDepartmentId).stream()
-                        .filter(t -> t.getStatus() == TopicStatus.PUBLISHED || t.getStatus() == TopicStatus.APPROVED)
+                : topicService.getAvailableTopics().stream()
+                        .filter(t -> t.getDepartment() != null && studentDepartmentId.equals(t.getDepartment().getId()))
+                        .filter(t -> t.getRegistrationPeriod() != null
+                                && selectedPeriodId.equals(t.getRegistrationPeriod().getId()))
                         .toList();
 
         if (keyword != null && !keyword.isBlank()) {
@@ -219,7 +266,6 @@ public class StudentController {
                     .toList();
         }
 
-        StudentGroup myGroup = groupService.findGroupByStudent(student.getId());
         TopicRegistration myRegistration = (myGroup != null)
                 ? registrationService.getActiveRegistrationForGroup(myGroup.getId())
                 : null;
@@ -231,7 +277,16 @@ public class StudentController {
         model.addAttribute("keyword", keyword);
         model.addAttribute("myGroup", myGroup);
         model.addAttribute("myRegistration", myRegistration);
-        model.addAttribute("activePeriod", periodService.getActivePeriod());
+        model.addAttribute("activePeriod", selectedPeriod);
+        model.addAttribute("openPeriods", openPeriods);
+        model.addAttribute("selectedPeriodId", selectedPeriodId);
+        model.addAttribute("groupPeriod", groupPeriod);
+        TopicAssignment topicAssignment = myRegistration != null
+                && myRegistration.getStatus() == RegistrationStatus.APPROVED
+                        ? assignmentRepository.findFirstByTopicRegistrationId(myRegistration.getId()).orElse(null)
+                        : null;
+        model.addAttribute("workflowCompleted",
+                progressStep(myRegistration, topicAssignment, Collections.emptyList()) == 5);
 
         return "student/topics";
     }
@@ -246,7 +301,7 @@ public class StudentController {
      * @param redirectAttributes Dùng để truyền thông báo flash
      * @return Chuyển hướng về trang danh sách đề tài
      */
-    @PostMapping("/topics/register")
+    @PostMapping("/student/topics/register")
     public String registerTopic(@RequestParam Long topicId,
             @RequestParam Long groupId,
             @RequestParam(required = false) String note,
@@ -274,7 +329,7 @@ public class StudentController {
             redirectAttributes.addFlashAttribute("successMessage", "Gửi yêu cầu đăng ký đề tài '" + topic.getTitle()
                     + "' thành công! Vui lòng chờ GVHD hoặc Khoa phê duyệt.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi đăng ký đề tài: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi đăng ký đề tài: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/student/topics";
     }
@@ -287,7 +342,7 @@ public class StudentController {
      * @param model   Model Spring MVC
      * @return view group
      */
-    @GetMapping("/group")
+    @GetMapping("/student/group")
     public String group(HttpSession session, Model model) {
         Student student = getCurrentStudent(session);
         if (student == null)
@@ -303,8 +358,10 @@ public class StudentController {
         model.addAttribute("student", student);
         model.addAttribute("myGroup", myGroup);
         model.addAttribute("members", members);
+        model.addAttribute("canChangeMembers", groupService.canChangeMembers(myGroup));
         model.addAttribute("registration", registration);
         model.addAttribute("activePeriod", periodService.getActivePeriod());
+        model.addAttribute("openPeriods", periodService.getOpenStudentPeriods());
 
         return "student/group";
     }
@@ -318,8 +375,9 @@ public class StudentController {
      * @param redirectAttributes Dùng để truyền thông báo flash
      * @return Chuyển hướng về trang quản lý nhóm
      */
-    @PostMapping("/group/create")
+    @PostMapping("/student/group/create")
     public String createGroup(@RequestParam String name,
+            @RequestParam(required = false) Long periodId,
             HttpSession session,
             RedirectAttributes redirectAttributes) {
         Student student = getCurrentStudent(session);
@@ -327,16 +385,11 @@ public class StudentController {
             return "redirect:/login";
 
         try {
-            RegistrationPeriod activePeriod = periodService.getActivePeriod();
-            if (activePeriod == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", "Hiện tại không có đợt đăng ký nào đang mở.");
-                return "redirect:/student/group";
-            }
-            groupService.create(name, activePeriod, student);
+            groupService.create(name, periodId == null ? null : periodService.findById(periodId), student);
             redirectAttributes.addFlashAttribute("successMessage",
                     "Tạo nhóm '" + name + "' thành công! Bạn là Nhóm trưởng.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi tạo nhóm: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi tạo nhóm: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/student/group";
     }
@@ -350,7 +403,21 @@ public class StudentController {
      * @param redirectAttributes Dùng để truyền thông báo flash
      * @return Chuyển hướng về trang quản lý nhóm
      */
-    @PostMapping("/group/add-member")
+    @PostMapping("/student/group/select-period")
+    public String selectGroupPeriod(@RequestParam Long groupId, @RequestParam Long periodId,
+            HttpSession session, RedirectAttributes redirectAttributes) {
+        Student student = getCurrentStudent(session);
+        if (student == null) return "redirect:/login";
+        try {
+            groupService.selectPeriod(groupId, periodService.findById(periodId), student.getId());
+            redirectAttributes.addFlashAttribute("successMessage", "Đã chọn đợt đăng ký cho nhóm.");
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            redirectAttributes.addFlashAttribute("errorMessage", ute.edu.helper.UserMessages.forException(ex));
+        }
+        return "redirect:/student/group";
+    }
+
+    @PostMapping("/student/group/add-member")
     public String addMember(@RequestParam Long groupId,
             @RequestParam String studentCode,
             HttpSession session,
@@ -370,7 +437,7 @@ public class StudentController {
                     "Đã thêm sinh viên " + addedStudent.getUser().getFullName() + " (" + addedStudent.getStudentCode()
                             + ") vào nhóm thành công!");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi thêm thành viên: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi thêm thành viên: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/student/group";
     }
@@ -384,7 +451,7 @@ public class StudentController {
      * @param redirectAttributes Dùng để truyền thông báo flash
      * @return Chuyển hướng về trang quản lý nhóm
      */
-    @PostMapping("/group/remove-member")
+    @PostMapping("/student/group/remove-member")
     public String removeMember(@RequestParam Long groupId,
             @RequestParam Long studentId,
             HttpSession session,
@@ -402,7 +469,7 @@ public class StudentController {
             groupService.removeMember(groupId, studentId);
             redirectAttributes.addFlashAttribute("successMessage", "Đã xóa thành viên khỏi nhóm.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/student/group";
     }
@@ -413,7 +480,7 @@ public class StudentController {
      * @param code MSSV cần tra cứu
      * @return JSON chứa thông tin sinh viên nếu tìm thấy
      */
-    @GetMapping(value = "/api/students/lookup", produces = "application/json")
+    @GetMapping(value = "/student/api/students/lookup", produces = "application/json")
     @ResponseBody
     public Map<String, Object> lookupStudent(@RequestParam String code) {
         Map<String, Object> resp = new HashMap<>();
@@ -446,7 +513,7 @@ public class StudentController {
      * @param model   Model Spring MVC
      * @return view reports
      */
-    @GetMapping("/reports")
+    @GetMapping("/student/reports")
     public String reports(HttpSession session, Model model) {
         Student student = getCurrentStudent(session);
         if (student == null)
@@ -482,7 +549,7 @@ public class StudentController {
      * @param redirectAttributes Dùng để truyền thông báo flash
      * @return Chuyển hướng về trang báo cáo
      */
-    @PostMapping("/reports/submit")
+    @PostMapping("/student/reports/submit")
     public String submitReport(@RequestParam Long registrationId,
             @RequestParam String fileName,
             @RequestParam(required = false) MultipartFile file,
@@ -504,7 +571,7 @@ public class StudentController {
             redirectAttributes.addFlashAttribute("successMessage",
                     "Nộp báo cáo thành công! Giảng viên hướng dẫn và Hội đồng có thể xem tài liệu.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi nộp báo cáo: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", "Lỗi nộp báo cáo: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/student/reports";
     }
@@ -516,7 +583,7 @@ public class StudentController {
      * @param model   Model Spring MVC
      * @return view results
      */
-    @GetMapping("/results")
+    @GetMapping("/student/results")
     public String results(HttpSession session, Model model) {
         Student student = getCurrentStudent(session);
         if (student == null)
@@ -530,14 +597,15 @@ public class StudentController {
                 ? assignmentRepository.findFirstByTopicRegistrationId(registration.getId()).orElse(null)
                 : null;
 
-        List<Score> scores = (assignment != null) ? scoreRepository.findByTopicAssignmentId(assignment.getId())
+        boolean published = assignment != null && assignment.getCouncil() != null && assignment.getCouncil().getStatus() == CouncilStatus.COMPLETED;
+        List<Score> scores = (published && assignment != null) ? scoreRepository.findByTopicAssignmentId(assignment.getId())
                 : Collections.emptyList();
         List<TopicEvaluation> processEvaluations = (assignment != null)
                 ? scoringService.getProcessEvaluations(assignment.getId())
                 : Collections.emptyList();
         Double processScore = (assignment != null) ? scoringService.calculateProcessAverageScore(assignment.getId())
                 : null;
-        Double avgScore = (assignment != null) ? scoringService.calculateFinalScore(assignment.getId()) : null;
+        Double avgScore = (published && assignment != null) ? scoringService.calculateFinalScore(assignment.getId()) : null;
 
         model.addAttribute("student", student);
         model.addAttribute("myGroup", myGroup);
@@ -560,13 +628,14 @@ public class StudentController {
      * @param model          Model Spring MVC
      * @return view notifications
      */
-    @GetMapping("/notifications")
+    @GetMapping("/student/notifications")
     public String notifications(@RequestParam(required = false) Long notificationId,
             HttpSession session, Model model) {
         Student student = getCurrentStudent(session);
         UserAccount user = (UserAccount) session.getAttribute("user");
         if (notificationId != null) {
             notificationService.markAsRead(notificationId, user);
+            GlobalModelAdvice.refreshNotificationModel(notificationService, user, model);
         }
         List<Notification> list = notificationService.getPublishedForRole("STUDENT");
 
@@ -574,9 +643,6 @@ public class StudentController {
         model.addAttribute("notifications", list);
         model.addAttribute("notificationService", notificationService);
         model.addAttribute("currentUser", user);
-        // Tập ID đã đọc (1 truy vấn) để JSP không phải gọi isRead() cho từng thông báo
-        model.addAttribute("readNotificationIds",
-                notificationService.getReadNotificationIds(user != null ? user.getId() : null));
 
         return "student/notifications";
     }
@@ -588,7 +654,7 @@ public class StudentController {
      * @param session Phiên đăng nhập
      * @return Chuyển hướng về trang danh sách thông báo
      */
-    @PostMapping("/notifications/{id}/read")
+    @PostMapping("/student/notifications/{id}/read")
     public String markNotificationRead(@PathVariable Long id, HttpSession session) {
         UserAccount user = (UserAccount) session.getAttribute("user");
         if (user != null) {
@@ -596,4 +662,54 @@ public class StudentController {
         }
         return "redirect:/student/notifications";
     }
+
+    private String registerGoogleProfile(@RequestParam String registrationToken, @RequestParam String fullName,
+            @RequestParam String phone, @RequestParam String courseYear, @RequestParam String className,
+            @RequestParam String major, @RequestParam Long departmentId,
+            HttpServletRequest request, HttpServletResponse response, HttpSession session, Model model)
+            throws Exception {
+        String email = (String) session.getAttribute("googleRegistrationEmail");
+        if (email == null)
+            return "redirect:/login";
+        if (registrationToken == null || !registrationToken.equals(session.getAttribute("googleRegistrationToken"))) {
+            response.sendError(403);
+            return null;
+        }
+        try {
+            authService.registerGoogleStudent(email, fullName, phone, courseYear, className, major, departmentId);
+        } catch (IllegalArgumentException | DataIntegrityViolationException ex) {
+            model.addAttribute("errorMessage", ex instanceof IllegalArgumentException ? ute.edu.helper.UserMessages.forException(ex)
+                    : "Email hoặc MSSV đã tồn tại. Vui lòng đăng nhập lại.");
+            String view = profile(session, model);
+            Student draft = (Student) model.getAttribute("student");
+            draft.getUser().setFullName(fullName);
+            draft.getUser().setPhone(phone);
+            draft.setCourseYear(courseYear);
+            draft.setClassName(className);
+            draft.setMajor(major);
+            return view;
+        }
+        session.removeAttribute("googleRegistrationEmail");
+        session.removeAttribute("googleRegistrationName");
+        session.removeAttribute("googleRegistrationToken");
+        var authority = new SimpleGrantedAuthority("ROLE_STUDENT");
+        var principal = new DefaultOAuth2User(List.of(authority), Map.of("email", email, "email_verified", true),
+                "email");
+        googleLoginHandler.onAuthenticationSuccess(request, response,
+                new UsernamePasswordAuthenticationToken(principal, null, List.of(authority)));
+        return null;
+    }
+
+    static int progressStep(TopicRegistration registration, TopicAssignment assignment, List<Report> reports) {
+        if (registration == null || registration.getStatus() != RegistrationStatus.APPROVED)
+            return 2;
+        if ((registration.getTopic() != null && registration.getTopic().getStatus() == TopicStatus.COMPLETED)
+                || (assignment != null && assignment.getCouncil() != null
+                        && assignment.getCouncil().getStatus() == CouncilStatus.COMPLETED))
+            return 5;
+        if (reports != null && !reports.isEmpty() && reports.get(0).getReviewStatus() != ReportReviewStatus.REJECTED)
+            return 4;
+        return 3;
+    }
+
 }
