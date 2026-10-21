@@ -7,6 +7,9 @@ import ute.edu.entity.Lecture;
 
 /** Truy vấn bảng lecturers (hồ sơ giảng viên). */
 public interface LectureRepository extends JpaRepository<Lecture, Long> {
+    /** Khóa giảng viên khi lập hội đồng để hai yêu cầu không cùng nhận một người trong cùng đợt. */
+    @org.springframework.data.jpa.repository.Query(value = "SELECT * FROM lecturers WHERE id=:id FOR UPDATE", nativeQuery = true)
+    Optional<Lecture> findForUpdate(@org.springframework.data.repository.query.Param("id") Long id);
     /** Tìm giảng viên theo tài khoản. */
     Lecture findByUserId(Long userId);
     /** Tìm giảng viên theo mã số. */

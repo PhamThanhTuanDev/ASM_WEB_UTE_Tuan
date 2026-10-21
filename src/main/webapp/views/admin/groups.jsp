@@ -50,18 +50,16 @@
                                 <td class="align-middle">
                                     <div class="font-extrabold text-slate-900 text-xs"><c:out value="${g.name}" /></div>
                                     <div class="text-[11px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
-                                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-400"></i>
                                         <span><c:out value="${g.registrationPeriod != null ? g.registrationPeriod.name : 'Chung'}" /></span>
                                     </div>
                                 </td>
                                 <td class="align-middle whitespace-nowrap">
                                     <div class="space-y-0.5">
                                         <div class="font-bold text-slate-800 flex items-center gap-1.5">
-                                            <i data-lucide="crown" class="w-3.5 h-3.5 text-amber-500"></i>
                                             <span><c:out value="${g.leader.user.fullName}" /></span>
                                         </div>
                                         <div class="text-[11px] text-slate-500">
-                                            MSSV: <strong class="text-slate-700">${g.leader.studentCode}</strong>
+                                            MSSV: ${g.leader.studentCode}
                                         </div>
                                         <c:if test="${not empty g.leader.className}">
                                             <div class="text-[10px] text-slate-400">

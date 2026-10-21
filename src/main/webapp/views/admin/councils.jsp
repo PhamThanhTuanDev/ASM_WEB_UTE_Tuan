@@ -166,6 +166,22 @@
                                     </div>
                                 </div>
 
+                                <div class="mb-4 space-y-2">
+                                    <h4 class="text-xs font-bold text-slate-700">Lịch báo cáo từng đề tài</h4>
+                                    <c:if test="${empty assignmentsByCouncil[c.id]}">
+                                        <p class="text-xs text-slate-500">Chưa phân công đề tài.</p>
+                                    </c:if>
+                                    <c:forEach var="a" items="${assignmentsByCouncil[c.id]}">
+                                        <div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs space-y-2">
+                                            <div class="flex flex-wrap justify-between gap-2">
+                                                <strong><c:out value="${a.topicRegistration.topic.code}" /></strong>
+                                                <span class="font-bold text-sky-700">${a.reportTimeLabel}</span>
+                                            </div>
+                                            <p class="text-slate-600"><c:out value="${a.topicRegistration.topic.title}" /></p>
+                                        </div>
+                                    </c:forEach>
+                                </div>
+
                                 <!-- Action Bar -->
                                 <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
                                     <button type="button"
@@ -191,7 +207,7 @@
                             <div class="modal fade" id="assignTopicModal_${c.id}" tabindex="-1">
                                 <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable max-w-2xl">
                                     <div class="modal-content rounded-3xl border-0 shadow-2xl overflow-hidden">
-                                        <form method="post"
+                                        <form method="post" class="managed-modal-form"
                                             action="${pageContext.request.contextPath}/admin/councils/${c.id}/assign-topic">
                                 <input type="hidden" name="${_csrf.parameterName}" value="${_csrf.token}">
                                             <div
@@ -205,7 +221,7 @@
                                                     <i data-lucide="x" class="w-4 h-4"></i>
                                                 </button>
                                             </div>
-                                            <div class="p-6 space-y-5">
+                                            <div class="modal-body p-6 space-y-5">
                                                 <div class="space-y-2">
                                                     <div class="flex items-center justify-between gap-3">
                                                         <label class="block text-xs font-bold text-slate-700"
@@ -231,10 +247,28 @@
                                                             </option>
                                                         </c:forEach>
                                                     </select>
-                                                    <p class="text-[11px] text-slate-500 leading-relaxed">Đăng ký đã
-                                                        duyệt, điểm quá trình GVHD chính trên 5, chưa phân công, cùng
-                                                        khoa và cùng đợt. GVHD không nằm trong hội đồng.</p>
                                                 </div>
+                                                <fieldset class="space-y-2">
+                                                    <c:set var="hasAvailableTimeSlots" value="false" />
+                                                    <legend class="text-xs font-bold text-slate-700 mb-2">Giờ báo cáo ngày ${dateDisplay.format(c.councilDate)} <span class="text-rose-500">*</span></legend>
+                                                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 council-time-slots">
+                                                        <c:forEach var="slot" items="${reportTimeSlotsByCouncil[c.id]}" varStatus="slotIndex">
+                                                            <c:if test="${slot.available}"><c:set var="hasAvailableTimeSlots" value="true" /></c:if>
+                                                            <div class="council-time-slot">
+                                                                <input type="radio" name="startTime" value="${slot.startTime}"
+                                                                    id="reportTime_${c.id}_${slotIndex.index}" required
+                                                                    ${slot.available ? '' : 'disabled'}>
+                                                                <label for="reportTime_${c.id}_${slotIndex.index}">
+                                                                    <span>${slot.label}</span>
+                                                                    <small>${slot.available ? 'Còn trống' : 'Đã phân công'}</small>
+                                                                </label>
+                                                            </div>
+                                                        </c:forEach>
+                                                    </div>
+                                                    <c:if test="${not hasAvailableTimeSlots}">
+                                                        <p class="text-xs font-semibold text-amber-700">Hội đồng đã kín lịch trong ngày, không còn khung giờ để phân công.</p>
+                                                    </c:if>
+                                                </fieldset>
                                                 <div
                                                     class="flex items-start gap-3 bg-amber-50 border border-amber-200 text-amber-900 rounded-2xl p-4 text-xs leading-relaxed">
                                                     <i data-lucide="shield-alert"
@@ -250,7 +284,7 @@
                                                     data-bs-dismiss="modal">Hủy</button>
                                                 <button type="submit"
                                                     class="btn-ui btn-ui-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
-                                                    ${hasCouncilTopics ? '' : 'disabled' }>
+                                                    ${hasCouncilTopics and hasAvailableTimeSlots ? '' : 'disabled' }>
                                                     Xác nhận phân công
                                                 </button>
                                             </div>
@@ -293,7 +327,7 @@
                                             bao gồm 1 Chủ tịch và 1 Thư ký.</span>
                                     </div>
 
-                                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>
                                             <label class="block text-xs font-bold text-slate-700 mb-1.5">Mã hội đồng
                                                 <span class="text-rose-500">*</span></label>
@@ -301,7 +335,7 @@
                                                 class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-mono font-bold focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
                                                 placeholder="Ví dụ: HD04" required>
                                         </div>
-                                        <div class="sm:col-span-2">
+                                        <div>
                                             <label class="block text-xs font-bold text-slate-700 mb-1.5">Tên hội đồng
                                                 <span class="text-rose-500">*</span></label>
                                             <input type="text" name="name"
@@ -368,7 +402,8 @@
                                                     required onchange="syncCouncilMemberCards()">
                                                     <c:forEach var="lec" items="${lecturers}">
                                                         <option value="${lec.id}"
-                                                            data-department-id="${lec.department.id}">
+                                                            data-department-id="${lec.department.id}"
+                                                            data-assigned-periods="${assignedCouncilPeriodsByLecturer[lec.id]}">
                                                             ${lec.user.fullName} (${lec.academicDegree != null ?
                                                             lec.academicDegree : 'GV'})</option>
                                                     </c:forEach>
@@ -382,7 +417,8 @@
                                                     required onchange="syncCouncilMemberCards()">
                                                     <c:forEach var="lec" items="${lecturers}" varStatus="loop">
                                                         <option value="${lec.id}"
-                                                            data-department-id="${lec.department.id}" ${loop.index==1
+                                                            data-department-id="${lec.department.id}"
+                                                            data-assigned-periods="${assignedCouncilPeriodsByLecturer[lec.id]}" ${loop.index==1
                                                             ? 'selected' : '' }>${lec.user.fullName}
                                                             (${lec.academicDegree != null ? lec.academicDegree : 'GV'})
                                                         </option>
@@ -407,7 +443,8 @@
                                                 <label
                                                     class="member-select-card flex items-center gap-2.5 p-3 bg-white rounded-xl border border-slate-200 text-xs text-slate-700 hover:border-sky-400 transition-all cursor-pointer"
                                                     data-lecturer-id="${lec.id}"
-                                                    data-department-id="${lec.department.id}">
+                                                    data-department-id="${lec.department.id}"
+                                                    data-assigned-periods="${assignedCouncilPeriodsByLecturer[lec.id]}">
                                                     <input type="checkbox" name="memberIds" value="${lec.id}"
                                                         class="member-cb w-4 h-4 rounded text-sky-600 focus:ring-sky-500 border-slate-300"
                                                         onchange="syncCouncilMemberCards()">
@@ -429,6 +466,8 @@
                                         </div>
                                         <p class="text-[10px] text-slate-500">Chủ tịch và Thư ký được đánh dấu tự động;
                                             chọn thêm 1–3 ủy viên để đạt 3–5 thành viên.</p>
+                                        <p id="councilLecturerAvailability" class="text-xs text-amber-700" role="status"></p>
+                                        <p class="text-[10px] text-slate-500">Chỉ hiển thị giảng viên cùng khoa chưa tham gia hội đồng nào trong đợt đã chọn.</p>
                                     </div>
                                 </div>
 
@@ -436,7 +475,7 @@
                                     class="shrink-0 bg-slate-50 px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
                                     <button type="button" class="btn-ui btn-ui-outline text-xs"
                                         data-bs-dismiss="modal">Hủy</button>
-                                    <button type="submit" class="btn-ui btn-ui-primary text-xs">
+                                    <button type="submit" id="createCouncilSubmit" class="btn-ui btn-ui-primary text-xs disabled:opacity-50 disabled:cursor-not-allowed">
                                         Thành lập hội đồng
                                     </button>
                                 </div>
@@ -472,6 +511,11 @@
                             card.classList.remove('is-selected', 'is-chairman', 'is-secretary');
                             chip.classList.add('hidden');
                             chip.textContent = '';
+
+                            if (card.classList.contains('hidden')) {
+                                if (cb) { cb.checked = false; cb.disabled = true; }
+                                return;
+                            }
 
                             if (id === chairId) {
                                 if (cb) { cb.checked = true; cb.disabled = true; }
@@ -514,6 +558,11 @@
 
                     function filterCouncilLecturersByDepartment() {
                         const departmentId = document.getElementById('newCouncilDepartment')?.value;
+                        const periodId = document.getElementById('createCouncilPeriod')?.value;
+                        function isAvailable(element) {
+                            return element.dataset.departmentId === departmentId
+                                && !(element.dataset.assignedPeriods || '').split(',').includes(periodId);
+                        }
                         ['chairmanSelect', 'secretarySelect'].forEach(function (selectId) {
                             const select = document.getElementById(selectId);
                             if (!select) return;
@@ -523,13 +572,15 @@
                                 });
                             }
                             const matchingOptions = select._allLecturerOptions.filter(function (option) {
-                                return option.dataset.departmentId === departmentId;
+                                return isAvailable(option);
                             }).map(function (option) {
                                 return option.cloneNode(true);
                             });
                             select.replaceChildren(...matchingOptions);
                             if (matchingOptions.length > 0) {
                                 select.value = matchingOptions[selectId === 'secretarySelect' && matchingOptions.length > 1 ? 1 : 0].value;
+                            } else {
+                                select.add(new Option('Không còn giảng viên phù hợp', ''));
                             }
                         });
                         const chairman = document.getElementById('chairmanSelect');
@@ -537,12 +588,19 @@
                         if (chairman && secretary && chairman.value === secretary.value && secretary.options.length > 1) {
                             secretary.value = secretary.options[1].value;
                         }
+                        let availableCount = 0;
                         document.querySelectorAll('#councilMemberCards .member-select-card').forEach(function (card) {
-                            const visible = card.dataset.departmentId === departmentId;
+                            const visible = isAvailable(card);
+                            if (visible) availableCount++;
                             card.classList.toggle('hidden', !visible);
                             const checkbox = card.querySelector('.member-cb');
                             if (!visible && checkbox) checkbox.checked = false;
                         });
+                        const hint = document.getElementById('councilLecturerAvailability');
+                        if (hint) hint.textContent = availableCount < 3
+                            ? 'Chỉ còn ' + availableCount + ' giảng viên phù hợp. Cần ít nhất 3 người để thành lập hội đồng.' : '';
+                        const submit = document.getElementById('createCouncilSubmit');
+                        if (submit) submit.disabled = !periodId || availableCount < 3;
                         syncCouncilMemberCards();
                     }
 
@@ -560,6 +618,7 @@
 
                     document.addEventListener('DOMContentLoaded', function () {
                         filterCouncilLecturersByDepartment();
+                        document.getElementById('createCouncilPeriod')?.addEventListener('change', filterCouncilLecturersByDepartment);
                         ['councilSearch', 'councilPeriodFilter', 'councilDepartmentFilter'].forEach(function (id) {
                             document.getElementById(id)?.addEventListener('input', filterCouncils);
                             document.getElementById(id)?.addEventListener('change', filterCouncils);

@@ -128,10 +128,12 @@
                                                                         <td class="align-top">
                                                                             <span
                                                                                 class="code-tag">${assign.topicRegistration.topic.code}</span>
+                                                                           
                                                                             <div
                                                                                 class="font-bold text-slate-900 leading-snug mt-1">
                                                                                 <c:out value="${assign.topicRegistration.topic.title}" />
                                                                             </div>
+                                                                             <div class="mt-1 text-xs font-bold text-slate-500">Giờ báo cáo: ${assign.reportTimeLabel}</div>
                                                                             <div
                                                                                 class="text-[11px] text-slate-500 mt-1">
                                                                                 <c:out value="${assign.topicRegistration.topic.department.name}" />
@@ -150,8 +152,7 @@
                                                                             </div>
                                                                             <div
                                                                                 class="text-[11px] text-slate-500 mt-0.5">
-                                                                                MSSV: <strong
-                                                                                    class="text-slate-800">${assign.topicRegistration.group.leader.studentCode}</strong>
+                                                                                MSSV: ${assign.topicRegistration.group.leader.studentCode}
                                                                             </div>
                                                                             <c:if
                                                                                 test="${not empty assign.topicRegistration.group.leader.className}">

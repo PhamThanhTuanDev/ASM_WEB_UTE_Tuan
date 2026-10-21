@@ -53,7 +53,6 @@
                                         <td class="align-top">
                                             <div class="font-extrabold text-slate-900 leading-snug"><c:out value="${reg.group.name}" /></div>
                                             <div class="text-[10px] text-slate-500 mt-1 flex items-center gap-1 font-medium">
-                                                <i data-lucide="calendar" class="w-3 h-3 text-slate-400"></i>
                                                 <span><c:out value="${reg.group.registrationPeriod != null ? reg.group.registrationPeriod.name : (reg.topic.registrationPeriod != null ? reg.topic.registrationPeriod.name : 'Chung')}" /></span>
                                             </div>
                                         </td>
@@ -81,7 +80,7 @@
                                                             <div class="text-[11px] font-bold ${m.leader ? 'text-amber-900' : 'text-slate-800'}">
                                                                 <c:out value="${m.student.user.fullName}" /> 
                                                                 <c:if test="${m.leader}">
-                                                                    <span class="text-amber-600 font-medium text-[10px]">(Trưởng nhóm)</span>
+                                                                    <span class="text-amber-600 font-medium text-[10px]">(Nhóm trưởng)</span>
                                                                 </c:if>
                                                             </div>
                                                             <div class="text-[10px] text-slate-500 mt-0.5 font-mono">

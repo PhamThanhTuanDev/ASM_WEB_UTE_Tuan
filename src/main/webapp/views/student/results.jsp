@@ -60,6 +60,10 @@
                                                 <span class="font-bold text-slate-800">${assignment.council.councilDate != null ? dateDisplay.format(assignment.council.councilDate) : 'Chưa định'}</span>
                                             </div>
                                             <div class="flex items-center justify-between">
+                                                <span class="text-slate-500 flex items-center gap-2"><i data-lucide="clock" class="w-3.5 h-3.5 text-sky-600"></i> Giờ báo cáo:</span>
+                                                <span class="font-bold text-slate-800">${assignment.reportTimeLabel}</span>
+                                            </div>
+                                            <div class="flex items-center justify-between">
                                                 <span class="text-slate-500 flex items-center gap-2"><i data-lucide="map-pin" class="w-3.5 h-3.5 text-rose-500"></i> Phòng báo cáo:</span>
                                                 <span class="font-bold text-slate-800">${assignment.council.location != null ? assignment.council.location : 'Chưa định'}</span>
                                             </div>

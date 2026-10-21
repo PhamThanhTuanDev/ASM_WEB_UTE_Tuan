@@ -183,7 +183,7 @@
                                             <div class="flex flex-col items-end gap-1">
                                                 <c:if test="${m.leader}">
                                                     <span class="px-2.5 py-0.5 rounded-lg text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 flex items-center gap-1 shadow-2xs">
-                                                        <i data-lucide="crown" class="w-3 h-3 text-amber-600"></i> TRƯỞNG NHÓM
+                                                        <i data-lucide="crown" class="w-3 h-3 text-amber-600"></i> NHÓM TRƯỞNG 
                                                     </span>
                                                 </c:if>
                                                 <c:if test="${m.student.id == student.id}">

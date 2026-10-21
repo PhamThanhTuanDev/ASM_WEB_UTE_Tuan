@@ -2,10 +2,13 @@ package ute.edu.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import ute.edu.enums.AssignmentStatus;
 
 @Entity
-@Table(name = "topic_assignments", uniqueConstraints = @UniqueConstraint(columnNames = {"council_id", "topic_registration_id"}))
+@Table(name = "topic_assignments", uniqueConstraints = @UniqueConstraint(columnNames = {"council_id", "topic_registration_id"}),
+        indexes = @Index(name = "idx_assignments_council_time", columnList = "council_id,start_time,end_time"))
 /** Bảng topic_assignments: lưu việc phân công đề tài vào hội đồng phản biện. */
 public class TopicAssignment {
     @Id
@@ -32,6 +35,12 @@ public class TopicAssignment {
     // Thời điểm đề tài được đưa vào hội đồng.
     private LocalDateTime assignedAt = LocalDateTime.now();
 
+    // Giờ báo cáo được xác nhận ngay khi phân công đề tài vào hội đồng.
+    @Column(name = "start_time")
+    private LocalTime startTime;
+    @Column(name = "end_time")
+    private LocalTime endTime;
+
     public Long getId() { return id; }
     public ReviewCouncil getCouncil() { return council; }
     public void setCouncil(ReviewCouncil value) { council = value; }
@@ -40,4 +49,13 @@ public class TopicAssignment {
     public AssignmentStatus getStatus() { return status; }
     public void setStatus(AssignmentStatus value) { status = value; }
     public LocalDateTime getAssignedAt() { return assignedAt; }
+    public LocalTime getStartTime() { return startTime; }
+    public void setStartTime(LocalTime value) { startTime = value; }
+    public LocalTime getEndTime() { return endTime; }
+    public void setEndTime(LocalTime value) { endTime = value; }
+    public String getReportTimeLabel() {
+        var format = DateTimeFormatter.ofPattern("HH:mm");
+        return startTime == null || endTime == null ? "Chưa xếp giờ"
+                : startTime.format(format) + " - " + endTime.format(format);
+    }
 }

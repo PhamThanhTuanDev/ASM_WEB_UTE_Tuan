@@ -149,10 +149,9 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-700 mb-1.5">Loại đợt đăng ký <span class="text-rose-500">*</span></label>
                                 <select name="type" id="periodTypeSelect" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none" onchange="handlePeriodTypeChange(this.value)" required>
-                                    <option value="THESIS">Khóa luận tốt nghiệp</option>
-                                    <option value="PROJECT">Tiểu luận chuyên ngành</option>
-                                    <option value="NCKH">Nghiên cứu khoa học (NCKH)</option>
-                                    <option value="COURSE">Môn học chuyên đề (COURSE)</option>
+                                    <option value="KLTN">KHÓA LUẬN TỐT NGHIỆP (KLTN)</option>
+                                    <option value="TLCN">TIỂU LUẬN CHUYÊN NGÀNH (TLCN)</option>
+                                    <option value="NCKH">NGHIÊN CỨU KHOA HỌC (NCKH)</option>
                                 </select>
                             </div>
                             <div>
@@ -237,12 +236,12 @@
         const couMark = document.getElementById('councilReqMark');
         const couContainer = document.getElementById('councilDateContainer');
 
-        const needsPanel = (val === 'THESIS' || val === 'PROJECT');
+        const needsPanel = (val === 'KLTN' || val === 'TLCN');
         if (panel) {
             panel.classList.toggle('show', needsPanel);
         }
 
-        if (val === 'THESIS') {
+        if (val === 'KLTN') {
             revContainer.style.opacity = '1';
             revInput.required = true;
             revMark.style.display = 'inline';
@@ -250,7 +249,7 @@
             couContainer.style.display = '';
             couInput.required = true;
             couMark.style.display = 'inline';
-        } else if (val === 'PROJECT') {
+        } else if (val === 'TLCN') {
             revContainer.style.opacity = '1';
             revInput.required = true;
             revMark.style.display = 'inline';

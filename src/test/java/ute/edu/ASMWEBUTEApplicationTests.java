@@ -119,6 +119,93 @@ class ASMWEBUTEApplicationTests {
     @Autowired JdbcTemplate jdbc;
     @Autowired TopicRegistrationService registrations;
     @Autowired ute.edu.service.CouncilService councilService;
+    @Autowired ute.edu.service.RegistrationPeriodService periodService;
+    @Autowired ute.edu.repository.DepartmentRepository departments;
+
+    @Test
+    void sampleHasOnlyThreeTypesAndTwoPeriodsAcceptingLecturerProposals() {
+        assertEquals(java.util.Set.of("KLTN", "TLCN", "NCKH"),
+                new java.util.HashSet<>(jdbc.queryForList("SELECT DISTINCT type FROM registration_periods", String.class)));
+        assertTrue(periodService.getOpenLecturerPeriods().stream().anyMatch(p -> p.getId().equals(21L)));
+        assertTrue(periodService.getOpenLecturerPeriods().stream().anyMatch(p -> p.getId().equals(22L)));
+    }
+
+    @Test
+    void sampleHasFourRolesAndEightPublishedTopicsWithConsistentSupervisors() {
+        assertEquals(java.util.Set.of("ADMIN", "DEAN", "LECTURER", "STUDENT"),
+                new java.util.HashSet<>(jdbc.queryForList("SELECT code FROM roles", String.class)));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM users WHERE role='DEPARTMENT_HEAD' "
+                + "OR username REGEXP '^head0[1-6]$'", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM lecturers WHERE lecturer_code LIKE 'GVHEAD%'", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM users u LEFT JOIN roles r ON r.id=u.role_id "
+                + "WHERE r.id IS NULL OR r.code<>u.role", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM lecturers l JOIN users u ON u.id=l.user_id "
+                + "WHERE u.role NOT IN ('LECTURER','DEAN')", Integer.class));
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM users u LEFT JOIN lecturers l ON l.user_id=u.id "
+                + "WHERE u.role IN ('LECTURER','DEAN') AND l.id IS NULL", Integer.class));
+        assertEquals(8, jdbc.queryForObject("SELECT COUNT(*) FROM topics t "
+                + "JOIN registration_periods p ON p.id=t.reg_period_id "
+                + "JOIN lecturers l ON l.id=t.lecturer_id "
+                + "JOIN topic_supervisors s ON s.topic_id=t.id AND s.lecturer_id=t.lecturer_id AND s.role='PRIMARY' "
+                + "WHERE t.code IN ('DT101','DT102','DT103','DT104','DT105','DT106','DT107','DT108') "
+                + "AND t.status='PUBLISHED' AND p.status='OPEN' AND p.active=1 "
+                + "AND l.department_id=t.department_id AND t.max_students=3 "
+                + "AND DATE(t.created_at) BETWEEN p.lecturer_start_date AND p.lecturer_end_date "
+                + "AND t.updated_at>=t.created_at "
+                + "AND NOT EXISTS(SELECT 1 FROM topic_registrations r WHERE r.topic_id=t.id)", Integer.class));
+    }
+
+    private ute.edu.entity.ReviewCouncil newTestCouncil(String code, long periodId) {
+        var council = new ute.edu.entity.ReviewCouncil();
+        council.setCode(code);
+        council.setName(code);
+        council.setRegistrationPeriod(periodService.findById(periodId));
+        council.setDepartment(departments.findById(1L).orElseThrow());
+        council.setLocation("Test room");
+        return council;
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void lecturerCanJoinAnotherPeriodAndMembershipMapIncludesBoth() throws Exception {
+        var council = councilService.createCouncil(newTestCouncil("TEST_ANOTHER_PERIOD", 22L), 1L, 3L, java.util.List.of(4L));
+        assertNotNull(council.getId());
+        var mvc = MockMvcBuilders.webAppContextSetup(context).addFilters(security).build();
+        var response = mvc.perform(MockMvcRequestBuilders.get("/admin/councils")
+                .cookie(new Cookie(AuthTokenService.COOKIE_NAME, tokens.issue(users.findByUsername("admin"))))).andReturn();
+        var memberships = (java.util.Map<Long, String>) response.getModelAndView().getModel().get("assignedCouncilPeriodsByLecturer");
+        assertTrue(java.util.Arrays.asList(memberships.get(1L).split(",")).containsAll(java.util.List.of("1", "22")));
+    }
+
+    @Test
+    void simultaneousCouncilCreationAllowsLecturerOnlyOncePerPeriod() throws Exception {
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        try {
+            java.util.function.Function<String, Callable<Boolean>> create = code -> () -> {
+                var council = newTestCouncil(code, 1L);
+                ready.countDown();
+                if (!ready.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Barrier timeout");
+                try {
+                    councilService.createCouncil(council, 2L, 5L, java.util.List.of(6L));
+                    return true;
+                } catch (IllegalStateException occupied) {
+                    assertTrue(occupied.getMessage().contains("đã tham gia một hội đồng"), occupied.getMessage());
+                    return false;
+                }
+            };
+            Future<Boolean> first = workers.submit(create.apply("TEST_COUNCIL_A"));
+            Future<Boolean> second = workers.submit(create.apply("TEST_COUNCIL_B"));
+            assertNotEquals(first.get(15, TimeUnit.SECONDS), second.get(15, TimeUnit.SECONDS));
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM council_members m JOIN councils c ON c.id=m.council_id "
+                    + "WHERE c.reg_period_id=1 AND m.lecturer_id=2", Integer.class));
+        } finally {
+            workers.shutdownNow();
+            assertTrue(workers.awaitTermination(15, TimeUnit.SECONDS));
+            jdbc.update("DELETE m FROM council_members m JOIN councils c ON c.id=m.council_id WHERE c.code IN ('TEST_COUNCIL_A','TEST_COUNCIL_B')");
+            jdbc.update("DELETE FROM councils WHERE code IN ('TEST_COUNCIL_A','TEST_COUNCIL_B')");
+        }
+    }
 
 	@Test
 	void contextLoads() {
@@ -143,11 +230,96 @@ class ASMWEBUTEApplicationTests {
             for (int i=1; i<example.length; i++) {
                 var registration = registrations.findById(example[i]);
                 assertTrue(councilService.canAssignToCouncil(council, registration), "Council " + example[0] + ", registration " + example[i]);
-                councilService.assignTopic(example[0], example[i]);
+                councilService.assignTopic(example[0], example[i], java.time.LocalTime.of(8, 0).plusHours(i-1));
             }
             assertEquals(example.length-1, councilService.getAssignments(example[0]).size());
         }
-        assertThrows(IllegalStateException.class, () -> councilService.assignTopic(2L, 2L));
+        assertThrows(IllegalStateException.class, () -> councilService.assignTopic(2L, 2L, java.time.LocalTime.of(11, 0)));
+    }
+
+    @Test
+    @org.springframework.transaction.annotation.Transactional
+    void councilTimesRejectOverlapAndAllowBackToBackTopics() {
+        var first = councilService.assignTopic(2L, 2L, java.time.LocalTime.of(8, 0));
+        assertEquals(java.time.LocalTime.of(9, 0), first.getEndTime());
+        assertTrue(jdbc.queryForObject("SELECT EXISTS(SELECT 1 FROM topic_assignments WHERE council_id=2 "
+                + "AND start_time < '08:45:00' AND end_time > '08:15:00')", Boolean.class));
+        var slots = councilService.getReportTimeSlots(councilService.getAssignments(2L));
+        assertFalse(slots.stream().filter(s -> s.getStartTime().equals(java.time.LocalTime.of(8, 0)))
+                .findFirst().orElseThrow().isAvailable());
+        assertTrue(slots.stream().filter(s -> s.getStartTime().equals(java.time.LocalTime.of(9, 0)))
+                .findFirst().orElseThrow().isAvailable());
+        councilService.assignTopic(2L, 17L, java.time.LocalTime.of(9, 0));
+        assertEquals(2, councilService.getAssignments(2L).size());
+    }
+
+    @Test
+    void simultaneousCouncilAssignmentsReserveSlotOnlyOnce() throws Exception {
+        ExecutorService workers = Executors.newFixedThreadPool(2);
+        CountDownLatch ready = new CountDownLatch(2);
+        try {
+            java.util.function.LongFunction<Callable<Boolean>> assign = registrationId -> () -> {
+                ready.countDown();
+                if (!ready.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Barrier timeout");
+                try {
+                    councilService.assignTopic(2L, registrationId, java.time.LocalTime.of(9, 0));
+                    return true;
+                } catch (IllegalStateException occupied) {
+                    assertTrue(occupied.getMessage().contains("Khung giờ"), occupied.getMessage());
+                    return false;
+                }
+            };
+            Future<Boolean> first = workers.submit(assign.apply(2L));
+            Future<Boolean> second = workers.submit(assign.apply(17L));
+            assertNotEquals(first.get(15, TimeUnit.SECONDS), second.get(15, TimeUnit.SECONDS));
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM topic_assignments WHERE council_id=2 "
+                    + "AND start_time='09:00:00'", Integer.class));
+        } finally {
+            workers.shutdownNow();
+            assertTrue(workers.awaitTermination(15, TimeUnit.SECONDS));
+            jdbc.update("DELETE FROM topic_assignments WHERE council_id=2 AND topic_registration_id IN (2,17)");
+        }
+    }
+
+    @Test
+    void councilFormBlocksStaleAndInvalidSubmissionsAndRendersReservedTime() throws Exception {
+        var mvc = MockMvcBuilders.webAppContextSetup(context).addFilters(security).build();
+        String adminToken = tokens.issue(users.findByUsername("admin"));
+        var cookie = new Cookie(AuthTokenService.COOKIE_NAME, adminToken);
+        var login = mvc.perform(MockMvcRequestBuilders.get("/login")).andReturn();
+        var csrf = (org.springframework.security.web.csrf.CsrfToken) login.getRequest().getAttribute(
+                org.springframework.security.web.csrf.CsrfToken.class.getName());
+        String csrfValue = csrf.getToken();
+        var session = (org.springframework.mock.web.MockHttpSession) login.getRequest().getSession();
+        try {
+            String[] registrationIds = {"2", "17", "17", "9", "9", "9"};
+            String[] times = {"08:00", "08:00", "09:00", "", "bad", "08:15"};
+            for (int i = 0; i < times.length; i++) {
+                var result = mvc.perform(MockMvcRequestBuilders.post("/admin/councils/2/assign-topic")
+                        .session(session).cookie(cookie).param(csrf.getParameterName(), csrfValue)
+                        .param("registrationId", registrationIds[i]).param("startTime", times[i])).andReturn();
+                assertEquals(302, result.getResponse().getStatus());
+                assertTrue(result.getFlashMap().containsKey(i == 0 || i == 2 ? "successMessage" : "errorMessage"));
+            }
+            assertEquals(2, councilService.getAssignments(2L).size());
+            var request = java.net.http.HttpRequest.newBuilder(java.net.URI.create("http://127.0.0.1:" + port + "/admin/councils"))
+                    .header("Cookie", AuthTokenService.COOKIE_NAME + "=" + adminToken).GET().build();
+            var response = java.net.http.HttpClient.newHttpClient().send(request, java.net.http.HttpResponse.BodyHandlers.ofString());
+            assertEquals(200, response.statusCode());
+            assertTrue(java.util.regex.Pattern.compile("id=\"reportTime_2_1\"[^>]*disabled", java.util.regex.Pattern.DOTALL)
+                    .matcher(response.body()).find());
+            assertTrue(java.util.regex.Pattern.compile("id=\"reportTime_2_2\"[^>]*disabled", java.util.regex.Pattern.DOTALL)
+                    .matcher(response.body()).find());
+            assertTrue(response.body().contains("08:00 - 09:00"));
+            assertTrue(response.body().contains("id=\"reportTime_2_10\""));
+            assertFalse(response.body().contains("legacyTime_"));
+            assertFalse(response.body().contains("/assignments/1/schedule"));
+            assertFalse(response.body().contains("/assignments/3/schedule"));
+            assertFalse(response.body().contains("Chưa xếp giờ"));
+        } finally {
+            tokens.revoke(adminToken);
+            jdbc.update("DELETE FROM topic_assignments WHERE council_id=2 AND topic_registration_id IN (2,17)");
+        }
     }
 
     @Test

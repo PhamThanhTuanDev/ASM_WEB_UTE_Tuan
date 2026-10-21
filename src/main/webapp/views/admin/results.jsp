@@ -79,7 +79,7 @@
                                                     </td>
                                                     <td class="align-top">
                                                         <div class="font-bold text-slate-900"><c:out value="${assign.topicRegistration.group.name}" /></div>
-                                                        <div class="text-[11px] text-slate-500 mt-0.5">Trưởng nhóm: ${assign.topicRegistration.group.leader.user.fullName}</div>
+                                                        <div class="text-[11px] text-slate-500 mt-0.5">Nhóm trưởng: ${assign.topicRegistration.group.leader.user.fullName}</div>
                                                     </td>
                                                     <td class="align-top">
                                                         <div class="space-y-1.5">

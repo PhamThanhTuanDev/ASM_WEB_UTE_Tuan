@@ -53,7 +53,7 @@
                     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
                         rel="stylesheet">
                     <link rel="stylesheet"
-                        href="${pageContext.request.contextPath}/assets/css/custom-theme.css?v=5.2.0">
+                        href="${pageContext.request.contextPath}/assets/css/custom-theme.css?v=5.2.1">
                 </head>
 
                 <body

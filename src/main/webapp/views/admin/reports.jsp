@@ -71,12 +71,11 @@
                                             </div>
                                             <c:set var="isSubmitterLeader" value="${r.topicRegistration.group.leader != null && r.topicRegistration.group.leader.id == r.submittedBy.id}" />
                                             <div class="font-semibold text-slate-700 mt-1 flex items-center gap-1.5">
-                                                <i data-lucide="user" class="w-3.5 h-3.5 text-sky-600"></i>
                                                 <span><c:out value="${r.submittedBy.user.fullName}" /><c:if test="${isSubmitterLeader}"> (Nhóm trưởng)</c:if></span>
                                             </div>
                                             <div class="text-[11px] text-slate-500 mt-0.5">
-                                                MSSV: <strong>${r.submittedBy.studentCode}</strong>
-                                                <c:if test="${not empty r.submittedBy.className}"> &bull; ${r.submittedBy.className}</c:if>
+                                                MSSV: ${r.submittedBy.studentCode}
+                                                <c:if test="${not empty r.submittedBy.className}"> &bull;Lớp: ${r.submittedBy.className}</c:if>
                                             </div>
                                         </td>
                                         <td class="align-top">

@@ -2639,6 +2639,32 @@ body {
 .modal-dialog-scrollable .modal-content:has(> .managed-modal-form) {
     max-height: calc(100dvh - 2rem);
 }
+.council-time-slot { position: relative; }
+.council-time-slot input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+}
+.council-time-slot label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: .25rem;
+    margin: 0;
+    padding: .6rem .35rem;
+    border: 1px solid #cbd5e1;
+    border-radius: .75rem;
+    background: #fff;
+    color: #334155;
+    font-size: .75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+.council-time-slot label small { font-size: .65rem; font-weight: 400; }
+.council-time-slot input:checked + label { background: #e0f2fe; border-color: #0284c7; color: #075985; }
+.council-time-slot input:focus-visible + label { outline: 2px solid #0284c7; outline-offset: 2px; }
+.council-time-slot input:disabled + label { background: #f1f5f9; color: #94a3b8; border-color: #e2e8f0; cursor: not-allowed; opacity: .65; }
 .managed-modal-form {
     display: flex;
     flex-direction: column;

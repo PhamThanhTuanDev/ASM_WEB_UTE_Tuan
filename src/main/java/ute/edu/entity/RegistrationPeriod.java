@@ -24,7 +24,8 @@ public class RegistrationPeriod {
     private String name;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.VARCHAR)
+    @Column(nullable = false, length = 50)
     // Loại đợt: khóa luận, tiểu luận hoặc nghiên cứu khoa học.
     private RegistrationType type;
 

@@ -1,6 +1,7 @@
 package ute.edu.service;
 
 import java.util.List;
+import java.time.LocalTime;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ute.edu.entity.*;
@@ -81,62 +82,45 @@ public class CouncilService {
             throw new IllegalArgumentException("Chủ tịch và Thư ký không được trùng nhau");
         }
 
-        Lecture chairman = lectureRepository.findById(chairmanId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Chủ tịch"));
-        Lecture secretary = lectureRepository.findById(secretaryId)
-                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Thư ký"));
-
         if (council.getDepartment() == null) {
             throw new IllegalArgumentException("Khoa quản lý hội đồng là bắt buộc");
         }
         Long departmentId = council.getDepartment().getId();
-        if (!departmentId.equals(chairman.getDepartment().getId())
-                || !departmentId.equals(secretary.getDepartment().getId())) {
-            throw new IllegalArgumentException("Chủ tịch và Thư ký phải thuộc khoa quản lý của hội đồng");
+        var selectedIds = new java.util.TreeSet<Long>();
+        selectedIds.add(chairmanId);
+        selectedIds.add(secretaryId);
+        if (memberIds != null) memberIds.stream().filter(java.util.Objects::nonNull).forEach(selectedIds::add);
+        if (selectedIds.size() < 3 || selectedIds.size() > 5) {
+            throw new IllegalArgumentException("Hội đồng phải có từ 3 đến 5 giảng viên!");
         }
-
-        council.setChairman(chairman);
-        council.setSecretary(secretary);
-        council.setStatus(CouncilStatus.PLANNED);
-        ReviewCouncil saved = councilRepository.save(council);
-
-        // Add chairman as member
-        ReviewCouncilMember mChairman = new ReviewCouncilMember();
-        mChairman.setCouncil(saved);
-        mChairman.setLecturer(chairman);
-        mChairman.setRole(CommitteeRole.CHAIRMAN);
-        memberRepository.save(mChairman);
-
-        // Add secretary as member
-        ReviewCouncilMember mSecretary = new ReviewCouncilMember();
-        mSecretary.setCouncil(saved);
-        mSecretary.setLecturer(secretary);
-        mSecretary.setRole(CommitteeRole.SECRETARY);
-        memberRepository.save(mSecretary);
-
-        // Add other members (3 to 5 total)
-        if (memberIds != null) {
-            for (Long mId : new java.util.LinkedHashSet<>(memberIds)) {
-                if (mId != null && !mId.equals(chairmanId) && !mId.equals(secretaryId)) {
-                    Lecture mem = lectureRepository.findById(mId).orElse(null);
-                    if (mem != null) {
-                        if (!departmentId.equals(mem.getDepartment().getId())) {
-                            throw new IllegalArgumentException("Tất cả Ủy viên phải thuộc khoa quản lý của hội đồng");
-                        }
-                        ReviewCouncilMember m = new ReviewCouncilMember();
-                        m.setCouncil(saved);
-                        m.setLecturer(mem);
-                        m.setRole(CommitteeRole.MEMBER);
-                        memberRepository.save(m);
-                    }
-                }
+        var selectedLecturers = new java.util.LinkedHashMap<Long, Lecture>();
+        // Lấy khóa theo cùng thứ tự để tránh deadlock khi hai yêu cầu có giảng viên chung.
+        for (Long lecturerId : selectedIds) {
+            Lecture lecturer = lectureRepository.findForUpdate(lecturerId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy giảng viên " + lecturerId));
+            if (lecturer.getDepartment() == null || !departmentId.equals(lecturer.getDepartment().getId())) {
+                throw new IllegalArgumentException("Tất cả thành viên phải thuộc khoa quản lý của hội đồng!");
+            }
+            selectedLecturers.put(lecturerId, lecturer);
+        }
+        for (Long lecturerId : selectedIds) {
+            if (!memberRepository.findMembershipIdsForUpdate(lecturerId, period.getId()).isEmpty()) {
+                throw new IllegalStateException("Giảng viên " + selectedLecturers.get(lecturerId).getUser().getFullName()
+                        + " đã tham gia một hội đồng trong đợt đăng ký này. Vui lòng chọn giảng viên khác!");
             }
         }
-
-        long totalMembers = memberRepository.findByCouncilId(saved.getId()).size();
-        if (totalMembers < 3 || totalMembers > 5) {
-            throw new IllegalArgumentException(
-                    "Hội đồng phải có từ 3 đến 5 giảng viên (Hiện có: " + totalMembers + ")");
+        council.setChairman(selectedLecturers.get(chairmanId));
+        council.setSecretary(selectedLecturers.get(secretaryId));
+        council.setStatus(CouncilStatus.PLANNED);
+        ReviewCouncil saved = councilRepository.save(council);
+        for (var entry : selectedLecturers.entrySet()) {
+            ReviewCouncilMember member = new ReviewCouncilMember();
+            member.setCouncil(saved);
+            member.setLecturer(entry.getValue());
+            member.setRole(entry.getKey().equals(chairmanId) ? CommitteeRole.CHAIRMAN
+                    : entry.getKey().equals(secretaryId) ? CommitteeRole.SECRETARY : CommitteeRole.MEMBER);
+            memberRepository.save(member);
+            saved.getMembers().add(member);
         }
 
         return saved;
@@ -144,10 +128,11 @@ public class CouncilService {
 
     @Transactional
     /** Phân công đăng ký đề tài vào hội đồng sau khi kiểm tra toàn bộ điều kiện. */
-    public TopicAssignment assignTopic(Long councilId, Long registrationId) {
+    public TopicAssignment assignTopic(Long councilId, Long registrationId, LocalTime startTime) {
         // Dùng cùng khóa hội đồng với luồng chốt điểm; khóa đăng ký ngăn hai hội đồng nhận cùng đề tài.
         ReviewCouncil council = councilRepository.findForUpdate(councilId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Hội đồng"));
+        LocalTime endTime = validateAvailableTime(councilId, startTime);
         TopicRegistration registration = registrationRepository.findForUpdate(registrationId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Đăng ký đề tài"));
         if (council.getStatus() == CouncilStatus.COMPLETED || council.getRegistrationPeriod() == null
@@ -197,7 +182,53 @@ public class CouncilService {
         assignment.setCouncil(council);
         assignment.setTopicRegistration(registration);
         assignment.setStatus(AssignmentStatus.ASSIGNED);
+        assignment.setStartTime(startTime);
+        assignment.setEndTime(endTime);
         return assignmentRepository.save(assignment);
+    }
+
+    private LocalTime validateAvailableTime(Long councilId, LocalTime startTime) {
+        if (startTime == null || startTime.isBefore(LocalTime.of(7, 0))
+                || startTime.isAfter(LocalTime.of(17, 0)) || startTime.getMinute() != 0
+                || startTime.getSecond() != 0 || startTime.getNano() != 0) {
+            throw new IllegalArgumentException("Vui lòng chọn khung giờ 1 tiếng từ 07:00 đến 18:00!");
+        }
+        LocalTime endTime = startTime.plusHours(1);
+        // Khóa dòng hội đồng được giữ đến khi commit, ngăn hai yêu cầu cùng chiếm một khung giờ.
+        if (assignmentRepository.existsByCouncilIdAndStartTimeLessThanAndEndTimeGreaterThan(
+                councilId, endTime, startTime)) {
+            throw new IllegalStateException("Khung giờ này đã được phân công cho đề tài khác trong hội đồng. Vui lòng chọn giờ khác!");
+        }
+        return endTime;
+    }
+
+    public static final class ReportTimeSlot {
+        private final LocalTime startTime;
+        private final LocalTime endTime;
+        private final boolean available;
+
+        public ReportTimeSlot(LocalTime startTime, LocalTime endTime, boolean available) {
+            this.startTime = startTime;
+            this.endTime = endTime;
+            this.available = available;
+        }
+
+        public LocalTime getStartTime() { return startTime; }
+        public String getLabel() { return startTime + " - " + endTime; }
+        public boolean isAvailable() { return available; }
+    }
+
+    /** Dùng cùng danh sách phân công cho cả bảng lịch và các lựa chọn bị khóa trên giao diện. */
+    public List<ReportTimeSlot> getReportTimeSlots(List<TopicAssignment> assignments) {
+        var slots = new java.util.ArrayList<ReportTimeSlot>();
+        for (LocalTime start = LocalTime.of(7, 0); start.isBefore(LocalTime.of(18, 0)); start = start.plusHours(1)) {
+            LocalTime from = start;
+            LocalTime to = start.plusHours(1);
+            boolean occupied = assignments.stream().anyMatch(a -> a.getStartTime() != null && a.getEndTime() != null
+                    && a.getStartTime().isBefore(to) && a.getEndTime().isAfter(from));
+            slots.add(new ReportTimeSlot(from, to, !occupied));
+        }
+        return slots;
     }
 
     /**

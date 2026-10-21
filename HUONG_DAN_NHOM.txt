@@ -1,0 +1,20 @@
+MÃ NGUỒN ASM_WEB_UTE – BẢN 19/10/2026 (đang chạy tại https://asm.minlish.site)
+==========================================================================
+Thư mục ASM_WEB_UTE đã có sẵn git, remote origin = https://github.com/25810177-collab/ASM_WEB_UTE.git
+Nhánh hiện tại: Tuan = main (e6e4dff) + 5 commit sửa lỗi/triển khai của Tuấn (mới nhất f4b2fd5).
+
+Mỗi thành viên đẩy phần việc của mình lên nhánh riêng:
+  cd ASM_WEB_UTE
+  git checkout -b Hieu            (Hoai / Du ... đổi tên theo nhánh của bạn)
+  ... sửa code, rồi:
+  git add .
+  git commit -m "mo ta ngan gon phan viec"
+  git push -u origin Hieu         (nếu nhánh đã có trên GitHub và báo lỗi, dùng: git pull --rebase origin Hieu rồi push lại)
+Anh Đủ tạo Pull Request từ từng nhánh vào main để gộp.
+
+Chạy thử ở máy cá nhân:
+  1. Tạo tệp .env ở thư mục ASM_WEB_UTE (xem README mục 5): DB_USERNAME, DB_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET
+  2. mvnw.cmd spring-boot:run  ->  http://localhost:14090
+  Database rỗng sẽ tự nạp dữ liệu mẫu từ database/asm_web_ute_data.sql.
+
+Lưu ý: không đưa tệp .env lên GitHub (đã có trong .gitignore).

@@ -115,7 +115,7 @@ public class RegistrationPeriodService {
         period.setActive(period.getStatus() == PeriodStatus.OPEN);
         // Business Validation Rule:
         // Hạn chót GVPB nộp điểm (reviewer_score_deadline): Bắt buộc với TLCN hoặc KLTN
-        if (period.getType() == RegistrationType.PROJECT || period.getType() == RegistrationType.THESIS) {
+        if (period.getType() == RegistrationType.TLCN || period.getType() == RegistrationType.KLTN) {
             if (period.getReviewerDeadline() == null) {
                 throw new IllegalArgumentException(
                         "Đợt tiểu luận chuyên ngành hoặc khóa luận tốt nghiệp phải có hạn GVPB nộp điểm!");
@@ -123,7 +123,7 @@ public class RegistrationPeriodService {
         }
 
         // Ngày báo cáo hội đồng (council_date): Bắt buộc với KLTN
-        if (period.getType() == RegistrationType.THESIS) {
+        if (period.getType() == RegistrationType.KLTN) {
             if (period.getCouncilReportDate() == null) {
                 throw new IllegalArgumentException(
                         "Đợt Khóa luận tốt nghiệp (KLTN) bắt buộc phải thiết lập Ngày báo cáo hội đồng!");

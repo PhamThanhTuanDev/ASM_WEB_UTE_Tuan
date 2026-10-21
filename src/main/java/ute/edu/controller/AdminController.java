@@ -284,7 +284,23 @@ public class AdminController {
                 .filter(registration -> !assignedIds.contains(registration.getId()))
                 .toList());
         Map<Long, List<TopicRegistration>> eligibleRegistrationsByCouncil = new HashMap<>();
+        Map<Long, List<TopicAssignment>> assignmentsByCouncil = new HashMap<>();
+        Map<Long, List<CouncilService.ReportTimeSlot>> reportTimeSlotsByCouncil = new HashMap<>();
+        Map<Long, String> assignedCouncilPeriodsByLecturer = new HashMap<>();
         for (ReviewCouncil council : councils) {
+            if (council.getRegistrationPeriod() != null) {
+                String periodId = council.getRegistrationPeriod().getId().toString();
+                for (ReviewCouncilMember member : council.getMembers()) {
+                    assignedCouncilPeriodsByLecturer.merge(member.getLecturer().getId(), periodId,
+                            (existing, value) -> existing + "," + value);
+                }
+            }
+            List<TopicAssignment> assignments = councilService.getAssignments(council.getId()).stream()
+                    .sorted(java.util.Comparator.comparing(TopicAssignment::getStartTime,
+                            java.util.Comparator.nullsLast(java.util.Comparator.naturalOrder())))
+                    .toList();
+            assignmentsByCouncil.put(council.getId(), assignments);
+            reportTimeSlotsByCouncil.put(council.getId(), councilService.getReportTimeSlots(assignments));
             List<TopicRegistration> eligibleRegistrations = candidates.stream()
                     .filter(registration -> sameId(council.getRegistrationPeriod() == null ? null : council.getRegistrationPeriod().getId(),
                             registration.getTopic().getRegistrationPeriod() == null ? null : registration.getTopic().getRegistrationPeriod().getId())
@@ -301,6 +317,9 @@ public class AdminController {
         model.addAttribute("lecturers", lectureRepository.findAll(org.springframework.data.domain.Sort.by(
                 org.springframework.data.domain.Sort.Direction.DESC, "user.createdAt", "id")));
         model.addAttribute("eligibleRegistrationsByCouncil", eligibleRegistrationsByCouncil);
+        model.addAttribute("assignmentsByCouncil", assignmentsByCouncil);
+        model.addAttribute("reportTimeSlotsByCouncil", reportTimeSlotsByCouncil);
+        model.addAttribute("assignedCouncilPeriodsByLecturer", assignedCouncilPeriodsByLecturer);
         model.addAttribute("councilCreationPeriods", periodService.getCouncilCreationPeriods());
         return "admin/councils";
     }
@@ -332,14 +351,23 @@ public class AdminController {
     /** Phân công đề tài vào hội đồng. */
     public String assignTopicToCouncil(@PathVariable Long id,
             @RequestParam Long registrationId,
+            @RequestParam(required = false) String startTime,
             RedirectAttributes redirectAttributes) {
         try {
-            councilService.assignTopic(id, registrationId);
+            councilService.assignTopic(id, registrationId, parseReportTime(startTime));
             redirectAttributes.addFlashAttribute("successMessage", "Đã phân công đề tài vào Hội đồng!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Lỗi phân công: " + ute.edu.helper.UserMessages.forException(e));
         }
         return "redirect:/admin/councils";
+    }
+
+    private java.time.LocalTime parseReportTime(String startTime) {
+        try {
+            return java.time.LocalTime.parse(startTime == null ? "" : startTime);
+        } catch (java.time.format.DateTimeParseException e) {
+            throw new IllegalArgumentException("Vui lòng chọn giờ báo cáo hợp lệ!");
+        }
     }
 
     @PostMapping("/councils/{id}/delete")

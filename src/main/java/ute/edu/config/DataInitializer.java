@@ -95,6 +95,8 @@ public class DataInitializer implements InitializingBean {
                     schema.execute(dataSource);
                     log.warn("Created missing project tables. Existing data preserved; no demo rows were imported.");
                 }
+                migrateRegistrationTypes();
+                migrateCouncilReportTimes();
                 return;
             }
             log.warn("Importing demo SQL into empty database (or explicit app.seed.every-run=true).");
@@ -104,9 +106,58 @@ public class DataInitializer implements InitializingBean {
             populator.setContinueOnError(false);
             // setSeparator(";") bỏ vì ";" là giá trị mặc định của ResourceDatabasePopulator
             populator.execute(dataSource);
+            migrateRegistrationTypes();
+            migrateCouncilReportTimes();
             log.info("Import OK. Demo passwords: admin123 (admin/dean/department head), 123456 (lecturer/student).");
         } catch (Exception e) {
             throw new IllegalStateException("Khởi tạo database thất bại. Kiểm tra " + SEED_FILE + ": " + e.getMessage(), e);
+        }
+    }
+
+    /** Chuyển mã loại cũ mà không import lại dữ liệu hoặc thay đổi lịch sử các đợt. */
+    private void migrateRegistrationTypes() {
+        var constraints = jdbcTemplate.queryForList("SELECT cc.CONSTRAINT_NAME, cc.CHECK_CLAUSE "
+                + "FROM information_schema.CHECK_CONSTRAINTS cc JOIN information_schema.TABLE_CONSTRAINTS tc "
+                + "ON tc.CONSTRAINT_SCHEMA=cc.CONSTRAINT_SCHEMA AND tc.CONSTRAINT_NAME=cc.CONSTRAINT_NAME "
+                + "WHERE tc.TABLE_SCHEMA=DATABASE() AND tc.TABLE_NAME='registration_periods'");
+        boolean hasCanonicalConstraint = false;
+        for (var constraint : constraints) {
+            String clause = constraint.get("CHECK_CLAUSE").toString();
+            if (!Pattern.compile("(?i)\\btype\\b").matcher(clause).find()) continue;
+            if (clause.contains("KLTN") && clause.contains("TLCN") && !clause.contains("THESIS")
+                    && !clause.contains("PROJECT") && !clause.contains("COURSE")) {
+                hasCanonicalConstraint = true;
+            } else {
+                String name = constraint.get("CONSTRAINT_NAME").toString().replace("`", "``");
+                jdbcTemplate.execute("ALTER TABLE registration_periods DROP CHECK `" + name + "`");
+            }
+        }
+        jdbcTemplate.update("UPDATE registration_periods SET type=CASE "
+                + "WHEN type IN ('THESIS','GRADUATION_PROJECT') THEN 'KLTN' "
+                + "WHEN type IN ('PROJECT','COURSE','SUBJECT') THEN 'TLCN' "
+                + "WHEN type='RESEARCH' THEN 'NCKH' ELSE type END "
+                + "WHERE type IN ('THESIS','GRADUATION_PROJECT','PROJECT','COURSE','SUBJECT','RESEARCH')");
+        if (!hasCanonicalConstraint) {
+            jdbcTemplate.execute("ALTER TABLE registration_periods ADD CONSTRAINT ck_periods_type "
+                    + "CHECK (type IN ('KLTN','TLCN','NCKH'))");
+        }
+    }
+
+    private void migrateCouncilReportTimes() {
+        var columns = jdbcTemplate.queryForList("SELECT COLUMN_NAME FROM information_schema.COLUMNS "
+                + "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='topic_assignments'", String.class);
+        if (!columns.contains("start_time")) {
+            jdbcTemplate.execute("ALTER TABLE topic_assignments ADD COLUMN start_time TIME NULL");
+        }
+        if (!columns.contains("end_time")) {
+            jdbcTemplate.execute("ALTER TABLE topic_assignments ADD COLUMN end_time TIME NULL");
+        }
+        Integer indexCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM information_schema.STATISTICS "
+                + "WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME='topic_assignments' "
+                + "AND INDEX_NAME='idx_assignments_council_time'", Integer.class);
+        if (indexCount != null && indexCount == 0) {
+            jdbcTemplate.execute("ALTER TABLE topic_assignments ADD INDEX idx_assignments_council_time "
+                    + "(council_id,start_time,end_time)");
         }
     }
 

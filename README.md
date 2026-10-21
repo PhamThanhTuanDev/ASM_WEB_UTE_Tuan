@@ -1,6 +1,6 @@
 # Hệ thống quản lý đề tài sinh viên HCMUTE
 
-Ứng dụng quản lý quá trình đề xuất, đăng ký, hướng dẫn, báo cáo và đánh giá đề tài sinh viên. Hỗ trợ khóa luận tốt nghiệp, tiểu luận chuyên ngành, nghiên cứu khoa học và môn học chuyên đề.
+Ứng dụng quản lý quá trình đề xuất, đăng ký, hướng dẫn, báo cáo và đánh giá đề tài sinh viên. Hỗ trợ khóa luận tốt nghiệp, tiểu luận chuyên ngành và nghiên cứu khoa học.
 
 Tài liệu hướng dẫn cài đặt trên Windows bằng PowerShell. Các lệnh phải chạy tại thư mục gốc dự án, nơi có `pom.xml`, trừ khi có ghi chú khác.
 
@@ -26,7 +26,7 @@ Tài liệu hướng dẫn cài đặt trên Windows bằng PowerShell. Các l�
 | Vai trò | Chức năng chính |
 | --- | --- |
 | Quản trị viên | Quản lý đợt, duyệt đề xuất đề tài, theo dõi nhóm và báo cáo, tạo hội đồng, phân công đề tài, công bố kết quả, quản lý thông báo và xem tài khoản |
-| Trưởng khoa / phụ trách khoa | Truy cập khu vực quản lý theo phân quyền của ứng dụng; duyệt đề xuất và điều phối hội đồng |
+| Trưởng khoa | Truy cập khu vực quản lý theo phân quyền của ứng dụng; duyệt đề xuất và điều phối hội đồng |
 | Giảng viên | Đề xuất đề tài, duyệt đăng ký của nhóm được hướng dẫn, xem và duyệt báo cáo, chấm điểm quá trình, chấm hội đồng được phân công |
 | Sinh viên | Cập nhật hồ sơ, tạo nhóm, thêm thành viên, đăng ký đề tài, nộp báo cáo, xem lịch và kết quả, đọc thông báo |
 
@@ -259,6 +259,7 @@ Các tài khoản sau có trong bộ dữ liệu mẫu:
 | Tên đăng nhập | Mật khẩu | Vai trò |
 | --- | --- | --- |
 | `admin` | `admin123` | Quản trị viên |
+| `dean` | `admin123` | Trưởng khoa |
 | `lecturer01` | `123456` | Giảng viên |
 | `student01` | `123456` | Sinh viên |
 
@@ -268,7 +269,9 @@ Nếu database đã có dữ liệu khác, tài khoản mẫu có thể không t
 
 `app.demo.quick-login=true` đang bật chức năng đăng nhập nhanh/chuyển vai trò để trình diễn. Khi triển khai sử dụng thật, đặt `app.demo.quick-login=false`.
 
-Bộ dữ liệu mẫu được chuẩn bị theo ngày **17/10/2026**, gồm nhiều đợt đã đóng và một số đợt đang mở. Ứng dụng kiểm tra ngày hiện tại theo múi giờ Việt Nam; trạng thái “Đang mở” chưa đủ để một đợt xuất hiện trong mọi form.
+Bộ dữ liệu mẫu được chuẩn bị theo ngày **21/10/2026**, gồm 4 vai trò, 202 tài khoản (1 quản trị viên, 1 trưởng khoa, 100 giảng viên, 100 sinh viên) và 101 hồ sơ giảng viên, bao gồm trưởng khoa. Bộ mẫu không còn tài khoản `head01`–`head06` hoặc vai trò “Phụ trách khoa”.
+
+Có 108 đề tài, trong đó 8 đề tài mới `DT101`–`DT108` đã công bố (`PUBLISHED`), chưa có nhóm nhận và đã có GVHD chính cùng khoa. Chúng thuộc các đợt đang mở: 4 đề tài ở đợt 1, 2 đề tài ở đợt 21 và 2 đề tài ở đợt 22. Các đợt 21–22 còn nhận đề xuất; sinh viên đăng ký khi đến thời gian quy định. Ứng dụng kiểm tra ngày hiện tại theo múi giờ Việt Nam; trạng thái “Đang mở” chưa đủ để một đợt xuất hiện trong mọi form.
 
 Ví dụ: đợt còn hạn sinh viên đăng ký nhưng đã hết hạn giảng viên đề xuất sẽ xuất hiện ở form tạo nhóm, nhưng không xuất hiện ở form đề xuất đề tài. Để thử chức năng đề xuất vào ngày khác, tạo một đợt mới có thời gian giảng viên đề xuất bao gồm ngày đang chạy.
 
@@ -305,6 +308,14 @@ Nhóm trưởng nộp báo cáo. Giảng viên hướng dẫn xem báo cáo, nh�
 ### Bước 8. Thành lập và phân công hội đồng
 
 Quản trị viên/trưởng khoa tạo hội đồng trong đợt hợp lệ, chọn chủ tịch, thư ký và ủy viên. Sau đó phân công các đăng ký đủ điều kiện vào hội đồng phù hợp.
+
+Mỗi giảng viên chỉ tham gia một hội đồng trong cùng đợt đăng ký. Form thành lập tự ẩn giảng viên đã có hội đồng theo đợt và khoa đang chọn; giảng viên vẫn được tham gia hội đồng ở đợt khác. Máy chủ kiểm tra và khóa giảng viên trong giao dịch để chặn yêu cầu đồng thời phân công lặp.
+
+Hệ thống chỉ có ba mã loại đợt `KLTN`, `TLCN`, `NCKH`, hiển thị lần lượt là **KHÓA LUẬN TỐT NGHIỆP**, **TIỂU LUẬN CHUYÊN NGÀNH**, **NGHIÊN CỨU KHOA HỌC**. Dữ liệu mẫu có thêm hai đợt nhận đề xuất tháng 10/2026: KLTN từ 01/10 đến 15/11/2026, TLCN từ 10/10 đến 20/11/2026. Cả hai đều đang mở và hoạt động; giai đoạn sinh viên đăng ký bắt đầu sau hạn giảng viên đề xuất.
+
+Khi phân công, chọn khung giờ báo cáo riêng cho từng đề tài: 1 tiếng/đề tài, từ 07:00 đến 18:00 vào ngày báo cáo của hội đồng. Khung đã có lịch được làm mờ và không thể chọn. Máy chủ kiểm tra giao nhau và khóa dòng hội đồng trong giao dịch để ngăn hai yêu cầu đồng thời đặt cùng giờ; các khung nối tiếp nhau được phép. Sinh viên và giảng viên xem giờ trong lịch báo cáo.
+
+Ứng dụng tự bổ sung các cột giờ và chỉ mục khi khởi động, kể cả khi `DDL_AUTO=none`. Dữ liệu mẫu trong `database/asm_web_ute_data.sql` đã có giờ báo cáo cho các đề tài đã hoàn tất. Giờ được xác nhận ngay khi phân công; hội đồng đã hoàn tất chỉ hiển thị lịch, không có thao tác xếp giờ bổ sung.
 
 ### Bước 9. Chấm điểm hội đồng
 
