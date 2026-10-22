@@ -1,0 +1,99 @@
+# Pipeline CI/CD của dự án ASM_WEB_UTE
+#  - CI  : mỗi lần push / pull request vào main -> biên dịch, chạy unit test, đóng gói WAR, build Docker image
+#  - CD  : sau khi CI xanh, SSH vào Cloud Server (inet) để build lại image và chạy lại container.
+#          Job deploy chỉ chạy khi đã khai báo biến DEPLOY_ENABLED=true và các secret VPS_* trong repo.
+name: CI/CD ASM_WEB_UTE
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-cd-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: "CI 1 - Build & Unit test (JDK 25)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Cài JDK 25 (Temurin) + cache Maven
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      - name: Biên dịch, chạy unit test và đóng gói WAR
+        run: mvn -B -ntp verify
+
+      - name: Lưu báo cáo test
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+      - name: Lưu file WAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: asm-web-ute-war
+          path: target/*.war
+
+  docker:
+    name: "CI 2 - Build Docker image"
+    needs: build-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Lấy mã nguồn
+        uses: actions/checkout@v4
+
+      - name: Build image bằng Dockerfile của dự án
+        run: docker build -t asm-web-ute:${{ github.sha }} .
+
+      - name: Kiểm tra image
+        run: docker image ls asm-web-ute
+
+  deploy:
+    name: "CD - Deploy lên Cloud Server"
+    needs: docker
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - name: SSH vào server, build lại image và chạy lại container
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          port: ${{ secrets.VPS_PORT }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 15m
+          script: |
+            set -e
+            cd /opt/asm
+            git -C src pull --ff-only
+            docker build -t asm-web-ute src
+            docker rm -f asm || true
+            docker run -d --name asm --restart unless-stopped --network web --env-file /opt/asm/app.env asm-web-ute
+            sleep 60
+            docker logs --tail 5 asm
+
+      - name: Kiểm tra web sau khi deploy
+        run: |
+          code=$(curl -s -o /dev/null -w "%{http_code}" https://asm.minlish.site/login)
+          echo "HTTP $code"
+          test "$code" = "200"
