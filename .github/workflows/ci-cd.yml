@@ -39,14 +39,14 @@ jobs:
 
       - name: Lưu báo cáo test
         if: always()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: surefire-reports
           path: target/surefire-reports/
           if-no-files-found: ignore
 
       - name: Lưu file WAR
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: asm-web-ute-war
           path: target/*.war
