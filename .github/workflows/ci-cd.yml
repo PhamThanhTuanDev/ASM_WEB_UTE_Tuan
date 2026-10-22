@@ -21,14 +21,14 @@ concurrency:
 jobs:
   build-test:
     name: "CI 1 - Build & Unit test (JDK 25)"
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Lấy mã nguồn
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Cài JDK 25 (Temurin) + cache Maven
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '25'
@@ -39,14 +39,14 @@ jobs:
 
       - name: Lưu báo cáo test
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: surefire-reports
           path: target/surefire-reports/
           if-no-files-found: ignore
 
       - name: Lưu file WAR
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: asm-web-ute-war
           path: target/*.war
@@ -54,11 +54,11 @@ jobs:
   docker:
     name: "CI 2 - Build Docker image"
     needs: build-test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Lấy mã nguồn
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build image bằng Dockerfile của dự án
         run: docker build -t asm-web-ute:${{ github.sha }} .
@@ -70,7 +70,7 @@ jobs:
     name: "CD - Deploy lên Cloud Server"
     needs: docker
     if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     environment: production
     timeout-minutes: 20
     steps:
