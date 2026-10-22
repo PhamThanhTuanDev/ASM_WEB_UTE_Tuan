@@ -28,6 +28,9 @@ import java.util.regex.Pattern;
  */
 @Component
 @DependsOn("entityManagerFactory")
+// Railway chạy với LAZY_INIT=true: không có bean nào gọi tới lớp này nên phải tắt lazy,
+// nếu không phần nâng cấp CSDL (loại đợt, cột giờ báo cáo) sẽ không bao giờ chạy.
+@org.springframework.context.annotation.Lazy(false)
 public class DataInitializer implements InitializingBean {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
     private static final String SEED_FILE = "database/asm_web_ute_data.sql";
@@ -129,7 +132,8 @@ public class DataInitializer implements InitializingBean {
                 hasCanonicalConstraint = true;
             } else {
                 String name = constraint.get("CONSTRAINT_NAME").toString().replace("`", "``");
-                jdbcTemplate.execute("ALTER TABLE registration_periods DROP CHECK `" + name + "`");
+                // DROP CONSTRAINT chạy được cả trên MySQL 8 và MariaDB (MariaDB không hiểu DROP CHECK).
+                jdbcTemplate.execute("ALTER TABLE registration_periods DROP CONSTRAINT `" + name + "`");
             }
         }
         jdbcTemplate.update("UPDATE registration_periods SET type=CASE "
